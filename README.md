@@ -1,116 +1,72 @@
 # DUBL Character App
 
-Desktop character manager for the **DUBL / «Дубль All Stars 3.69 REWORK»** tabletop system.
+Desktop character manager for **DUBL / «Дубль All Stars 3.69 REWORK»**.
 
-This repository contains the application source code. Public releases provide ready-to-run builds, so users do **not** need Python, PySide6, or a development environment just to use the app.
+> **Development build.** This repository is currently shared primarily for testing. Expect UI changes, incomplete polish, and occasional breakage between versions.
 
-> **Current public baseline:** 0.14.0. This is the temporary public baseline while the next polish pass is in development.
+## Download the current build
 
-## Download
+Use **[Latest Release](../../releases/latest)**. You do not need Python or Git to test a release build.
 
-Open **[Releases](../../releases/latest)** and download the package for your system.
+**Windows:** download `DUBL-<version>-Windows-x64.zip`, extract it, run `DUBL.exe`.
 
-### Windows
-
-Download `DUBL-<version>-Windows-x64.zip`, extract it, and run `DUBL.exe`.
-
-### Linux
-
-Download `DUBL-<version>-Linux-x86_64.tar.gz`, extract it, make sure `DUBL` is executable, and run it:
+**Linux:** download `DUBL-<version>-Linux-x86_64.tar.gz`, extract it, then run:
 
 ```bash
 chmod +x DUBL
 ./DUBL
 ```
 
-The release packages are built automatically from the tagged source by GitHub Actions.
+Windows builds are currently unsigned, so Windows SmartScreen may show an unknown-publisher warning.
 
-## Main features
+## Before testing
 
-- Character library with local autosave.
-- Attributes, derived statistics, resources, skills and abilities.
-- Skill prerequisites and character validation.
-- Magic, schools, spells, equipment and cybernetics.
-- Custom resources and custom blocks.
-- Import/export using `.dubl` and JSON character files.
-- Free workspace/card layout with per-character positions and sizes.
-- Dark/light UI support.
+Please note the exact DUBL version from the Release page. When reporting a problem, include that version and your operating system.
 
-## Data and privacy
+For focused testing instructions and the current checklist, see **[TESTING.md](TESTING.md)**.
 
-DUBL is a local desktop application. Character files are stored on the user's computer.
+## Reporting problems
 
-Default character-library locations:
+Use **GitHub Issues → New issue → Bug report**.
+
+A useful report includes:
+
+- DUBL version.
+- Operating system; on Linux, include the distribution and desktop environment if known.
+- Whether this happened on a newly created character, an imported character, or an older save.
+- Exact steps that reproduce the problem.
+- What you expected and what actually happened.
+- Screenshot/video when the problem is visual.
+- A `.dubl` save that reproduces the problem, when you are comfortable sharing it.
+
+If something is not technically broken but is confusing, awkward, hard to discover, or unpleasant to use, use the **Tester feedback / UX** issue template instead.
+
+## Save locations
+
+DUBL stores the local character library here by default:
 
 - **Windows:** `%LOCALAPPDATA%\DUBL Character Sheet\characters\`
 - **Linux:** `$XDG_DATA_HOME/dubl-character/characters/` or `~/.local/share/dubl-character/characters/`
 
-## Run from source
+Before testing risky import/migration behavior with an important character, make a copy of the relevant `.dubl`/JSON file.
 
-Requires Python 3.10+ and PySide6 6.x. The release/CI baseline is Python 3.12.
+## What is worth testing
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python launcher.py
-```
+The highest-value areas right now are character creation and persistence, calculated values, skill/ability requirements, magic/equipment data, import/export, and the free-workspace/card UI. The detailed scenarios are in **[TESTING.md](TESTING.md)**.
 
-Windows PowerShell activation:
+## Source and automated tests
 
-```powershell
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python launcher.py
-```
+The source is public in this repository. `main` is checked by GitHub Actions, and release tags are tested again before Windows and Linux packages are published.
 
-Linux users can also use the existing convenience launcher:
+To run the test suite from source:
 
 ```bash
-bash run.sh
+python -m pip install -r requirements.txt -r requirements-test.txt
+QT_QPA_PLATFORM=offscreen python -m pytest -q
 ```
 
-## Tests
-
-```bash
-QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -v
-```
-
-The `main` branch is tested automatically on GitHub. Release tags are tested again before Windows/Linux packages are produced.
-
-## Repository layout
-
-```text
-dubl/                   Application code and UI
-data/                   Rules/catalog data
-tests/                  Mechanics and UI tests
-docs/                   Development/build documentation
-.github/workflows/       CI and release automation
-launcher.py              Packaging-friendly application entry point
-dubl.spec                PyInstaller build definition
-```
-
-## Building releases
-
-See [`docs/BUILDING.md`](docs/BUILDING.md).
-
-For a release such as 0.14.0:
-
-```bash
-git tag v0.14.0
-git push origin v0.14.0
-```
-
-GitHub then builds the Windows and Linux packages and publishes them to the release page.
-
-## Project documentation
-
-- [`CHANGELOG_0.14.md`](CHANGELOG_0.14.md) — 0.14 changes.
-- [`WORKSPACE_014.md`](WORKSPACE_014.md) — free-workspace behavior.
-- [`RULES_AUDIT.md`](RULES_AUDIT.md) — rules/formula audit notes.
-- [`CHARACTER_LIBRARY.md`](CHARACTER_LIBRARY.md) — character library design.
-- [`docs/README_0.14_SOURCE_PACKAGE.md`](docs/README_0.14_SOURCE_PACKAGE.md) — original Linux/source-package README.
+Development/build notes are in [`docs/BUILDING.md`](docs/BUILDING.md). Version changes are tracked in [`CHANGELOG_0.14.md`](CHANGELOG_0.14.md).
 
 ## License
 
-A public repository makes the source visible, but reuse rights are a separate decision. No open-source license has been selected for this temporary public baseline yet.
+No open-source license has been selected for this development baseline yet. Public source availability does not by itself grant redistribution or modification rights.
