@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+say() { printf '\n==> %s\n' "$*"; }
+fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
+
+command -v git >/dev/null 2>&1 || fail "git is not installed."
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
+[[ -d "$ROOT/.git" ]] || fail "DUBL repository not found at: $ROOT"
+cd "$ROOT"
+
+has_remote_dev() { git show-ref --verify --quiet refs/remotes/origin/dev; }
+has_local_dev() { git show-ref --verify --quiet refs/heads/dev; }
+
+switch_to_dev() {
+  if [[ "$(git branch --show-current)" == "dev" ]]; then
+    return
+  fi
+  has_local_dev || fail "Branch 'dev' does not exist yet. Run: dubl setup"
+  say "Switching to dev"
+  git switch dev || fail "Could not switch to dev. Ask ChatGPT and paste: git status"
+}
+
+cmd_install() {
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$SELF" "$HOME/.local/bin/dubl"
+  say "Installed command: dubl"
+  if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    printf '\nAdd this line to your shell config, then restart the terminal:\n'
+    printf 'export PATH="$HOME/.local/bin:$PATH"\n'
+  fi
+}
+
+cmd_setup() {
+  command -v gh >/dev/null 2>&1 || fail "GitHub CLI (gh) is not installed."
+  gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not logged in. Run: gh auth login"
+
+  say "Fetching GitHub state"
+  git fetch origin
+
+  if has_local_dev; then
+    git switch dev
+  elif has_remote_dev; then
+    git switch --track origin/dev
+  else
+    [[ -z "$(git status --porcelain)" ]] || fail "There are uncommitted changes. Push/commit them first, then run dubl setup."
+    git switch main
+    git pull --ff-only origin main
+    git switch -c dev
+    git push -u origin dev
+  fi
+
+  say "Ready. Daily branch: dev"
+  printf 'From now on, use: dubl push\n'
+}
+
+choose_message() {
+  if [[ $# -gt 0 ]]; then
+    printf '%s' "$*"
+    return
+  fi
+
+  mapfile -t changed < <(git diff --cached --name-only)
+  local only_docs=1 only_tests=1 f
+  for f in "${changed[@]}"; do
+    [[ "$f" == *.md || "$f" == docs/* || "$f" == .github/ISSUE_TEMPLATE/* ]] || only_docs=0
+    [[ "$f" == tests/* ]] || only_tests=0
+  done
+
+  if (( only_docs )); then
+    printf 'docs: update DUBL documentation'
+  elif (( only_tests )); then
+    printf 'test: update DUBL tests'
+  else
+    printf 'dev: update DUBL'
+  fi
+}
+
+light_check() {
+  if command -v python3 >/dev/null 2>&1; then
+    say "Quick syntax check"
+    python3 -m compileall -q dubl tests launcher.py
+  fi
+  git diff --cached --check
+}
+
+cmd_push() {
+  switch_to_dev
+
+  say "Collecting changes"
+  git add -A
+
+  if git diff --cached --quiet; then
+    say "No new changes to commit"
+    git push -u origin dev
+    return
+  fi
+
+  light_check
+  local msg
+  msg="$(choose_message "$@")"
+
+  say "Commit: $msg"
+  git commit -m "$msg"
+
+  say "Pushing to dev"
+  git push -u origin dev
+
+  say "Done. GitHub CI is checking it."
+  if command -v gh >/dev/null 2>&1; then
+    gh run list --workflow CI --branch dev --limit 1 2>/dev/null || true
+  fi
+}
+
+require_clean() {
+  [[ -z "$(git status --porcelain)" ]] || fail "There are uncommitted changes. Run dubl push first."
+}
+
+check_ci_for_head() {
+  command -v gh >/dev/null 2>&1 || fail "GitHub CLI (gh) is required for releases."
+  gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not logged in. Run: gh auth login"
+
+  local head line status conclusion run_id
+  head="$(git rev-parse HEAD)"
+  line="$(gh run list --workflow CI --branch dev --commit "$head" --limit 1 \
+      --json status,conclusion,databaseId \
+      --jq '.[0] | [.status, .conclusion, (.databaseId|tostring)] | @tsv' 2>/dev/null || true)"
+
+  [[ -n "$line" ]] || fail "No CI run found for current dev. Run dubl push and wait for CI."
+  IFS=$'\t' read -r status conclusion run_id <<< "$line"
+
+  if [[ "$status" != "completed" || "$conclusion" != "success" ]]; then
+    printf 'CI: %s / %s\n' "$status" "${conclusion:-pending}"
+    [[ -n "${run_id:-}" ]] && printf 'Open: gh run view %s --web\n' "$run_id"
+    fail "Release stopped until CI is green."
+  fi
+}
+
+cmd_release() {
+  local version="${1:-}"
+  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Version must look like 0.14.2"
+
+  switch_to_dev
+  require_clean
+
+  say "Checking dev"
+  git push -u origin dev
+  check_ci_for_head
+
+  local tag="v$version"
+  if git rev-parse "$tag" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+    fail "Tag $tag already exists. Choose a new version."
+  fi
+
+  say "Promoting dev to main"
+  git fetch origin
+  git switch main
+  trap 'git switch dev >/dev/null 2>&1 || true' EXIT
+  git pull --ff-only origin main
+  git merge --ff-only dev
+  git push origin main
+
+  say "Creating $tag"
+  git tag -a "$tag" -m "DUBL $version"
+  git push origin "$tag"
+
+  say "Release started"
+  printf 'GitHub is building Windows and Linux packages for DUBL %s.\n' "$version"
+  if command -v gh >/dev/null 2>&1; then
+    gh run list --workflow "Build release" --limit 3 2>/dev/null || true
+  fi
+}
+
+cmd_status() {
+  printf 'Repository: %s\n' "$ROOT"
+  printf 'Branch: %s\n' "$(git branch --show-current)"
+  git status --short
+  if command -v gh >/dev/null 2>&1; then
+    printf '\nLatest CI:\n'
+    gh run list --workflow CI --limit 3 2>/dev/null || true
+  fi
+}
+
+case "${1:-}" in
+  install) shift; cmd_install "$@" ;;
+  setup) shift; cmd_setup "$@" ;;
+  push) shift; cmd_push "$@" ;;
+  release) shift; cmd_release "$@" ;;
+  status) shift; cmd_status "$@" ;;
+  *)
+    cat <<'USAGE'
+DUBL development helper
+
+  dubl push                  save changes and push to dev
+  dubl push "message"        same, with your own short description
+  dubl release 0.14.2        publish a green dev build to testers
+  dubl status                show current state and recent CI
+
+One-time setup:
+  ./tools/dubl install
+  dubl setup
+USAGE
+    ;;
+esac
