@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build output
+build/
+dist/
+*.exe
+*.msi
+*.AppImage
+*.zip
+*.tar.gz
+
+# Local/editor files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+
+# Local character/save exports
+*.dubl
+*.bak
+autosave.json
+library.json
+characters/
