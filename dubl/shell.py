@@ -370,10 +370,10 @@ class CharacterWindow(Window):
         d.deleteLater();self.rebuild()
     def attributes_panel(self):
         w,v=self.column();p=self.s['profile']
-        size_line=QWidget();size_line.setObjectName('attributeMetaRow');size_lay=QHBoxLayout(size_line);size_lay.setContentsMargins(2,0,2,1);size_lay.setSpacing(7);size_label=label('Размер','mutedLabel');size=self.compact(p['size'],1,10);size.spin.setMinimumWidth(46);size.changed.connect(lambda x:self.assign(p,'size',int(x)));size_lay.addWidget(size_label);size_lay.addWidget(size);size_lay.addStretch(1);v.addWidget(size_line)
+        size_line=QWidget();size_line.setObjectName('attributeMetaRow');size_lay=QHBoxLayout(size_line);size_lay.setContentsMargins(2,0,2,1);size_lay.setSpacing(7);size_label=label('Размер','mutedLabel');size=self.compact(p['size'],1,10);size.setObjectName('characterSize');size.spin.setMinimumWidth(46);size.changed.connect(lambda x:self.assign(p,'size',int(x)));size_lay.addWidget(size_label);size_lay.addWidget(size);size_lay.addStretch(1);v.addWidget(size_line)
         grid=AttributeGrid();v.addWidget(grid);tiles={}
         for a in ATTRS:
-            n=self.compact(self.s['attributes'][a],-5,10);n.changed.connect(lambda x,a=a:self.assign(self.s['attributes'],a,int(x)));tile=AttributeTile(a,n,0);tiles[a]=tile;grid.add_tile(tile)
+            n=self.compact(self.s['attributes'][a],-5,10);n.setObjectName('attribute_'+a);n.changed.connect(lambda x,a=a:self.assign(self.s['attributes'],a,int(x)));tile=AttributeTile(a,n,0);tiles[a]=tile;grid.add_tile(tile)
         def update():
             values=engine.attrs(self.s)
             for a,tile in tiles.items():tile.set_total(values[a])

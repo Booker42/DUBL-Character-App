@@ -40,11 +40,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-build.txt
+          python -m pip install -r requirements-test.txt
 
       - name: Run test suite
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m unittest discover -s tests -v
+        run: python -m pytest -q
 
       - name: Build portable application
         run: pyinstaller --clean --noconfirm dubl.spec

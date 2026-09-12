@@ -252,8 +252,14 @@ class Card(QFrame):
     def manual_height(self,v):self.user_height=int(v or 0)
     def set_collapsed(self,on):
         self.collapsed=bool(on);self.body.setVisible(not on and self.popup is None);self.fold.setText('+' if on else '−')
-        if on:self.resize(self.width(),48);self.density=MINIMAL
+        if on:
+            self.resize(self.width(),48);self.density=MINIMAL
         else:
+            # Restore the persisted user height immediately.  Density/content
+            # fitting may refine it on the next event-loop turn, but callers
+            # must never observe an expanded card still stuck at 48 px.
+            restored=self.clamp_user_height(self.user_height or self.preferred_height())
+            self.resize(self.width(),restored)
             QTimer.singleShot(0,self.update_density)
             if hasattr(self.owner,'ensure_card_nonoverlap'):QTimer.singleShot(0,lambda:self.owner.ensure_card_nonoverlap(self))
         self.set_customize(self._customizing);self.updateGeometry()

@@ -22,7 +22,7 @@ class ShellTests(unittest.TestCase):
         self.assertTrue(self.w.docks['cyber'].isHidden());self.assertFalse(self.w.docks['magic'].isHidden())
         self.assertGreater(self.w.docks['skills'].x(),self.w.docks['profile'].x())
     def test_number_changes_character_and_totals(self):
-        n=self.w.docks['attributes'].findChildren(Number)[0];plus=next(b for b in n.findChildren(QPushButton) if b.text()=='+');QTest.mouseClick(plus,Qt.LeftButton)
+        n=self.w.docks['attributes'].findChild(Number,'attribute_Сила');self.assertIsNotNone(n);plus=next(b for b in n.findChildren(QPushButton) if b.text()=='+');QTest.mouseClick(plus,Qt.LeftButton)
         self.assertEqual(self.w.s['attributes']['Сила'],1);self.assertEqual(engine.derived(self.w.s)['Здоровье'],1)
     def test_customize_mode_is_explicit(self):
         card=self.w.docks['profile'];self.assertFalse(card._customizing)
@@ -38,7 +38,7 @@ class ShellTests(unittest.TestCase):
         card.set_collapsed(False);self.app.processEvents();self.assertGreater(card.height(),48);self.assertEqual(card.user_height,saved)
     def test_detach_return_keeps_editor_values(self):
         c=self.w.docks['attributes'];c.detach();self.app.processEvents();self.assertIsNotNone(c.popup)
-        n=c.body.findChildren(Number)[0];n.spin.setValue(4);c.popup.close();self.app.processEvents();self.assertIsNone(c.popup);self.assertIs(c.body.parent(),c);self.assertEqual(self.w.s['attributes']['Сила'],4)
+        n=c.body.findChild(Number,'attribute_Сила');self.assertIsNotNone(n);n.spin.setValue(4);c.popup.close();self.app.processEvents();self.assertIsNone(c.popup);self.assertIs(c.body.parent(),c);self.assertEqual(self.w.s['attributes']['Сила'],4)
     def test_restore_geometry_hidden_and_collapsed(self):
         card=self.w.docks['skills'];card.user_x=420;card.user_y=500;card.user_width=710;card.user_height=410;card.setGeometry(420,500,710,410);card.set_collapsed(True)
         self.w.docks['profile'].hide_card();self.w.capture_layout();restored=normalize(copy.deepcopy(self.w.s));self.w.s=restored;self.w.rebuild(True);self.app.processEvents()
