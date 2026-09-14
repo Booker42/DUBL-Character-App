@@ -65,3 +65,13 @@ def test_release_workflow_smoke_tests_built_appimage_in_clean_home():
     assert 'APPIMAGE_EXTRACT_AND_RUN=1' in text
     assert 'mktemp -d' in text
     assert 'timeout 8s' in text
+
+
+def test_compose_sources_do_not_import_internal_layout_weight_symbol():
+    kotlin_roots = [ROOT / 'desktopApp/src/main/kotlin']
+    offenders = []
+    for kotlin_root in kotlin_roots:
+        for path in kotlin_root.rglob('*.kt'):
+            if 'import androidx.compose.foundation.layout.weight' in read(path):
+                offenders.append(str(path.relative_to(ROOT)))
+    assert not offenders, 'invalid explicit weight imports: ' + ', '.join(offenders)
