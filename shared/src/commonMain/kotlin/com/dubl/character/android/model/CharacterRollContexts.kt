@@ -1,0 +1,196 @@
+package com.dubl.character.android.model
+
+enum class RollContext(val title: String) {
+    ATTRIBUTE("Проверка характеристики"),
+    SKILL("Проверка умения"),
+    FORTITUDE("Стойкость"),
+    REFLEXES("Рефлексы"),
+    INITIATIVE("Инициатива"),
+    DODGE("Уворачивание"),
+    ATTACK("Атака"),
+    PARRY("Парирование"),
+    FEINT("Финт"),
+    GRAPPLE("Захват"),
+    DISARM("Обезоруживание"),
+    TRIP("Подсечка"),
+    PUSH("Толкание"),
+    KNOCKDOWN("Сбивание"),
+    BREAK_ITEM("Поломка предмета"),
+}
+
+data class RollContribution(
+    val label: String,
+    val value: Int,
+)
+
+data class CharacterRollPreset(
+    val context: RollContext,
+    val title: String,
+    val bonus: Int?,
+    val contributions: List<RollContribution>,
+    val formulaText: String,
+    val unavailableReason: String = "",
+) {
+    val available: Boolean get() = bonus != null
+}
+
+fun DublCharacter.rollPreset(
+    context: RollContext,
+    skillId: String? = null,
+    attribute: AttributeId? = null,
+): CharacterRollPreset {
+    return when (context) {
+        RollContext.ATTRIBUTE -> attributePreset(attribute ?: AttributeId.STRENGTH)
+        RollContext.SKILL -> skillPreset(skillId ?: return unavailablePreset(context, "Не выбрано умение"), attribute)
+        RollContext.FORTITUDE -> fixedPreset(
+            context = context,
+            contributions = listOf(
+                RollContribution("Телосложение", constitution),
+                RollContribution("Воля", will),
+                RollContribution("Стойкий", developmentRank(DevelopmentEffectIds.STALWART)),
+            ).filter { it.value != 0 },
+        )
+        RollContext.REFLEXES -> fixedPreset(
+            context = context,
+            contributions = listOf(
+                RollContribution("Скорость", speed),
+                RollContribution("Ловкость", dexterity),
+                RollContribution("Нагрузка", equipmentLoadPenalty),
+                RollContribution("Быстрые рефлексы", developmentRank(DevelopmentEffectIds.QUICK_REFLEXES)),
+            ).filter { it.value != 0 },
+        )
+        RollContext.INITIATIVE -> fixedPreset(
+            context = context,
+            contributions = listOf(
+                RollContribution("Скорость", speed),
+                RollContribution("Восприятие", perception),
+                RollContribution("Улучшенная инициатива", developmentRank(DevelopmentEffectIds.IMPROVED_INITIATIVE)),
+            ).filter { it.value != 0 },
+        )
+        RollContext.DODGE -> fixedPreset(
+            context = context,
+            contributions = listOf(RollContribution("Рефлексы", reflexes)),
+            formulaOverride = "2d6 + Рефлексы + ситуационные бонусы защиты",
+        )
+        RollContext.ATTACK -> attackLikePreset(context, skillId ?: "melee_weapon", attribute)
+        RollContext.PARRY -> {
+            val base = attackLikePreset(context, skillId ?: "melee_weapon", attribute)
+            base.withDevelopmentBonus("Фехтовальщик", developmentRank(DevelopmentEffectIds.FENCER))
+        }
+        RollContext.FEINT -> {
+            val chosenSkill = skillId ?: "eloquence"
+            val chosenAttribute = attribute ?: AttributeId.CHARISMA
+            val base = skillBasedPreset(context, chosenSkill, chosenAttribute)
+            base.withDevelopmentBonus("Финтовальщик", developmentRank(DevelopmentEffectIds.FEINTER))
+        }
+        RollContext.GRAPPLE -> skillBasedPreset(context, "unarmed", AttributeId.STRENGTH)
+        RollContext.DISARM -> skillBasedPreset(context, skillId ?: "melee_weapon", attribute ?: AttributeId.DEXTERITY)
+        RollContext.TRIP -> skillBasedPreset(context, "unarmed", AttributeId.DEXTERITY)
+        RollContext.PUSH -> skillBasedPreset(context, "unarmed", AttributeId.STRENGTH)
+        RollContext.KNOCKDOWN -> skillBasedPreset(context, "unarmed", AttributeId.STRENGTH)
+        RollContext.BREAK_ITEM -> attackLikePreset(context, skillId ?: "melee_weapon", attribute)
+    }
+}
+
+private fun DublCharacter.attributePreset(attribute: AttributeId): CharacterRollPreset = CharacterRollPreset(
+    context = RollContext.ATTRIBUTE,
+    title = attribute.title,
+    bonus = attribute(attribute),
+    contributions = listOf(RollContribution(attribute.title, attribute(attribute))),
+    formulaText = "2d6 + ${attribute.title}",
+)
+
+private fun DublCharacter.skillPreset(skillId: String, attribute: AttributeId?): CharacterRollPreset {
+    val skill = resolveSkill(skillId) ?: return unavailablePreset(RollContext.SKILL, "Умение не найдено")
+    val calculation = skillCalculation(skill, attribute)
+    return CharacterRollPreset(
+        context = RollContext.SKILL,
+        title = skill.name,
+        bonus = calculation.total,
+        contributions = calculation.contributions.map { RollContribution(it.label, it.value) },
+        formulaText = calculation.formulaText(skill),
+        unavailableReason = calculation.unavailableReason,
+    )
+}
+
+private fun DublCharacter.skillBasedPreset(
+    context: RollContext,
+    skillId: String,
+    attribute: AttributeId,
+): CharacterRollPreset {
+    val skill = resolveSkill(skillId) ?: return unavailablePreset(context, "Умение не найдено")
+    val contributions = mutableListOf(
+        RollContribution(attribute.title, attribute(attribute)),
+        RollContribution("Ранг", skill.rank),
+    )
+    if (skill.modifier != 0) {
+        contributions += RollContribution("Поправка умения", skill.modifier)
+    }
+    if (skill.rank == 0 && !skill.untrained.usable) {
+        return CharacterRollPreset(
+            context = context,
+            title = context.title,
+            bonus = null,
+            contributions = contributions,
+            formulaText = "2d6 + ${attribute.title} + ${skill.name}",
+            unavailableReason = "Нельзя использовать без обучения",
+        )
+    }
+    val untrainedPenalty = if (skill.rank == 0) skill.untrained.penalty ?: 0 else 0
+    if (untrainedPenalty != 0) {
+        contributions += RollContribution("Без обучения", untrainedPenalty)
+    }
+    return CharacterRollPreset(
+        context = context,
+        title = context.title,
+        bonus = contributions.sumOf { it.value },
+        contributions = contributions,
+        formulaText = "2d6 + ${attribute.title} + ${skill.name}",
+    )
+}
+
+private fun DublCharacter.attackLikePreset(
+    context: RollContext,
+    skillId: String,
+    attribute: AttributeId?,
+): CharacterRollPreset {
+    val defaultAttribute = when (skillId) {
+        "shooting" -> AttributeId.PERCEPTION
+        "throwing", "unarmed", "melee_weapon" -> AttributeId.DEXTERITY
+        else -> AttributeId.DEXTERITY
+    }
+    return skillBasedPreset(context, skillId, attribute ?: defaultAttribute)
+}
+
+private fun fixedPreset(
+    context: RollContext,
+    contributions: List<RollContribution>,
+    formulaOverride: String? = null,
+): CharacterRollPreset {
+    val total = contributions.sumOf { it.value }
+    return CharacterRollPreset(
+        context = context,
+        title = context.title,
+        bonus = total,
+        contributions = contributions,
+        formulaText = formulaOverride ?: "2d6 + " + contributions.joinToString(" + ") { it.label },
+    )
+}
+
+private fun unavailablePreset(context: RollContext, reason: String): CharacterRollPreset = CharacterRollPreset(
+    context = context,
+    title = context.title,
+    bonus = null,
+    contributions = emptyList(),
+    formulaText = reason,
+    unavailableReason = reason,
+)
+
+private fun CharacterRollPreset.withDevelopmentBonus(label: String, value: Int): CharacterRollPreset {
+    if (value == 0 || bonus == null) return this
+    return copy(
+        bonus = bonus + value,
+        contributions = contributions + RollContribution(label, value),
+        formulaText = "$formulaText + $label",
+    )
+}

@@ -1,0 +1,32 @@
+val desktopVersion = providers.environmentVariable("DUBL_VERSION").orNull ?: "0.2.0"
+
+plugins {
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    implementation(project(":shared"))
+    implementation("org.jetbrains.compose.material3:material3:1.12.0-alpha03")
+    implementation(compose.desktop.currentOs)
+}
+
+compose.desktop {
+    application {
+        mainClass = "com.dubl.character.desktop.MainKt"
+        nativeDistributions {
+            packageName = "DUBL"
+            packageVersion = desktopVersion
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
+            )
+        }
+    }
+}

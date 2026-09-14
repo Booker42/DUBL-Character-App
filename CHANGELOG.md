@@ -1,0 +1,189 @@
+# Changelog
+
+## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
+
+- Promoted `desktopApp` Compose Desktop from scaffold to the primary desktop frontend.
+- Wired Compose to persistent `DesktopCharacterStore` / `DesktopCharacterExtrasStore`, shared `CharacterSession`, extras session, and canonical catalogs.
+- Added complete Compose workflows for Character Sheet, Skills/Rolls, Development/Special Branches/Martial Arts/Chi, Magic, Equipment, and Characters.
+- Preserved Android mutation semantics and schema-7-compatible persistence instead of duplicating DUBL formulas in desktop UI code.
+- Added Android-parity sheet behavior: XP economy, conditions, automatic Weakness, custom resources, portrait storage/rendering, quick checks, formula/details, recent-change Undo, learned summaries, and persistent grouping/tree movement.
+- Added rule-aware rolls, custom/specialized skills, development requirements/economy, Chi techniques, magic schools/spellbook/custom spells, and equipment load/capacity/burden.
+- Added confirmations for destructive desktop actions and validation feedback for invalid/duplicate custom skills.
+- Switched the Linux release workflow to the Compose packager and added required `:shared:desktopTest` and `:desktopApp:compileKotlin` CI gates.
+- Hardened the Compose Linux release with clean-HOME Xvfb AppImage startup smoke testing, pinned appimagetool/Gradle checksums, aligned Compose 1.12 Material3 dependencies, and a JDK 17 CI toolchain.
+- Synchronized the build matrix to Kotlin 2.4.20, Compose Multiplatform 1.12.0, AGP 9.3.0, Gradle 9.7.0, and compileSdk 37 while keeping Android targetSdk 36.
+- Kept the old portable/Swing frontend only as a temporary restricted-environment oracle/fallback; it is no longer the canonical release target.
+- Note: the restricted sandbox used for this migration cannot fetch Gradle/Maven dependencies, so final Compose AppImage binary verification must run in normal CI/local Linux before publishing.
+
+## Desktop 0.1.1 — interactive character sheet
+
+- Replaced the read-only desktop Character Sheet preview with a real editing workflow backed by the shared `DublCharacter` model.
+- Added platform-independent `CharacterSheetSession` behavior for identity, experience, attributes, resources, and maximum overrides while keeping all clamping and derived formulas in `DublCharacter.normalized()`.
+- Added desktop editing for name, concept, total XP, size, legs, optional mana, primary attributes, Health, Endurance, Mana, and manual resource maximums.
+- Derived Defense, Reflexes, Initiative, Fortitude, Run, and Ability Points now refresh immediately from shared rules after edits.
+- Updated the portable Linux click-to-run build to expose the same sheet editing semantics as the Compose Desktop source.
+- Hardened portable release smoke tests to use a fresh HOME so an older extracted payload can never produce a false-green result.
+- Native desktop file persistence remains deliberately deferred; this increment keeps the existing `CharacterStore` boundary and in-memory desktop store.
+
+## KMP foundation — in progress
+
+- Began migrating the canonical Android 0.6.2 model/rules layer into Kotlin Multiplatform `shared` without changing game formulas.
+- Added a shared persistence contract while preserving Android SharedPreferences schema 7.
+- Moved the canonical DUBL theme and reusable card/stat primitives into shared Compose code.
+- Added a responsive Compose Desktop foundation with compact, normal, and wide layouts and no app-level horizontal scrolling.
+- Added boundary and source-level regression checks for shared platform independence, theme ownership, and desktop layout policy.
+- Kept Web, server/sync, native desktop persistence, and full desktop feature parity out of this foundation phase.
+
+## 0.6.2 — Hierarchical groups, drag ordering, and explicit skill rolls
+
+- Restored dependency-tree presentation for owned special developments and martial arts inside user-defined character-sheet groups.
+- Dragging a tree root now moves its complete owned subtree; individual children can still be extracted, reordered, and reattached independently.
+- Added exact drag-and-drop ordering for both items and groups and removed the legacy “group above/below” controls.
+- Replaced paired two-column rows with independently balanced columns so taller two-line cards no longer leave artificial gaps in the opposite column; linked trees stay in one column.
+- Changed character-sheet skill rolls to always open an attribute chooser first, defaulting to the rulebook/stock attribute and recalculating the displayed bonus for any selected attribute.
+- Removed eager Martial Arts availability calculation on tab entry; availability is evaluated lazily for visible rows, with full evaluation only for the explicit “available now” filter.
+- Returned bottom-sheet gesture ownership to Material3 and disabled partial expansion for key sheets to reduce jerking and make swipe-to-dismiss consistent.
+- Added regression coverage for tree moves, sibling ordering, group ordering, roll-attribute overrides, masonry-style columns, and sheet interaction policy.
+- Bumped the default Android version to `0.6.2`.
+
+## 0.6.1 — Character-sheet performance and mobile interaction polish
+
+- Reworked learned skills and acquired developments on the Character sheet into true lazy list items so long sheets no longer compose every card inside one parent item while scrolling.
+- Switched acquired developments on the Character sheet to the same compact two-column layout as learned skills to reduce vertical scrolling.
+- Precomputed Martial Arts availability for the visible catalog state and memoized row availability to avoid repeated prerequisite work while scrolling the large martial catalog.
+- Fixed modal bottom-sheet nested scrolling so a downward drag at the top of sheet content is handed back to the sheet and can dismiss it from the content area, not only from the drag handle.
+- Added app- and sheet-level focus clearing so tapping away from text input dismisses the mobile keyboard; group name fields also expose an explicit Done IME action.
+- Rebuilt the group editor with larger labeled controls, visible item cards, an explicit drag handle, highlighted drop targets, and real long-press drag-and-drop between groups.
+- Added regression coverage for sheet gesture policy, two-column layout, cross-group movement, keyboard-dismiss wiring, and Martial Arts scroll caching.
+- Bumped the default Android version to `0.6.1`.
+
+## 0.6 — Gameplay sheet groups and content repair
+
+- Replaced Favorite Checks on the Character sheet with every learned skill (rank 1+) in compact two-column cards.
+- Added persistent per-character custom groups for learned skills and acquired developments, including collapse state, manual group ordering, and long-press drag movement between adjacent groups.
+- Reduced Character-sheet scrolling by collapsing combat quick checks by default and using denser semantic-color sections.
+- Kept long skill names readable with two-line compact cards and preserved tap-to-roll behavior.
+- Re-audited the 3.69 rulebook development catalogue: restored swallowed entries, repaired neighboring descriptions/requirements, and retained Improvised Tools and Workshop on the Knee in the Master Craftsman branch.
+- Corrected Blocking prerequisites to Agility 3 OR Speed 3, plus Cold Weapons 3 OR Unarmed Combat 3.
+- Extended the Archmage importer to include five complete Heading 5 Battle Magic additions, including Raven King Blade, while continuing to filter unsupported schools.
+- Added offline regression tests for grouping persistence, Archmage Heading 5 import, catalog integrity, and the reported content bugs.
+- Bumped the default Android version to `0.6`.
+
+## 0.5.1 — Android compile hotfix
+
+- Fixed missing model extension imports for Chi access and rule-aware roll presets in Android UI/controller code.
+- Fixed nullable roll bonus formatting in the shared roll sheet so Debug and Preview Kotlin compilation can proceed.
+- Kept the 0.5 rule/effect catalogs and gameplay behavior unchanged.
+- Bumped the default Android version to `0.5.1`.
+
+## 0.5 — Rule-aware rolls, Chi techniques, and sheet integration
+
+- Added a reusable roll-context layer for attributes, Reflexes, Initiative, Dodge, raw attacks, Parry, Feint, Grapple, Disarm, Trip, Push, Knockdown, and Break Item checks without introducing combat-state tracking.
+- Added optional DC/opponent-result comparison to the shared roll sheet and preserved the existing advantage, hindrance, doubles, and critical follow-up rules.
+- Added a data-driven 283-entry skill-effect catalog based on the approved 0.5 review, with automatic bonuses, named situational toggles, advantage/hindrance options, and linked-rule reminders.
+- Wired passive development effects into real character math, including Incredible Health, Stalwart, Enduring, Quick Reflexes, Improved Initiative, Runner, Hauler, Self-Taught, and selected unambiguous Chi-school passives.
+- Scoped contextual bonuses correctly: Fencer applies to Parry rather than ordinary melee attacks, and Feinter applies only to Feint.
+- Expanded Chi from a resource-only feature into a rules domain with 27 purchasable Chi developments, 9 schools, and 68 techniques imported deterministically from Masters of Melee.
+- Chi techniques now show requirements, availability, action/cost text, and can spend Chi directly when usable; Internal Chi automatically activates the resource and Chi progression can raise its maximum.
+- Added acquired Martial Arts and Chi development as dedicated Character-sheet groups using the same compact interaction pattern as special development.
+- Added deterministic 0.5 import tests and pure-model coverage for derived effects, Chi access, roll contexts, target comparison, and skill-effect resolution.
+- Kept ambiguous Block calculation and stateful combat effects out of automatic resolution until their rule/state dependencies are explicit.
+- Bumped the default Android version to `0.5`.
+
+## 0.4 — Martial arts, Chi, and Archmage expansion
+
+- Added Martial Arts as a dedicated Development tab and XP-only progression domain, separate from ordinary and special development.
+- Imported 19 approved unarmed/weapon martial styles and 103 unique techniques from the Master of Melee rulebook, including table-based stances and Gun Kata techniques.
+- Added martial-style prerequisite handling for named alternatives and “any martial art” requirements without consuming Ability Points.
+- Added persistent Chi as an optional character resource with a base pool of `max(3, Will + 1)` and up to 10 bonus ranks at 50 XP each.
+- Added a dedicated Chi tab with current/max controls, bonus-rank purchasing, full restore, and short/long-rest rule reminders.
+- Added enabled Chi to the main Character resource strip for fast in-play spending and recovery.
+- Added Chi purchases to the shared character XP economy and bumped character persistence to schema 7.
+- Imported 54 additional Archmage spells only for already-supported schools: Warding, Divination, Prayer, and Mind.
+- Kept Illusion, Elementalistics, Mana Well, Wild Magic, and other experimental Archmage systems out of this release.
+- Added deterministic 0.4 content import tooling for repeatable rulebook-to-catalog updates without duplicate entries.
+- Bumped the default Android version to `0.4`.
+
+## 0.3.2.1 — Bottom-sheet gesture and toggle visibility hotfix
+
+- Restored normal drag gestures for modal bottom sheets.
+- Contained scroll overshoot inside long sheet content so reaching the end of a list no longer hands uncontrolled drag momentum to the parent sheet.
+- Added a shared high-contrast switch style with a clearly visible light thumb in the off state and readable disabled states.
+- Added release-tag/versionCode support for four-part hotfix versions such as `v0.3.2.1`.
+- Bumped the default Android version to `0.3.2.1`.
+
+## 0.3.2 — Compact development sheet and interaction polish
+
+- Grouped acquired development on the Character sheet into ordinary and special sections.
+- Ordered acquired development by prerequisites, placing dependent entries under their first owned prerequisite without duplicating them.
+- Reduced Character-sheet development rows to name and rank only; tapping opens full details.
+- Made the full spell catalog row tappable for learning instead of requiring the small add button.
+- Made the full equipment catalog row tappable; tapping an owned catalog item adds one more.
+- Added a toggle to hide or reveal unlearned magic schools.
+- Disabled bottom-sheet drag gestures so scrolling long sheet content cannot pull or jitter the whole sheet at scroll boundaries.
+- Bumped the default Android version to `0.3.2`.
+
+## 0.3.1 — Custom resources and school magic
+
+- Added manual maximum overrides for Health, Endurance, and Mana with reset-to-formula behavior.
+- Added persistent custom resources with editable name, current value, and maximum.
+- Reworked Magic Power into separate canonical school values at 25 XP per level.
+- Added the rulebook school catalog, canonical aliases, consistent school ordering, and school filters for spells.
+- Spell usability now checks mana cost against the matching school power; spells can still be learned when currently unusable and are clearly marked.
+- Added school Magic Power XP to the shared character XP economy.
+- Preserved legacy global Magic Power only as a migration fallback until school power is configured.
+- Compressed favorite skill rows on the Character sheet to name, rank, and total bonus.
+- Added acquired Development/Feat entries with descriptions below favorite skills on the Character sheet.
+- Bumped the default Android version to `0.3.1`.
+
+## 0.2 — Integration, stabilization, and polish
+
+- Integrated Skills, Development, Magic, and Equipment with shared character persistence and connected them to the Character sheet.
+- Added the full mobile development workflow with prerequisites, branches, abilities, and ability-point budgeting.
+- Added native magic, schools, spellbook management, mana formulas, spell-learning XP, and the local spell catalog.
+- Added native equipment, quantities, carried state, custom items, automatic/manual load, and burden penalties.
+- Corrected catalog equipment load to use item weight instead of the item requirement field.
+- Prevented duplicate catalog equipment rows by increasing the existing item quantity.
+- Added confirmation before deleting spells, magic schools, and equipment.
+- Added actionable empty states and reset actions for filtered Skills/Development/Magic/Equipment screens.
+- Improved long-name and large-font handling across the new screens.
+- Increased bottom-navigation icon size.
+- Extracted the dice engine into pure model code and added deterministic tests for doubles, critical failures, critical successes, superiority dice, and hindrance follow-ups.
+- Added normalization and magic/equipment rule tests for 0.2 data.
+- Added `v0.2` release-tag support and set the default app version to `0.2`.
+
+## 0.1.4 — Skills
+
+- Replaced the skills placeholder with a complete native mobile skills screen.
+- Ported the 27-entry desktop DUBL base skill catalog and rank XP table.
+- Added search, category filtering, trained-only filtering, and skill summary statistics.
+- Added rank editing from 0 to 10 and a calculation breakdown for every skill.
+- Added multiple selected attributes per skill.
+- Added untrained, untrained −2, and unavailable-without-training handling.
+- Added per-skill modifiers and calculation notes.
+- Added hide/restore behavior that preserves skill data.
+- Added Knowledge, Performance, Profession, and Craft specializations.
+- Added custom user-defined skills.
+- Persisted skill state in the local character snapshot with backward-compatible 0.1.3 loading.
+- Added pure-model tests for multi-attribute totals, untrained rules, and XP costs.
+- Removed the day-to-day `dubl-android` Git helper from the project workflow; normal Git commands are now documented.
+
+## 0.1.3 — Native rebuild
+
+- Replaced the WebView prototype with a real Kotlin + Jetpack Compose application.
+- Raised compile/target SDK to Android API 36.
+- Switched to AGP 9.4 and Gradle 9.6.
+- Added native local character persistence.
+- Added multiple-character creation, selection, and deletion.
+- Added all eight primary DUBL attributes.
+- Added character size and size-based Strength/Speed adjustment.
+- Added DUBL-derived Defense, Health, Reflexes, Initiative, Fortitude, Run, and Ability Points.
+- Added Health, Endurance, and optional Mana controls.
+- Added responsive phone/tablet stat and attribute grids.
+- Added unit tests for core derived-stat formulas.
+- No Android permissions are requested.
+- Added standalone GitHub Actions CI for automatic development APK builds.
+- Added tag-driven signed GitHub Releases for Android only.
+- Added separate `.dev` application ID for CI/test builds.
+- Added one-command GitHub release-signing setup and a small `dubl-android` workflow helper.
+- Pin Compose BOM to 2026.06.00 to keep compileSdk 36 compatibility in CI.

@@ -1,3 +1,0 @@
-# Reproducible release toolchain for the temporary 0.14 public baseline.
-PySide6==6.8.3
-pyinstaller==6.22.2

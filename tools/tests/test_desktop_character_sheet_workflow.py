@@ -1,0 +1,74 @@
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+SHARED = ROOT / "shared" / "src" / "commonMain" / "kotlin"
+SESSION = SHARED / "com/dubl/character/android/state/CharacterSheetSession.kt"
+DESKTOP = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/Main.kt"
+APP_STATE = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/DesktopAppState.kt"
+SHEET = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/CharacterSheetScreen.kt"
+PORTABLE = ROOT / "packaging/linux/portable-src/com/dubl/character/portable/Main.kt"
+HARNESS = ROOT / "tools/tests/kotlin/CharacterSheetSessionHarness.kt"
+
+
+class DesktopCharacterSheetWorkflowTest(unittest.TestCase):
+    def test_shared_session_behavior_matches_android_sheet_semantics(self):
+        kotlinc = shutil.which("kotlinc")
+        self.assertIsNotNone(kotlinc, "kotlinc is required for the shared session regression harness")
+        self.assertTrue(SESSION.exists(), "CharacterSheetSession must be shared and platform-independent")
+
+        sources = sorted((SHARED / "com/dubl/character/android/model").glob("*.kt"))
+        sources += [
+            SHARED / "com/dubl/character/android/data/CharacterStore.kt",
+            SESSION,
+            HARNESS,
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            jar = Path(temp) / "sheet-session.jar"
+            subprocess.run(
+                [kotlinc, *map(str, sources), "-include-runtime", "-d", str(jar)],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            result = subprocess.run(
+                ["java", "-jar", str(jar)],
+                cwd=ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        self.assertIn("CHARACTER_SHEET_SESSION_OK", result.stdout)
+
+    def test_compose_desktop_sheet_is_interactive(self):
+        main = DESKTOP.read_text(encoding="utf-8")
+        state = APP_STATE.read_text(encoding="utf-8")
+        sheet = SHEET.read_text(encoding="utf-8")
+
+        self.assertIn("DesktopAppState", main)
+        self.assertIn("CharacterSheetScreen", main)
+        self.assertIn("DesktopCharacterStore", state)
+        self.assertIn("CharacterSession", state)
+        self.assertIn("IdentityDialog", sheet)
+        self.assertIn("changeAttribute", sheet)
+        self.assertIn("changeHp", sheet)
+        self.assertIn("changeEndurance", sheet)
+        self.assertNotIn("FoundationSummaryCard", main + sheet)
+        self.assertNotIn("InMemoryCharacterStore", main + state + sheet)
+
+    def test_portable_clickable_release_uses_same_shared_session(self):
+        text = PORTABLE.read_text(encoding="utf-8")
+        self.assertIn("CharacterSession", text)
+        window = (ROOT / "packaging/linux/portable-src/com/dubl/character/portable/DublWindow.kt").read_text(encoding="utf-8")
+        self.assertIn("showIdentityDialog", window)
+        self.assertIn("changeAttribute", window)
+        self.assertIn("changeHp", window)
+        self.assertNotIn("Shared foundation", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

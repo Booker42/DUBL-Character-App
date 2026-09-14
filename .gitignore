@@ -1,36 +1,18 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-.env
-.env.*
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Build output
-build/
-dist/
-*.exe
-*.msi
-*.AppImage
-*.zip
-*.tar.gz
-
-# Local/editor files
+*.iml
+.gradle/
+.gradle-cache/
+.android-home/
 .idea/
-.vscode/
+local.properties
 .DS_Store
-Thumbs.db
-*.log
-
-# Local character/save exports
-*.dubl
-*.bak
-autosave.json
-library.json
-characters/
+/build/
+**/build/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+.private/
+*.apk
+/out/
+**/__pycache__/
+!ci/dubl-debug.keystore

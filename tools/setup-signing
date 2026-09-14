@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+command -v gh >/dev/null 2>&1 || fail "GitHub CLI (gh) is not installed."
+gh auth status >/dev/null 2>&1 || fail "Run: gh auth login"
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PRIVATE="$ROOT/.private"
+KEYSTORE="$PRIVATE/dubl-android-release.jks"
+ENVFILE="$PRIVATE/signing.env"
+ALIAS="dubl-android"
+mkdir -p "$PRIVATE"
+chmod 700 "$PRIVATE"
+
+KEYTOOL=""
+if [[ -n "${JAVA_HOME:-}" && -x "$JAVA_HOME/bin/keytool" ]]; then
+  KEYTOOL="$JAVA_HOME/bin/keytool"
+elif command -v keytool >/dev/null 2>&1; then
+  KEYTOOL="$(command -v keytool)"
+elif [[ -x /opt/android-studio/jbr/bin/keytool ]]; then
+  KEYTOOL=/opt/android-studio/jbr/bin/keytool
+else
+  fail "keytool not found. Android Studio's JDK is enough; expected /opt/android-studio/jbr/bin/keytool."
+fi
+
+if [[ -f "$ENVFILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENVFILE"
+else
+  if command -v openssl >/dev/null 2>&1; then
+    PASSWORD="$(openssl rand -hex 24)"
+  else
+    PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
+  fi
+  ANDROID_KEYSTORE_PASSWORD="$PASSWORD"
+  ANDROID_KEY_PASSWORD="$PASSWORD"
+  ANDROID_KEY_ALIAS="$ALIAS"
+  cat > "$ENVFILE" <<EOT
+ANDROID_KEYSTORE_PASSWORD='$ANDROID_KEYSTORE_PASSWORD'
+ANDROID_KEY_PASSWORD='$ANDROID_KEY_PASSWORD'
+ANDROID_KEY_ALIAS='$ANDROID_KEY_ALIAS'
+EOT
+  chmod 600 "$ENVFILE"
+fi
+
+if [[ ! -f "$KEYSTORE" ]]; then
+  "$KEYTOOL" -genkeypair -noprompt \
+    -keystore "$KEYSTORE" \
+    -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+    -keypass "$ANDROID_KEY_PASSWORD" \
+    -alias "$ANDROID_KEY_ALIAS" \
+    -keyalg RSA -keysize 4096 -validity 10000 \
+    -dname "CN=DUBL Android,OU=Release,O=DUBL,C=US"
+  chmod 600 "$KEYSTORE"
+fi
+
+ENCODED="$(base64 < "$KEYSTORE" | tr -d '\n')"
+gh secret set ANDROID_KEYSTORE_BASE64 --body "$ENCODED"
+gh secret set ANDROID_KEYSTORE_PASSWORD --body "$ANDROID_KEYSTORE_PASSWORD"
+gh secret set ANDROID_KEY_ALIAS --body "$ANDROID_KEY_ALIAS"
+gh secret set ANDROID_KEY_PASSWORD --body "$ANDROID_KEY_PASSWORD"
+
+printf '\nRelease signing is configured in GitHub.\n'
+printf 'BACK UP THESE TWO FILES SOMEWHERE SAFE:\n  %s\n  %s\n' "$KEYSTORE" "$ENVFILE"
+printf 'Do not commit .private/. Losing the release key means future APKs cannot update old release installs.\n'

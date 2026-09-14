@@ -1,72 +1,66 @@
-# DUBL Character App
+# DUBL — Android 0.6.2 + Desktop 0.2.0
 
-Desktop character manager for **DUBL / «Дубль All Stars 3.69 REWORK»**.
+This source snapshot contains the canonical Android 0.6.2 application and the Compose Desktop 0.2 parity migration. Android remains the source of truth for game behavior, rules, catalogs, and mutation semantics. Shared model/rules/application code is Kotlin Multiplatform. Web/Wasm, server accounts, and sync are intentionally out of scope.
 
-> **Development build.** This repository is currently shared primarily for testing. Expect UI changes, incomplete polish, and occasional breakage between versions.
+## Modules
 
-## Download the current build
+- `shared` — platform-independent model/rules, application sessions, persistence contracts/codecs, canonical catalogs, design tokens, and reusable Compose primitives;
+- `app` — canonical Android 0.6.2 application and Android persistence;
+- `desktopApp` — primary Compose Desktop frontend with Character Sheet, Skills/Rolls, Development/Martial Arts/Chi, Magic, Equipment, and Characters;
+- `packaging/linux/portable-src` — legacy parity oracle/fallback retained only for regression comparison in restricted environments. It is no longer the canonical desktop release target.
 
-Use **[Latest Release](../../releases/latest)**. You do not need Python or Git to test a release build.
+## Current versions
 
-**Windows:** download `DUBL-<version>-Windows-x64.zip`, extract it, run `DUBL.exe`.
+- **Android 0.6.2** — canonical behavior/rules reference.
+- **Desktop 0.2.0** — Compose Desktop functional-parity target over the same shared application/domain layer.
 
-**Linux:** download `DUBL-<version>-Linux-x86_64.tar.gz`, extract it, then run:
+## Desktop 0.2 functionality
 
-```bash
-chmod +x DUBL
-./DUBL
-```
+The Compose desktop frontend is wired to the real desktop stores, shared `CharacterSession`, shared extras session, and canonical catalogs. It contains all six Android-equivalent workflows:
 
-Windows builds are currently unsigned, so Windows SmartScreen may show an unknown-publisher warning.
+- Character Sheet: identity, XP/creation economy, attributes, resources/overrides, portrait, conditions, derived details, quick checks, recent-change Undo, learned summaries, and persistent grouping/order;
+- Skills/Rolls: search/filter, ranks/XP, multiple attributes, preferred attribute, modifiers/notes, hide/restore, custom/specialized skills, and rule-aware roll modes/follow-up;
+- Development: regular/special progression, prerequisites, force availability, branches, martial arts, Chi resource/techniques, XP/AP economy;
+- Magic: mana progression/recovery, schools, power, spellbook/catalog, custom spells, learned state and XP overrides;
+- Equipment: catalog/custom gear, quantity, carried state, automatic/manual load, capacity and burden;
+- Characters: create, list, switch active character, delete, and persistent roster state.
 
-## Before testing
+Desktop data uses schema-7-compatible file persistence under the user's local data directory. Game formulas are not duplicated in the desktop UI.
 
-Please note the exact DUBL version from the Release page. When reporting a problem, include that version and your operating system.
+## Linux release
 
-For focused testing instructions and the current checklist, see **[TESTING.md](TESTING.md)**.
-
-## Reporting problems
-
-Use **GitHub Issues → New issue → Bug report**.
-
-A useful report includes:
-
-- DUBL version.
-- Operating system; on Linux, include the distribution and desktop environment if known.
-- Whether this happened on a newly created character, an imported character, or an older save.
-- Exact steps that reproduce the problem.
-- What you expected and what actually happened.
-- Screenshot/video when the problem is visual.
-- A `.dubl` save that reproduces the problem, when you are comfortable sharing it.
-
-If something is not technically broken but is confusing, awkward, hard to discover, or unpleasant to use, use the **Tester feedback / UX** issue template instead.
-
-## Save locations
-
-DUBL stores the local character library here by default:
-
-- **Windows:** `%LOCALAPPDATA%\DUBL Character Sheet\characters\`
-- **Linux:** `$XDG_DATA_HOME/dubl-character/characters/` or `~/.local/share/dubl-character/characters/`
-
-Before testing risky import/migration behavior with an important character, make a copy of the relevant `.dubl`/JSON file.
-
-## What is worth testing
-
-The highest-value areas right now are character creation and persistence, calculated values, skill/ability requirements, magic/equipment data, import/export, and the free-workspace/card UI. The detailed scenarios are in **[TESTING.md](TESTING.md)**.
-
-## Source and automated tests
-
-The source is public in this repository. `main` is checked by GitHub Actions, and release tags are tested again before Windows and Linux packages are published.
-
-To run the test suite from source:
+The canonical Linux release path is now Compose Desktop:
 
 ```bash
-python -m pip install -r requirements.txt -r requirements-test.txt
-QT_QPA_PLATFORM=offscreen python -m pytest -q
+DUBL_VERSION=0.2.0 packaging/linux/build-appimage.sh
 ```
 
-Development/build notes are in [`docs/BUILDING.md`](docs/BUILDING.md). Version changes are tracked in [`CHANGELOG_0.14.md`](CHANGELOG_0.14.md).
+The script builds `:desktopApp:createDistributable`, bundles the JVM runtime produced by Compose Desktop, then wraps the distributable as an AppImage. `.github/workflows/linux-appimage.yml` runs parity tests, `:shared:desktopTest`, `:desktopApp:compileKotlin`, and the AppImage build before publishing artifacts.
 
-## License
+The legacy `build-portable-appimage.sh` remains only as a restricted-environment fallback/oracle and must not be used for normal releases.
 
-No open-source license has been selected for this development baseline yet. Public source availability does not by itself grant redistribution or modification rights.
+## Local verification
+
+```bash
+./gradlew :shared:desktopTest :desktopApp:compileKotlin
+./gradlew :desktopApp:run
+```
+
+Android verification remains:
+
+```bash
+./gradlew :app:testDebugUnitTest :app:assembleDebug
+```
+
+The repository uses Kotlin 2.4.20, Compose Multiplatform 1.12.0, AGP 9.3.0, Gradle 9.7.0, Android compileSdk 37 / targetSdk 36, and JVM toolchain 17 for project bytecode.
+
+## Release tags
+
+Android release tags remain `v0.6.2`-style. Desktop Linux releases use separate tags such as:
+
+```bash
+git tag -a desktop-v0.2.0 -m "DUBL Desktop 0.2.0"
+git push origin desktop-v0.2.0
+```
+
+That tag invokes the Compose Desktop Linux release workflow.
