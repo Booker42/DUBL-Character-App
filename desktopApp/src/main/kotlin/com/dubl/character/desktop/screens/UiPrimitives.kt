@@ -55,11 +55,11 @@ internal fun KeyValue(label: String, value: String, tint: Color = DublFocus) {
 }
 
 @Composable
-internal fun RankStepper(rank: Int, min: Int = 0, max: Int, onChange: (Int) -> Unit) {
+internal fun RankStepper(rank: Int, min: Int = 0, max: Int, enabled: Boolean = true, onChange: (Int) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedButton(enabled = rank > min, onClick = { onChange(rank - 1) }) { Text("−") }
+        OutlinedButton(enabled = enabled && rank > min, onClick = { onChange(rank - 1) }) { Text("−") }
         Text(rank.toString(), fontWeight = FontWeight.Bold)
-        Button(enabled = rank < max, onClick = { onChange(rank + 1) }) { Text("+") }
+        Button(enabled = enabled && rank < max, onClick = { onChange(rank + 1) }) { Text("+") }
     }
 }
 

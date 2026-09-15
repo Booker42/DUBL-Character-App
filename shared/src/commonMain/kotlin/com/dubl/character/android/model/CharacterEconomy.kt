@@ -24,6 +24,8 @@ data class CharacterEconomyBreakdown(
 }
 
 object CharacterEconomy {
+    const val CHI_BONUS_RANK_XP = 50
+
     private val attributeCumulativeCost = mapOf(
         -5 to -200,
         -4 to -170,
@@ -83,7 +85,7 @@ object CharacterEconomy {
         spell.learned && spell.xpOverride == null && MagicEquipmentRules.learnXpCost(spell.cost) == null
     }
 
-    fun chiXp(character: DublCharacter): Int = character.chiBonusRanks.coerceIn(0, 10) * 50
+    fun chiXp(character: DublCharacter): Int = character.chiBonusRanks.coerceIn(0, 10) * CHI_BONUS_RANK_XP
 
     fun breakdown(
         character: DublCharacter,

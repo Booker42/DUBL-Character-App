@@ -480,7 +480,7 @@ private fun SchoolPowerRow(
         Column(Modifier.weight(1f)) {
             Text(name, fontWeight = if (power > 0) FontWeight.SemiBold else FontWeight.Normal)
             Text(
-                if (power > 0) "Сила $power · ${power * 25} XP" else "Не изучена",
+                if (power > 0) "Сила $power · ${MagicEquipmentRules.magicSchoolRankXp(power)} XP" else "Не изучена",
                 style = MaterialTheme.typography.bodySmall,
                 color = DublMuted,
             )

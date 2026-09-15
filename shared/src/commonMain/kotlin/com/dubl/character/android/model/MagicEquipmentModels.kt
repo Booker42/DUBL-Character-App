@@ -202,9 +202,11 @@ object MagicEquipmentRules {
         return if (schoolPower > 0) schoolPower else character.magic.power.coerceAtLeast(0)
     }
 
+    fun magicSchoolRankXp(rank: Int): Int = rank.coerceAtLeast(0) * 25
+
     fun magicSchoolPowerXp(character: DublCharacter): Int = character.magic.schools
         .filter { MagicSchoolCatalog.canonicalizeOrNull(it.name) != null }
-        .sumOf { it.rank.coerceAtLeast(0) * 25 }
+        .sumOf { magicSchoolRankXp(it.rank) }
 
     fun visibleMagicSchools(character: DublCharacter, hideUnlearned: Boolean): List<String> =
         if (!hideUnlearned) {
@@ -271,7 +273,7 @@ object MagicEquipmentRules {
         return character.gear.items
             .asSequence()
             .filter { it.carried }
-            .sumOf { it.load.coerceAtLeast(0.0) * it.quantity.coerceAtLeast(0) }
+            .sumOf { it.load.coerceAtLeast(0.0) * it.quantity.coerceAtLeast(1) }
     }
 
     fun equipmentCapacity(character: DublCharacter): Int {

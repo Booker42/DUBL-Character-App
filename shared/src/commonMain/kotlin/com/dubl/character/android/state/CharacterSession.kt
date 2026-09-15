@@ -268,11 +268,15 @@ class CharacterSession(
         val clean = MagicSchoolCatalog.canonicalizeOrNull(name) ?: return false
         if (active.magic.schools.any { it.name.equals(clean, ignoreCase = true) }) return false
         updateActive { character ->
-            character.copy(
+            var updated = character.copy(
                 magic = character.magic.copy(
                     schools = character.magic.schools + MagicSchool(clean, rank.coerceAtLeast(0), note.trim()),
                 ),
             )
+            if (!character.creationComplete && character.magic.manaRank > 0) {
+                updated = updated.copy(manaCurrent = updated.effectiveManaMaximum)
+            }
+            updated
         }
         return true
     }
@@ -291,7 +295,11 @@ class CharacterSession(
                 rank = rank.coerceAtLeast(0),
                 note = note.trim(),
             )
-            character.copy(magic = character.magic.copy(schools = next))
+            var updated = character.copy(magic = character.magic.copy(schools = next))
+            if (!character.creationComplete && character.magic.manaRank > 0) {
+                updated = updated.copy(manaCurrent = updated.effectiveManaMaximum)
+            }
+            updated
         }
         return true
     }
@@ -299,10 +307,15 @@ class CharacterSession(
 
     fun removeMagicSchool(index: Int) = updateActive { character ->
         if (index !in character.magic.schools.indices) return@updateActive character
-        character.copy(magic = character.magic.copy(schools = character.magic.schools.filterIndexed { i, _ -> i != index }))
+        var updated = character.copy(magic = character.magic.copy(schools = character.magic.schools.filterIndexed { i, _ -> i != index }))
+        if (!character.creationComplete && character.magic.manaRank > 0) {
+            updated = updated.copy(manaCurrent = updated.effectiveManaMaximum)
+        }
+        updated
     }
 
     fun addCatalogSpell(entry: SpellCatalogEntry): Boolean {
+        if (entry.incomplete) return false
         if (active.magic.spells.any {
                 it.catalogId == entry.id || it.name.equals(entry.name, ignoreCase = true)
             }) return false

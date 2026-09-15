@@ -250,16 +250,15 @@ fun FeatsScreen(controller: CharacterController) {
         }
 
         if (tab == DevelopmentTab.CHI) {
-            val automaticAccess = character.developmentRank(DevelopmentEffectIds.INTERNAL_CHI) > 0
-            val progressionBonus = character.developmentRank(DevelopmentEffectIds.MASTER_CHI) * 2 +
-                character.developmentRank(DevelopmentEffectIds.AWAKENED_CHI) * 3
+            val automaticAccess = character.chiAutomaticAccess
+            val progressionBonus = character.chiProgressionBonus
             item {
                 ChiDevelopmentCard(
                     enabled = character.chiActive,
                     automaticAccess = automaticAccess,
                     current = character.chiCurrent,
                     maximum = character.chiMaximum,
-                    baseMaximum = maxOf(3, character.will + 1),
+                    baseMaximum = character.chiBaseMaximum,
                     bonusRanks = character.chiBonusRanks,
                     progressionBonus = progressionBonus,
                     onToggle = controller::setChiEnabled,
@@ -790,7 +789,7 @@ private fun ChiDevelopmentCard(
             Column(Modifier.weight(1f)) {
                 Text("Дополнительный запас ЦИ", fontWeight = FontWeight.SemiBold)
                 Text(
-                    "$bonusRanks / 10 рангов · 50 XP за ранг",
+                    "$bonusRanks / 10 рангов · ${CharacterEconomy.CHI_BONUS_RANK_XP} XP за ранг",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

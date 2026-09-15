@@ -146,7 +146,7 @@ def parse_review(path: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--review", type=Path, required=True)
-    parser.add_argument("--output", type=Path, default=Path("app/src/main/assets/skill_effects_catalog.json"))
+    parser.add_argument("--output", type=Path, default=Path("shared/src/commonMain/resources/skill_effects_catalog.json"))
     args = parser.parse_args()
     effects = parse_review(args.review)
     root = {"version": "0.5", "effects": effects}

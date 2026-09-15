@@ -332,8 +332,8 @@ def write_chi_catalog(path: Path, content: ChiContent) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True)
-    parser.add_argument("--development-catalog", type=Path, default=Path("app/src/main/assets/development_catalog.json"))
-    parser.add_argument("--chi-catalog", type=Path, default=Path("app/src/main/assets/chi_catalog.json"))
+    parser.add_argument("--development-catalog", type=Path, default=Path("shared/src/commonMain/resources/development_catalog.json"))
+    parser.add_argument("--chi-catalog", type=Path, default=Path("shared/src/commonMain/resources/chi_catalog.json"))
     args = parser.parse_args()
     content = parse_chi_content(args.source)
     update_development_catalog(args.development_catalog, content.developments)

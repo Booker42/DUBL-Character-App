@@ -2,10 +2,16 @@
 
 ## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
 
+- Added an executable Android/Desktop parity contract: shared resources are now the only physical canonical DUBL catalogs, Android repository adapters use the same shared parsers, and importer defaults write to shared resources.
+- Added persisted ruleset identity (`dubl` / `3.69`) and bumped snapshots to schema 8 with automatic schema-7 migration.
+- Hardened Magic parity in shared `CharacterSession`: incomplete canonical spells are rejected by backend, creation-time school edits keep mana synchronized to the effective maximum, and Compose Desktop exposes the same mana mutation/creation-lock semantics as Android.
+- Hardened Equipment parity in shared rules: raw item quantities obey the same minimum-one invariant as normalized/persisted characters, while Desktop quantity/load editing and catalog search now follow canonical Android/shared semantics.
+- Added a rules-boundary contract for combat roll choices, selected skill-effect aggregation, Chi/Magic XP constants, and passive derived-stat components so presentation code cannot silently become a second rules implementation.
+- Corrected Character Sheet stat explanations to use the exact shared components used by Defense, Reflexes, Initiative, Fortitude, Run, and Size calculations, including load and passive-development bonuses.
 - Promoted `desktopApp` Compose Desktop from scaffold to the primary desktop frontend.
 - Wired Compose to persistent `DesktopCharacterStore` / `DesktopCharacterExtrasStore`, shared `CharacterSession`, extras session, and canonical catalogs.
 - Added complete Compose workflows for Character Sheet, Skills/Rolls, Development/Special Branches/Martial Arts/Chi, Magic, Equipment, and Characters.
-- Preserved Android mutation semantics and schema-7-compatible persistence instead of duplicating DUBL formulas in desktop UI code.
+- Preserved Android mutation semantics through shared `CharacterSession` and schema-8-compatible persistence instead of duplicating DUBL formulas in desktop UI code.
 - Added Android-parity sheet behavior: XP economy, conditions, automatic Weakness, custom resources, portrait storage/rendering, quick checks, formula/details, recent-change Undo, learned summaries, and persistent grouping/tree movement.
 - Added rule-aware rolls, custom/specialized skills, development requirements/economy, Chi techniques, magic schools/spellbook/custom spells, and equipment load/capacity/burden.
 - Added confirmations for destructive desktop actions and validation feedback for invalid/duplicate custom skills.

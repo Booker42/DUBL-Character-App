@@ -577,12 +577,12 @@ def main() -> None:
     parser.add_argument(
         "--development-catalog",
         type=Path,
-        default=Path("app/src/main/assets/development_catalog.json"),
+        default=Path("shared/src/commonMain/resources/development_catalog.json"),
     )
     parser.add_argument(
         "--magic-catalog",
         type=Path,
-        default=Path("app/src/main/assets/magic_equipment_catalog.json"),
+        default=Path("shared/src/commonMain/resources/magic_equipment_catalog.json"),
     )
     args = parser.parse_args()
 

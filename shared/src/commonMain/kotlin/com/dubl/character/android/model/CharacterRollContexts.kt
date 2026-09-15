@@ -18,6 +18,24 @@ enum class RollContext(val title: String) {
     BREAK_ITEM("Поломка предмета"),
 }
 
+fun RollContext.allowedSkillIds(): List<String> = when (this) {
+    RollContext.ATTACK, RollContext.BREAK_ITEM -> listOf("unarmed", "melee_weapon", "shooting", "throwing")
+    RollContext.PARRY, RollContext.DISARM -> listOf("unarmed", "melee_weapon")
+    RollContext.FEINT -> listOf("eloquence", "unarmed", "melee_weapon")
+    else -> emptyList()
+}
+
+fun RollContext.allowedAttributes(skillId: String?): List<AttributeId> = when (this) {
+    RollContext.ATTACK, RollContext.BREAK_ITEM -> when (skillId) {
+        "shooting" -> listOf(AttributeId.PERCEPTION, AttributeId.DEXTERITY)
+        "throwing", "unarmed", "melee_weapon" -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
+        else -> emptyList()
+    }
+    RollContext.PARRY, RollContext.DISARM -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
+    RollContext.FEINT -> listOf(AttributeId.CHARISMA)
+    else -> emptyList()
+}
+
 data class RollContribution(
     val label: String,
     val value: Int,

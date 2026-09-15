@@ -26,11 +26,20 @@ fun main() {
         magic = CharacterMagic(2, 0, listOf(MagicSchool("Боевая магия", 4)), listOf(KnownSpell("s1", name="Искра", school="Боевая магия", cost=2))),
         gear = CharacterGear(true, 0.0, listOf(GearItem("g1", name="Молот", quantity=2, load=1.5, fields=mapOf("Материал" to "Сталь")))),
     ).normalized()
+    check(first.ruleset == DublRuleset.reference)
     val snapshot = AppSnapshot(listOf(first), first.id)
     val store = DesktopCharacterStore(root.resolve("characters.json")) { "fresh-id" }
     store.save(snapshot)
+    val raw = Files.readString(root.resolve("characters.json"))
+    check(raw.contains("\"schema\":8"))
+    check(raw.contains("\"ruleset\":{\"id\":\"dubl\",\"version\":\"3.69\"}"))
     val loaded = store.load()
     check(loaded == snapshot)
+    check(loaded.activeCharacter.ruleset == DublRuleset.reference)
+
+    val legacyRaw = """{"schema":7,"activeCharacterId":"legacy","characters":[{"id":"legacy","name":"Legacy"}]}"""
+    val migrated = com.dubl.character.android.data.SnapshotCodec.decode(legacyRaw) { "fallback" }
+    check(migrated.activeCharacter.ruleset == DublRuleset.reference)
 
     val extras = CharacterSheetExtras(
         portraitUri = "/tmp/portrait.png",

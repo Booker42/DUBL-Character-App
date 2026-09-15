@@ -4,23 +4,19 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ANDROID = ROOT / 'app/src/main/assets'
 SHARED = ROOT / 'shared/src/commonMain/resources'
 NAMES = ['development_catalog.json', 'chi_catalog.json', 'magic_equipment_catalog.json', 'skill_effects_catalog.json']
 
 class Desktop02CatalogsTest(unittest.TestCase):
-    def test_shared_resources_are_byte_identical_to_android_canonical_assets(self):
+    def test_shared_resources_are_the_canonical_catalog_payloads(self):
         for name in NAMES:
-            source = ANDROID / name
-            target = SHARED / name
-            self.assertTrue(target.exists(), f'missing shared resource {name}')
-            self.assertEqual(source.read_bytes(), target.read_bytes(), name)
+            self.assertTrue((SHARED / name).exists(), f'missing shared resource {name}')
 
     def test_catalog_counts_match_expected_android_062_baseline(self):
-        dev = json.loads((ANDROID / 'development_catalog.json').read_text())
-        chi = json.loads((ANDROID / 'chi_catalog.json').read_text())
-        magic = json.loads((ANDROID / 'magic_equipment_catalog.json').read_text())
-        effects = json.loads((ANDROID / 'skill_effects_catalog.json').read_text())
+        dev = json.loads((SHARED / 'development_catalog.json').read_text())
+        chi = json.loads((SHARED / 'chi_catalog.json').read_text())
+        magic = json.loads((SHARED / 'magic_equipment_catalog.json').read_text())
+        effects = json.loads((SHARED / 'skill_effects_catalog.json').read_text())
         self.assertEqual(len(dev['entries']), 796)
         self.assertEqual(len(chi['schools']), 9)
         self.assertEqual(len(chi['techniques']), 68)

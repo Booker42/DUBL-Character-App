@@ -8,6 +8,8 @@ import com.dubl.character.android.model.CharacterMagic
 import com.dubl.character.android.model.CharacterSkill
 import com.dubl.character.android.model.CustomResource
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.DublRuleset
+import com.dubl.character.android.model.RulesetRef
 import com.dubl.character.android.model.GearItem
 import com.dubl.character.android.model.KnownSpell
 import com.dubl.character.android.model.MagicSchool
@@ -16,7 +18,7 @@ import com.dubl.character.android.model.UntrainedRule
 import com.dubl.character.android.model.defaultAttributes
 
 object SnapshotCodec {
-    const val SCHEMA = 7
+    const val SCHEMA = 8
 
     fun fresh(idFactory: () -> String): AppSnapshot {
         val character = DublCharacter(id = idFactory(), name = "Новый персонаж")
@@ -45,6 +47,10 @@ object SnapshotCodec {
 
     private fun encodeCharacter(character: DublCharacter): JsonValue.Obj = jsonObject(
         "id" to jsonString(character.id),
+        "ruleset" to jsonObject(
+            "id" to jsonString(character.ruleset.id),
+            "version" to jsonString(character.ruleset.version),
+        ),
         "name" to jsonString(character.name),
         "concept" to jsonString(character.concept),
         "experience" to jsonNumber(character.experience),
@@ -191,8 +197,19 @@ object SnapshotCodec {
         val creationExperience = if (root.has("creationExperience")) root.int("creationExperience", experience).coerceAtLeast(0) else experience
         val creationComplete = if (root.has("creationComplete")) root.bool("creationComplete", false) else schema < 5
 
+        val rulesetRoot = root.objectValue("ruleset")
+        val ruleset = if (rulesetRoot == null) {
+            DublRuleset.reference
+        } else {
+            RulesetRef(
+                id = rulesetRoot.string("id", DublRuleset.ID).ifBlank { DublRuleset.ID },
+                version = rulesetRoot.string("version", DublRuleset.VERSION).ifBlank { DublRuleset.VERSION },
+            )
+        }
+
         return DublCharacter(
             id = root.string("id").ifBlank(idFactory),
+            ruleset = ruleset,
             name = root.string("name", "Новый персонаж"),
             concept = root.string("concept"),
             experience = experience,

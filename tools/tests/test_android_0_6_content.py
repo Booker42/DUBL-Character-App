@@ -3,8 +3,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEV = ROOT / "app/src/main/assets/development_catalog.json"
-MAGIC = ROOT / "app/src/main/assets/magic_equipment_catalog.json"
+DEV = ROOT / "shared/src/commonMain/resources/development_catalog.json"
+MAGIC = ROOT / "shared/src/commonMain/resources/magic_equipment_catalog.json"
 
 
 class Android06ContentTest(unittest.TestCase):

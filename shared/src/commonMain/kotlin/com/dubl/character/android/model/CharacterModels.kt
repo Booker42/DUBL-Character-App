@@ -27,6 +27,7 @@ data class CustomResource(
 
 data class DublCharacter(
     val id: String,
+    val ruleset: RulesetRef = DublRuleset.reference,
     val name: String = "Новый персонаж",
     val concept: String = "",
     val experience: Int = 0,
@@ -57,9 +58,12 @@ data class DublCharacter(
 ) {
     fun attributeRaw(id: AttributeId): Int = attributes[id]?.total ?: 0
 
+    val strengthSizeModifier: Int get() = size - 5
+    val speedSizeModifier: Int get() = 5 - size
+
     fun attribute(id: AttributeId): Int = when (id) {
-        AttributeId.STRENGTH -> attributeRaw(id) + (size - 5)
-        AttributeId.SPEED -> attributeRaw(id) + (5 - size)
+        AttributeId.STRENGTH -> attributeRaw(id) + strengthSizeModifier
+        AttributeId.SPEED -> attributeRaw(id) + speedSizeModifier
         else -> attributeRaw(id)
     }
 
@@ -71,6 +75,14 @@ data class DublCharacter(
     val will: Int get() = attribute(AttributeId.WILL)
 
     val equipmentLoadPenalty: Int get() = MagicEquipmentRules.burden(this).penalty
+    val quickReflexesBonus: Int get() = developmentRank(DevelopmentEffectIds.QUICK_REFLEXES)
+    val improvedInitiativeBonus: Int get() = developmentRank(DevelopmentEffectIds.IMPROVED_INITIATIVE)
+    val stormLordBonus: Int get() = developmentRank(DevelopmentEffectIds.STORM_LORD_SCHOOL)
+    val stalwartBonus: Int get() = developmentRank(DevelopmentEffectIds.STALWART)
+    val stillMountainBonus: Int get() = developmentRank(DevelopmentEffectIds.STILL_MOUNTAIN_SCHOOL)
+    val runStormSpeedBonus: Int get() = stormLordBonus
+    val runRunnerBonus: Int get() = developmentRank(DevelopmentEffectIds.RUNNER)
+
     val defense: Int get() = 10 - size + speed + dexterity + equipmentLoadPenalty
     val incredibleHealthBonus: Int
         get() = developmentRank(DevelopmentEffectIds.INCREDIBLE_HEALTH) * incredibleHealthPerRank(size)
@@ -79,13 +91,11 @@ data class DublCharacter(
     val enduranceMaximum: Int
         get() = enduranceMaximumOverride ?: (3 + developmentRank(DevelopmentEffectIds.ENDURING))
     val reflexes: Int
-        get() = speed + dexterity + equipmentLoadPenalty + developmentRank(DevelopmentEffectIds.QUICK_REFLEXES)
+        get() = speed + dexterity + equipmentLoadPenalty + quickReflexesBonus
     val initiative: Int
-        get() = speed + perception + developmentRank(DevelopmentEffectIds.IMPROVED_INITIATIVE) +
-            developmentRank(DevelopmentEffectIds.STORM_LORD_SCHOOL)
+        get() = speed + perception + improvedInitiativeBonus + stormLordBonus
     val fortitude: Int
-        get() = constitution + will + developmentRank(DevelopmentEffectIds.STALWART) +
-            developmentRank(DevelopmentEffectIds.STILL_MOUNTAIN_SCHOOL)
+        get() = constitution + will + stalwartBonus + stillMountainBonus
     val effectiveCreationExperience: Int
         get() = when {
             creationExperience > 0 -> creationExperience.coerceAtMost(experience.coerceAtLeast(0))
@@ -96,14 +106,18 @@ data class DublCharacter(
     val abilityPoints: Int get() = abilityPointsOverride ?: recommendedAbilityPoints
     val effectiveManaMaximum: Int
         get() = manaMaximumOverride ?: if (magic.manaRank > 0) MagicEquipmentRules.manaMaximum(this) else manaMaximum.coerceAtLeast(0)
+    val chiAutomaticAccess: Boolean
+        get() = developmentRank(DevelopmentEffectIds.INTERNAL_CHI) > 0
     val chiActive: Boolean
-        get() = chiEnabled || developmentRank(DevelopmentEffectIds.INTERNAL_CHI) > 0
+        get() = chiEnabled || chiAutomaticAccess
+    val chiBaseMaximum: Int
+        get() = maxOf(3, will + 1)
+    val chiProgressionBonus: Int
+        get() = developmentRank(DevelopmentEffectIds.MASTER_CHI) * 2 +
+            developmentRank(DevelopmentEffectIds.AWAKENED_CHI) * 3
     val chiMaximum: Int
         get() = if (chiActive) {
-            maxOf(3, will + 1) +
-                chiBonusRanks.coerceIn(0, 10) +
-                developmentRank(DevelopmentEffectIds.MASTER_CHI) * 2 +
-                developmentRank(DevelopmentEffectIds.AWAKENED_CHI) * 3
+            chiBaseMaximum + chiBonusRanks.coerceIn(0, 10) + chiProgressionBonus
         } else 0
 
     val runBase: Double
@@ -135,34 +149,38 @@ data class DublCharacter(
             }
         }
 
-    val runFull: Double
-        get() {
-            val multiplier = if (legs >= 3) {
-                when (size.coerceIn(1, 10)) {
-                    1 -> 0.5
-                    2 -> 1.0
-                    3 -> 1.5
-                    4, 5, 6 -> 2.0
-                    7 -> 3.0
-                    8 -> 4.0
-                    9 -> 5.0
-                    else -> 6.0
-                }
-            } else {
-                when (size.coerceIn(1, 10)) {
-                    1 -> 0.125
-                    2 -> 0.25
-                    3 -> 0.5
-                    4, 5 -> 1.0
-                    6, 7 -> 1.5
-                    8 -> 2.0
-                    9 -> 3.0
-                    else -> 4.0
-                }
+    val runMultiplier: Double
+        get() = if (legs >= 3) {
+            when (size.coerceIn(1, 10)) {
+                1 -> 0.5
+                2 -> 1.0
+                3 -> 1.5
+                4, 5, 6 -> 2.0
+                7 -> 3.0
+                8 -> 4.0
+                9 -> 5.0
+                else -> 6.0
             }
-            val runSpeed = speed + developmentRank(DevelopmentEffectIds.STORM_LORD_SCHOOL)
-            return (runBase + runSpeed * multiplier + equipmentLoadPenalty + developmentRank(DevelopmentEffectIds.RUNNER)).coerceAtLeast(0.0)
+        } else {
+            when (size.coerceIn(1, 10)) {
+                1 -> 0.125
+                2 -> 0.25
+                3 -> 0.5
+                4, 5 -> 1.0
+                6, 7 -> 1.5
+                8 -> 2.0
+                9 -> 3.0
+                else -> 4.0
+            }
         }
+
+    val runFull: Double
+        get() = (
+            runBase +
+                (speed + runStormSpeedBonus) * runMultiplier +
+                equipmentLoadPenalty +
+                runRunnerBonus
+            ).coerceAtLeast(0.0)
 
     fun normalized(): DublCharacter {
         val normalizedSkills = skills.mapValues { (_, skill) ->

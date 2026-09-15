@@ -44,6 +44,21 @@ data class SkillRollEffectOption(
     val hindranceDice: Int = 0,
 )
 
+data class SkillRollEffectTotals(
+    val numericBonus: Int = 0,
+    val advantageDice: Int = 0,
+    val hindranceDice: Int = 0,
+)
+
+fun List<SkillRollEffectOption>.selectedTotals(selectedIds: Set<String>): SkillRollEffectTotals {
+    val selected = filter { it.id in selectedIds }
+    return SkillRollEffectTotals(
+        numericBonus = selected.sumOf { it.numericBonus },
+        advantageDice = selected.sumOf { it.advantageDice },
+        hindranceDice = selected.sumOf { it.hindranceDice },
+    )
+}
+
 data class SkillRollEffectResolution(
     val automaticContributions: List<RollContribution> = emptyList(),
     val options: List<SkillRollEffectOption> = emptyList(),

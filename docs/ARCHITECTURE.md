@@ -2,11 +2,11 @@
 
 ## Source of truth
 
-Android 0.6.2 defines DUBL behavior and catalog semantics. Rules/formulas live in shared Kotlin and must not be reimplemented in a platform UI.
+Android 0.6.2 remains the behavioral reference. The executable source of truth is the shared Kotlin rules/application layer plus the canonical shared catalog payloads; platform UIs must not reimplement formulas or catalog semantics.
 
 ## Shared core
 
-`shared` contains the platform-independent character model, rules, roll engine, development/magic/equipment logic, catalog payloads/parsers, application sessions, snapshot/extras codecs, persistence interfaces, responsive policy, theme tokens, and reusable Compose primitives. `commonMain` must not depend on Android or desktop APIs.
+`shared` contains the platform-independent character model, rules, roll engine, development/magic/equipment logic, the single canonical catalog payloads and parsers, application sessions, snapshot/extras codecs, persistence interfaces, responsive policy, theme tokens, and reusable Compose primitives. `commonMain` must not depend on Android or desktop APIs.
 
 `CharacterSession` is the primary mutation/application boundary. Android and desktop call the same session/rule APIs rather than maintaining separate formulas.
 
@@ -14,15 +14,16 @@ Android 0.6.2 defines DUBL behavior and catalog semantics. Rules/formulas live i
 
 `CharacterStore` is the character persistence boundary.
 
-- Android uses its Android repository/SharedPreferences adapter while preserving schema 7.
-- Desktop uses `DesktopCharacterStore` and `DesktopCharacterExtrasStore` under the user's local data directory.
+- Android uses its Android repository/SharedPreferences adapter with shared schema 8.
+- Desktop uses `DesktopCharacterStore` and `DesktopCharacterExtrasStore` under the user's local data directory with the same shared schema 8.
+- Each character persists `RulesetRef`; existing schema-7 saves migrate to canonical DUBL `dubl` / `3.69`.
 - Compose Desktop is wired to those real stores through `DesktopAppState`; it does not use `InMemoryCharacterStore` for the shipped workflow.
 
 ## Frontends
 
 ### Android
 
-Jetpack Compose mobile application. It remains the behavioral reference while consuming shared model/rules.
+Jetpack Compose mobile application. It remains the behavioral reference while consuming shared model/rules. Android catalog repositories are platform adapters only: assets are sourced from `shared/src/commonMain/resources` and parsed by common parsers.
 
 ### Compose Desktop
 

@@ -30,6 +30,8 @@ import com.dubl.character.android.model.RollResult
 import com.dubl.character.android.model.RollContext
 import com.dubl.character.android.model.SkillEffectCatalog
 import com.dubl.character.android.model.SkillEffectRules
+import com.dubl.character.android.model.allowedAttributes
+import com.dubl.character.android.model.allowedSkillIds
 import com.dubl.character.android.model.compareRollToTarget
 import com.dubl.character.android.model.developmentNormalize
 import com.dubl.character.android.model.resolveSkill
@@ -37,6 +39,7 @@ import com.dubl.character.android.model.rollCheck
 import com.dubl.character.android.model.rollFollowUp
 import com.dubl.character.android.model.rollPreset
 import com.dubl.character.android.model.skillCalculationForRoll
+import com.dubl.character.android.model.selectedTotals
 import com.dubl.character.android.ui.theme.DublMuted
 
 @Composable
@@ -172,11 +175,11 @@ fun SkillRollDialog(
                 onClick = {
                     val base = calculation.total ?: return@TextButton
                     onPreferredAttribute(attribute)
-                    val selected = effects.options.filter { it.id in selectedEffects }
+                    val selectedTotals = effects.options.selectedTotals(selectedEffects)
                     val autoBonus = effects.automaticBonus
-                    val toggledBonus = selected.sumOf { it.numericBonus }
-                    val selectedAdvantage = selected.sumOf { it.advantageDice }
-                    val selectedHindrance = selected.sumOf { it.hindranceDice }
+                    val toggledBonus = selectedTotals.numericBonus
+                    val selectedAdvantage = selectedTotals.advantageDice
+                    val selectedHindrance = selectedTotals.hindranceDice
                     val manual = effectCountText.toIntOrNull()?.coerceIn(1, 9) ?: 1
                     val manualAdvantage = if (mode == RollMode.ADVANTAGE) manual else 0
                     val manualHindrance = if (mode == RollMode.HINDRANCE) manual else 0
@@ -211,12 +214,7 @@ fun ContextRollDialog(
     initialAttribute: AttributeId? = null,
     onDismiss: () -> Unit,
 ) {
-    val allowedSkillIds = when (context) {
-        RollContext.ATTACK, RollContext.BREAK_ITEM -> listOf("unarmed", "melee_weapon", "shooting", "throwing")
-        RollContext.PARRY, RollContext.DISARM -> listOf("unarmed", "melee_weapon")
-        RollContext.FEINT -> listOf("eloquence", "unarmed", "melee_weapon")
-        else -> emptyList()
-    }
+    val allowedSkillIds = context.allowedSkillIds()
     val skills = allowedSkillIds.mapNotNull(character::resolveSkill)
     var skill by remember(context) { mutableStateOf(skills.firstOrNull()) }
     var attribute by remember(context, skill?.id, initialAttribute) { mutableStateOf<AttributeId?>(initialAttribute) }
@@ -228,17 +226,7 @@ fun ContextRollDialog(
     var skillMenu by remember { mutableStateOf(false) }
     var attributeMenu by remember { mutableStateOf(false) }
 
-    val attrOptions = when (context) {
-        RollContext.ATTRIBUTE -> AttributeId.entries
-        RollContext.ATTACK, RollContext.BREAK_ITEM -> when (skill?.id) {
-            "shooting" -> listOf(AttributeId.PERCEPTION, AttributeId.DEXTERITY)
-            "throwing", "unarmed", "melee_weapon" -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
-            else -> emptyList()
-        }
-        RollContext.PARRY, RollContext.DISARM -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
-        RollContext.FEINT -> listOf(AttributeId.CHARISMA)
-        else -> emptyList()
-    }
+    val attrOptions = if (context == RollContext.ATTRIBUTE) AttributeId.entries else context.allowedAttributes(skill?.id)
     val selectedAttribute = initialAttribute?.takeIf { it in attrOptions } ?: attribute?.takeIf { it in attrOptions } ?: attrOptions.firstOrNull()
     val preset = character.rollPreset(context, skill?.id, selectedAttribute)
     val alreadyAppliedLabels = preset.contributions.map { developmentNormalize(it.label) }.toSet()

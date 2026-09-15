@@ -1,6 +1,6 @@
 # DUBL — Android 0.6.2 + Desktop 0.2.0
 
-This source snapshot contains the canonical Android 0.6.2 application and the Compose Desktop 0.2 parity migration. Android remains the source of truth for game behavior, rules, catalogs, and mutation semantics. Shared model/rules/application code is Kotlin Multiplatform. Web/Wasm, server accounts, and sync are intentionally out of scope.
+This source snapshot contains the canonical Android 0.6.2 application and the Compose Desktop 0.2 parity migration. Android 0.6.2 remains the behavioral reference while shared Kotlin now owns the executable rules, application mutations, catalog parsers, and the single canonical catalog payloads. Shared model/rules/application code is Kotlin Multiplatform. Web/Wasm, server accounts, and sync are intentionally out of scope.
 
 ## Modules
 
@@ -25,7 +25,7 @@ The Compose desktop frontend is wired to the real desktop stores, shared `Charac
 - Equipment: catalog/custom gear, quantity, carried state, automatic/manual load, capacity and burden;
 - Characters: create, list, switch active character, delete, and persistent roster state.
 
-Desktop data uses schema-7-compatible file persistence under the user's local data directory. Game formulas are not duplicated in the desktop UI.
+Android and Desktop use schema-8 character persistence with an explicit `dubl` / `3.69` ruleset reference; schema-7 saves migrate to that identity automatically. Game formulas are not duplicated in either platform UI. Canonical catalog JSON lives only in `shared/src/commonMain/resources`; Android exposes those same files as assets and delegates parsing to shared code.
 
 ## Linux release
 

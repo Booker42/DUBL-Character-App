@@ -21,9 +21,9 @@ def test_development_summary_uses_full_character_economy():
 
 def test_chi_card_matches_android_automatic_access_semantics():
     text = read(DEV)
-    assert 'DevelopmentEffectIds.INTERNAL_CHI' in text
-    assert 'DevelopmentEffectIds.MASTER_CHI' in text
-    assert 'DevelopmentEffectIds.AWAKENED_CHI' in text
+    assert 'character.chiAutomaticAccess' in text
+    assert 'character.chiProgressionBonus' in text
+    assert 'character.chiBaseMaximum' in text
     assert 'checked = character.chiActive' in text
     assert 'enabled = !automaticAccess' in text
     assert 'Ресурс открыт способностью «Внутренняя ЦИ»' in text
@@ -33,7 +33,7 @@ def test_chi_resource_controls_are_bounded_and_explain_cost_formula():
     text = read(DEV)
     assert 'enabled = character.chiCurrent > 0' in text
     assert 'enabled = character.chiCurrent < character.chiMaximum' in text
-    assert '50 XP за ранг' in text
+    assert 'CharacterEconomy.CHI_BONUS_RANK_XP' in text
     assert 'Максимум: база $baseMaximum + купленный запас ${character.chiBonusRanks} + развитие $progressionBonus' in text
 
 

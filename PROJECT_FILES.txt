@@ -9,10 +9,6 @@ README.md
 app/build.gradle.kts
 app/proguard-rules.pro
 app/src/main/AndroidManifest.xml
-app/src/main/assets/chi_catalog.json
-app/src/main/assets/development_catalog.json
-app/src/main/assets/magic_equipment_catalog.json
-app/src/main/assets/skill_effects_catalog.json
 app/src/main/java/com/dubl/character/android/MainActivity.kt
 app/src/main/java/com/dubl/character/android/data/CharacterRepository.kt
 app/src/main/java/com/dubl/character/android/data/CharacterSheetExtrasRepository.kt
@@ -61,9 +57,11 @@ docs/KMP_FOUNDATION_REPORT.md
 docs/superpowers/plans/2026-09-14-android-0.6.2-grouping-roll-flow.md
 docs/superpowers/plans/2026-09-14-kmp-foundation.md
 docs/superpowers/plans/2026-09-15-desktop-0.2-android-parity.md
+docs/superpowers/plans/2026-09-15-parity-contract-ruleset-magic.md
 docs/superpowers/specs/2026-09-14-android-0.6.2-grouping-roll-flow-design.md
 docs/superpowers/specs/2026-09-14-kmp-foundation-design.md
 docs/superpowers/specs/2026-09-15-desktop-0.2-android-parity-design.md
+docs/superpowers/specs/2026-09-15-parity-contract-ruleset-magic-design.md
 gradle.properties
 gradle/wrapper/gradle-wrapper.properties
 gradlew
@@ -92,6 +90,7 @@ shared/src/commonMain/kotlin/com/dubl/character/android/model/DevelopmentEffects
 shared/src/commonMain/kotlin/com/dubl/character/android/model/DevelopmentModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/MagicEquipmentModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/RollRules.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/model/RulesetModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SheetGrouping.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SkillEffectModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SkillModels.kt
@@ -139,6 +138,7 @@ tools/tests/kotlin/CharacterSessionHarness.kt
 tools/tests/kotlin/CharacterSheetSessionHarness.kt
 tools/tests/kotlin/DesktopCatalogHarness.kt
 tools/tests/kotlin/DesktopPersistenceHarness.kt
+tools/tests/kotlin/MagicParityHarness.kt
 tools/tests/kotlin/PersistenceHarness.kt
 tools/tests/kotlin/SheetGroupingHarness.kt
 tools/tests/kotlin/Ui061RegressionHarness.kt
@@ -171,3 +171,5 @@ tools/tests/test_import_android_0_5_chi.py
 tools/tests/test_import_android_0_5_skill_effects.py
 tools/tests/test_kmp_boundaries.py
 tools/tests/test_kmp_ui_foundation.py
+tools/tests/test_magic_backend_parity.py
+tools/tests/test_ruleset_parity_contract.py

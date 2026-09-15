@@ -72,8 +72,16 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Мана ${character.manaCurrent}/${character.effectiveManaMaximum}", color = DublFocus, fontWeight = FontWeight.Bold)
+                    TextButton(
+                        enabled = character.manaCurrent > 0,
+                        onClick = { state.mutate { changeMana(-1) } },
+                    ) { Text("−") }
+                    TextButton(
+                        enabled = character.manaCurrent < character.effectiveManaMaximum,
+                        onClick = { state.mutate { changeMana(1) } },
+                    ) { Text("+") }
                     Text("Ранг маны ${character.magic.manaRank}/5", color = DublGold)
-                    RankStepper(character.magic.manaRank, max = 5) { next -> state.mutate { setMagicManaRank(next) } }
+                    RankStepper(character.magic.manaRank, max = 5, enabled = !character.creationComplete) { next -> state.mutate { setMagicManaRank(next) } }
                     Text("Восстановление ${MagicEquipmentRules.manaRecoveryPerRound(character)}/раунд", color = DublMuted)
                 }
                 Text("XP: ранг маны ${MagicEquipmentRules.manaRankXp(character)} · школы ${MagicEquipmentRules.magicSchoolPowerXp(character)} · заклинания ${MagicEquipmentRules.learnedSpellXp(character)}", color = DublMuted)
@@ -98,7 +106,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     SectionCard(school, action = { OutlinedButton(onClick = { editSchool = school }) { Text("Изменить") } }) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Сила $power", color = DublFocus, fontWeight = FontWeight.Bold)
-                            RankStepper(power, max = 99) { next -> state.mutate { setMagicSchoolPower(school, next) } }
+                            RankStepper(power, max = Int.MAX_VALUE) { next -> state.mutate { setMagicSchoolPower(school, next) } }
                         }
                         character.magic.schools.firstOrNull { MagicSchoolCatalog.canonicalizeOrNull(it.name) == school }?.note?.takeIf { it.isNotBlank() }?.let { Text(it, color = DublMuted) }
                     }
@@ -118,7 +126,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     SectionCard(spell.name, action = { OutlinedButton(onClick = { editSpell = spell }) { Text("Редактировать") } }) {
                         Text("${spell.school} · мана ${spell.cost} · ${if (spell.learned) "изучено" else "не изучено"}", color = if (usability.usable) DublFocus else DublMuted)
                         if (spell.description.isNotBlank()) Text(spell.description, color = DublMuted)
-                        if (!usability.usable) Text("Требуется сила школы ${usability.requiredPower}", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                        if (spell.learned && !usability.usable) Text("Требуется сила школы ${usability.requiredPower}", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
                         Text("XP: ${spell.xpOverride ?: MagicEquipmentRules.learnXpCost(spell.cost)?.toString() ?: "—"}", color = DublGold)
                     }
                 }
@@ -134,7 +142,10 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     SectionCard(spell.name, action = {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(onClick = { catalogDetails = spell }) { Text("Подробнее") }
-                            Button(onClick = { state.mutate { addCatalogSpell(spell) } }) { Text("Добавить") }
+                            Button(
+                                enabled = !spell.incomplete,
+                                onClick = { state.mutate { addCatalogSpell(spell) } },
+                            ) { Text(if (spell.incomplete) "Черновик" else "Добавить") }
                         }
                     }) {
                         Text("${spell.school} · мана ${spell.cost}", color = if (usability.usable) DublFocus else DublMuted)
@@ -205,7 +216,7 @@ private fun AddSchoolDialog(state: DesktopAppState, onError: (String) -> Unit, o
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         available.forEach { option -> DropdownMenuItem(text = { Text(option) }, onClick = { school = option; menu = false }) }
                     }
-                    OutlinedTextField(rank, { rank = it.filter(Char::isDigit).take(2) }, label = { Text("Сила школы") }, singleLine = true)
+                    OutlinedTextField(rank, { rank = it.filter(Char::isDigit) }, label = { Text("Сила школы") }, singleLine = true)
                     OutlinedTextField(note, { note = it }, label = { Text("Примечание") })
                 }
             }
@@ -232,7 +243,7 @@ private fun SchoolDialog(state: DesktopAppState, school: String, onError: (Strin
         title = { Text(school) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(rank, { rank = it.filter(Char::isDigit).take(2) }, label = { Text("Сила школы") }, singleLine = true)
+                OutlinedTextField(rank, { rank = it.filter(Char::isDigit) }, label = { Text("Сила школы") }, singleLine = true)
                 OutlinedTextField(note, { note = it }, label = { Text("Примечание") })
             }
         },
@@ -283,8 +294,8 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
                 OutlinedTextField(name, { name = it }, label = { Text("Название") })
                 OutlinedTextField(school, { school = it }, label = { Text("Школа") })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(cost, { cost = it.filter(Char::isDigit).take(3) }, label = { Text("Мана") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(xp, { xp = it.filter(Char::isDigit).take(5) }, label = { Text("XP override") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(cost, { cost = it.filter(Char::isDigit) }, label = { Text("Мана") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(xp, { xp = it.filter(Char::isDigit) }, label = { Text("XP override") }, modifier = Modifier.weight(1f), singleLine = true)
                 }
                 OutlinedTextField(time, { time = it }, label = { Text("Время") })
                 OutlinedTextField(range, { range = it }, label = { Text("Дальность") })
@@ -298,8 +309,9 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
         },
         confirmButton = {
             TextButton(enabled = name.isNotBlank(), onClick = {
+                val manaCost = cost.toIntOrNull()?.coerceAtLeast(0) ?: 0
                 val updated = (spell ?: KnownSpell(uid = "", custom = true)).copy(
-                    name = name.trim(), school = school.trim(), cost = cost.toIntOrNull()?.coerceAtLeast(0) ?: 0,
+                    name = name.trim(), school = school.trim(), cost = manaCost, manaText = manaCost.toString(),
                     time = time.trim(), range = range.trim(), area = area.trim(), action = action.trim(), duration = duration.trim(),
                     description = description.trim(), enhancement = enhancement.trim(), learned = learned, xpOverride = xp.toIntOrNull()?.coerceAtLeast(0),
                 )
@@ -336,7 +348,12 @@ private fun CatalogSpellDialog(state: DesktopAppState, spell: SpellCatalogEntry,
                 Text(if (usability.usable) "Доступно по силе школы" else "Нужно ${usability.requiredPower} силы школы", color = if (usability.usable) DublFocus else DublMuted)
             }
         },
-        confirmButton = { TextButton(onClick = { state.mutate { addCatalogSpell(spell) }; onDismiss() }) { Text("Добавить") } },
+        confirmButton = {
+            TextButton(
+                enabled = !spell.incomplete,
+                onClick = { state.mutate { addCatalogSpell(spell) }; onDismiss() },
+            ) { Text(if (spell.incomplete) "Черновик" else "Добавить") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
     )
 }

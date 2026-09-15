@@ -120,6 +120,8 @@ import com.dubl.character.android.model.SkillCategory
 import com.dubl.character.android.model.SkillEffectDefinition
 import com.dubl.character.android.model.SkillEffectRules
 import com.dubl.character.android.model.SkillRollEffectOption
+import com.dubl.character.android.model.allowedAttributes
+import com.dubl.character.android.model.allowedSkillIds
 import com.dubl.character.android.model.compareRollToTarget
 import com.dubl.character.android.model.developmentNormalize
 import com.dubl.character.android.model.rollPreset
@@ -129,6 +131,7 @@ import com.dubl.character.android.model.resolveSkill
 import com.dubl.character.android.model.resolvedSkills
 import com.dubl.character.android.model.skillCalculation
 import com.dubl.character.android.model.skillCalculationForRoll
+import com.dubl.character.android.model.selectedTotals
 import com.dubl.character.android.state.CharacterController
 import com.dubl.character.android.ui.components.containSheetOverscroll
 import com.dubl.character.android.ui.components.DublCard
@@ -1545,29 +1548,12 @@ private fun ContextRollSheet(
     val effectCatalog = remember(androidContext.applicationContext) {
         SkillEffectCatalogRepository(androidContext.applicationContext).load()
     }
-    val allowedSkillIds = remember(context) {
-        when (context) {
-            RollContext.ATTACK, RollContext.BREAK_ITEM -> listOf("unarmed", "melee_weapon", "shooting", "throwing")
-            RollContext.PARRY, RollContext.DISARM -> listOf("unarmed", "melee_weapon")
-            RollContext.FEINT -> listOf("eloquence", "unarmed", "melee_weapon")
-            else -> emptyList()
-        }
-    }
+    val allowedSkillIds = remember(context) { context.allowedSkillIds() }
     val skillOptions = allowedSkillIds.mapNotNull(character::resolveSkill)
     var selectedSkillId by remember(context, character.id) {
         mutableStateOf(skillOptions.firstOrNull()?.id)
     }
-    fun attributesFor(skillId: String?): List<AttributeId> = when (context) {
-        RollContext.ATTACK, RollContext.BREAK_ITEM -> when (skillId) {
-            "shooting" -> listOf(AttributeId.PERCEPTION, AttributeId.DEXTERITY)
-            "throwing" -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
-            "unarmed", "melee_weapon" -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
-            else -> emptyList()
-        }
-        RollContext.PARRY, RollContext.DISARM -> listOf(AttributeId.DEXTERITY, AttributeId.STRENGTH)
-        RollContext.FEINT -> listOf(AttributeId.CHARISMA)
-        else -> emptyList()
-    }
+    fun attributesFor(skillId: String?): List<AttributeId> = context.allowedAttributes(skillId)
     var selectedAttribute by remember(context, selectedSkillId, character.id) {
         mutableStateOf(attributesFor(selectedSkillId).firstOrNull())
     }
@@ -1717,89 +1703,72 @@ private fun statInfo(id: StatId, character: DublCharacter): StatInfo = when (id)
     StatId.DEFENSE -> StatInfo(
         id = id,
         value = character.defense.toString(),
-        formula = "10 − Размер + Скорость + Ловкость",
+        formula = "10 − Размер + Скорость + Ловкость + штраф нагрузки",
         breakdown = listOf(
             "10 − ${character.size} + ${character.speed} + ${character.dexterity}",
+            "Штраф нагрузки: ${signed(character.equipmentLoadPenalty)}",
             "Итог: ${character.defense}",
         ),
     )
     StatId.REFLEXES -> StatInfo(
         id = id,
         value = signed(character.reflexes),
-        formula = "Скорость + Ловкость",
+        formula = "Скорость + Ловкость + нагрузка + Быстрые рефлексы",
         breakdown = listOf(
             "${character.speed} + ${character.dexterity}",
+            "Штраф нагрузки: ${signed(character.equipmentLoadPenalty)}",
+            "Быстрые рефлексы: ${signed(character.quickReflexesBonus)}",
             "Итог: ${signed(character.reflexes)}",
         ),
     )
     StatId.INITIATIVE -> StatInfo(
         id = id,
         value = signed(character.initiative),
-        formula = "Скорость + Восприятие",
+        formula = "Скорость + Восприятие + Улучшенная инициатива + Повелитель Бури",
         breakdown = listOf(
             "${character.speed} + ${character.perception}",
+            "Улучшенная инициатива: ${signed(character.improvedInitiativeBonus)}",
+            "Повелитель Бури: ${signed(character.stormLordBonus)}",
             "Итог: ${signed(character.initiative)}",
         ),
     )
     StatId.FORTITUDE -> StatInfo(
         id = id,
         value = signed(character.fortitude),
-        formula = "Телосложение + Воля",
+        formula = "Телосложение + Воля + Стойкий + Неподвижная Гора",
         breakdown = listOf(
             "${character.constitution} + ${character.will}",
+            "Стойкий: ${signed(character.stalwartBonus)}",
+            "Неподвижная Гора: ${signed(character.stillMountainBonus)}",
             "Итог: ${signed(character.fortitude)}",
         ),
     )
-    StatId.RUN -> {
-        val multiplier = runMultiplier(character)
-        StatInfo(
-            id = id,
-            value = "${formatNumber(character.runFull)} м",
-            formula = "Базовый бег + Скорость × множитель размера/ног",
-            breakdown = listOf(
-                "Базовый бег: ${formatNumber(character.runBase)} м",
-                "Скорость: ${character.speed}",
-                "Множитель: ${formatNumber(multiplier)}",
-                "Итог: ${formatNumber(character.runBase)} + ${character.speed} × ${formatNumber(multiplier)} = ${formatNumber(character.runFull)} м",
-            ),
-            note = "Множитель зависит от Размера (${character.size}) и количества ног (${character.legs}).",
-        )
-    }
+    StatId.RUN -> StatInfo(
+        id = id,
+        value = "${formatNumber(character.runFull)} м",
+        formula = "Базовый бег + (Скорость + Повелитель Бури) × множитель + нагрузка + Бегун",
+        breakdown = listOf(
+            "Базовый бег: ${formatNumber(character.runBase)} м",
+            "Скорость: ${character.speed}",
+            "Повелитель Бури: ${signed(character.runStormSpeedBonus)}",
+            "Множитель: ${formatNumber(character.runMultiplier)}",
+            "Штраф нагрузки: ${signed(character.equipmentLoadPenalty)}",
+            "Бегун: ${signed(character.runRunnerBonus)}",
+            "Итог: ${formatNumber(character.runFull)} м",
+        ),
+        note = "Множитель зависит от Размера (${character.size}) и количества ног (${character.legs}).",
+    )
     StatId.SIZE -> StatInfo(
         id = id,
         value = character.size.toString(),
         formula = "Задаётся напрямую",
         breakdown = listOf(
             "Размер: ${character.size}",
-            "Модификатор Силы: ${signed(character.size - 5)}",
-            "Модификатор Скорости: ${signed(5 - character.size)}",
+            "Модификатор Силы: ${signed(character.strengthSizeModifier)}",
+            "Модификатор Скорости: ${signed(character.speedSizeModifier)}",
         ),
         note = "Размер влияет на Силу, Скорость, Защиту, здоровье и Бег.",
     )
-}
-
-private fun runMultiplier(character: DublCharacter): Double = if (character.legs >= 3) {
-    when (character.size.coerceIn(1, 10)) {
-        1 -> 0.5
-        2 -> 1.0
-        3 -> 1.5
-        4, 5, 6 -> 2.0
-        7 -> 3.0
-        8 -> 4.0
-        9 -> 5.0
-        else -> 6.0
-    }
-} else {
-    when (character.size.coerceIn(1, 10)) {
-        1 -> 0.125
-        2 -> 0.25
-        3 -> 0.5
-        4, 5 -> 1.0
-        6, 7 -> 1.5
-        8 -> 2.0
-        9 -> 3.0
-        else -> 4.0
-    }
 }
 
 private fun defaultSkillGroups(skills: List<ResolvedSkill>): List<SheetGroup> = SkillCategory.entries.mapNotNull { category ->
@@ -3167,13 +3136,10 @@ private fun CheckRollSheet(
 
     val situationalBonus = situationalText.toIntOrNull()?.coerceIn(-99, 99) ?: 0
     val targetValue = targetText.toIntOrNull()?.coerceIn(-999, 999)
-    val selectedEffects = effectOptions.filter { it.id in selectedEffectIds }
-    val effectNumericBonus = selectedEffects.sumOf { it.numericBonus }
-    val selectedAdvantage = selectedEffects.sumOf { it.advantageDice }
-    val selectedHindrance = selectedEffects.sumOf { it.hindranceDice }
-    val effectiveCheckBonus = checkBonus?.plus(effectNumericBonus)
-    val totalAdvantage = advantageCount + selectedAdvantage
-    val totalHindrance = hindranceCount + selectedHindrance
+    val selectedEffectTotals = effectOptions.selectedTotals(selectedEffectIds)
+    val effectiveCheckBonus = checkBonus?.plus(selectedEffectTotals.numericBonus)
+    val totalAdvantage = advantageCount + selectedEffectTotals.advantageDice
+    val totalHindrance = hindranceCount + selectedEffectTotals.hindranceDice
     val mode = when {
         totalAdvantage > 0 -> RollMode.ADVANTAGE
         totalHindrance > 0 -> RollMode.HINDRANCE

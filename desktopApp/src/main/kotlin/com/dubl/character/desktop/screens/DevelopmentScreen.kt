@@ -386,16 +386,15 @@ internal fun DevelopmentDetailsDialog(
 @Composable
 private fun ChiResourceCard(state: DesktopAppState) {
     val character = state.activeCharacter
-    val automaticAccess = character.developmentRank(DevelopmentEffectIds.INTERNAL_CHI) > 0
-    val progressionBonus = character.developmentRank(DevelopmentEffectIds.MASTER_CHI) * 2 +
-        character.developmentRank(DevelopmentEffectIds.AWAKENED_CHI) * 3
-    val baseMaximum = maxOf(3, character.will + 1)
+    val automaticAccess = character.chiAutomaticAccess
+    val progressionBonus = character.chiProgressionBonus
+    val baseMaximum = character.chiBaseMaximum
 
     SectionCard("Ресурс ЦИ") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(if (character.chiActive) "${character.chiCurrent} / ${character.chiMaximum}" else "ЦИ выключено", color = DublFocus, fontWeight = FontWeight.Bold)
-                Text("Доп. ранги: ${character.chiBonusRanks} / 10 · 50 XP за ранг", color = DublMuted)
+                Text("Доп. ранги: ${character.chiBonusRanks} / 10 · ${CharacterEconomy.CHI_BONUS_RANK_XP} XP за ранг", color = DublMuted)
             }
             Switch(
                 checked = character.chiActive,

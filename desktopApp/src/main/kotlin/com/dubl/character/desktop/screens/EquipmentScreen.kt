@@ -65,7 +65,7 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                 }
                 if (!character.gear.loadAutomatic) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(manualLoad, { manualLoad = it.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(8) }, label = { Text("Ручная нагрузка") }, singleLine = true)
+                        OutlinedTextField(manualLoad, { manualLoad = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, label = { Text("Ручная нагрузка") }, singleLine = true)
                         Button(onClick = { state.mutate { setGearManualLoad(manualLoad.replace(',', '.').toDoubleOrNull() ?: 0.0) } }) { Text("Применить") }
                     }
                 }
@@ -74,7 +74,15 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 
         if (tab == EquipmentTab.INVENTORY) {
             item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Button(onClick = { addCustom = true }) { Text("+ Свой предмет") } } }
-            val itemsFiltered = character.gear.items.filter { search.isBlank() || it.name.contains(search, true) || it.category.contains(search, true) || it.section.contains(search, true) }
+            val itemsFiltered = character.gear.items.filter { item ->
+                search.isBlank() || listOf(
+                    item.name,
+                    item.category,
+                    item.section,
+                    item.description,
+                    item.fields.values.joinToString(" "),
+                ).any { it.contains(search, true) }
+            }.sortedBy { it.name.lowercase() }
             items(itemsFiltered, key = { it.uid }) { item ->
                 SectionCard(item.name, action = { OutlinedButton(onClick = { editItem = item }) { Text("Редактировать") } }) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -89,8 +97,14 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             }
         } else {
             val entries = state.magicEquipmentCatalog.gear.filter { entry ->
-                (search.isBlank() || entry.name.contains(search, true) || entry.category.contains(search, true) || entry.section.contains(search, true))
-            }
+                search.isBlank() || listOf(
+                    entry.name,
+                    entry.category,
+                    entry.section,
+                    entry.description,
+                    entry.fields.values.joinToString(" "),
+                ).any { it.contains(search, true) }
+            }.sortedBy { it.name.lowercase() }
             items(entries, key = { it.id }) { entry ->
                 SectionCard(entry.name, action = {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -137,8 +151,8 @@ private fun GearDialog(state: DesktopAppState, item: GearItem?, onDelete: (Strin
             Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Название") })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(4) }, label = { Text("Количество") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(load, { load = it.filter { c -> c.isDigit() || c == '.' || c == ',' }.take(8) }, label = { Text("Вес / нагрузка") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit) }, label = { Text("Количество") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(load, { load = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, label = { Text("Вес / нагрузка") }, modifier = Modifier.weight(1f), singleLine = true)
                 }
                 OutlinedTextField(category, { category = it }, label = { Text("Категория") })
                 OutlinedTextField(section, { section = it }, label = { Text("Раздел") })
@@ -149,7 +163,7 @@ private fun GearDialog(state: DesktopAppState, item: GearItem?, onDelete: (Strin
         confirmButton = {
             TextButton(enabled = name.isNotBlank(), onClick = {
                 val updated = (item ?: GearItem(uid = "", custom = true)).copy(
-                    name = name.trim(), quantity = quantity.toIntOrNull()?.coerceAtLeast(0) ?: 1,
+                    name = name.trim(), quantity = quantity.toIntOrNull()?.coerceAtLeast(1) ?: 1,
                     load = load.replace(',', '.').toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0,
                     carried = carried, category = category.trim(), section = section.trim(), description = description.trim(),
                 )
