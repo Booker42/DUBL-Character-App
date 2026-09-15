@@ -41,7 +41,7 @@ import com.dubl.character.desktop.DesktopAppState
 
 @Composable
 fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
-    val character = state.session.active
+    val character = state.activeCharacter
     var search by remember(character.id) { mutableStateOf("") }
     var category by remember(character.id) { mutableStateOf<SkillCategory?>(null) }
     var learnedOnly by remember(character.id) { mutableStateOf(false) }
@@ -115,7 +115,7 @@ fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     selected?.let { skill -> SkillSettingsDialog(state, skill, onDismiss = { selected = null }, onRoll = { rollSkill = skill }) }
     rollSkill?.let { skill ->
         SkillRollDialog(
-            character = state.session.active,
+            character = state.activeCharacter,
             skill = skill,
             preferredAttribute = state.extras.preferredSkillAttributes[skill.id],
             developmentCatalog = state.developmentCatalog,
@@ -140,7 +140,7 @@ fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 
 @Composable
 private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, onDismiss: () -> Unit, onRoll: () -> Unit) {
-    val skill = state.session.active.resolvedSkills(includeHidden = true).firstOrNull { it.id == initial.id } ?: initial
+    val skill = state.activeCharacter.resolvedSkills(includeHidden = true).firstOrNull { it.id == initial.id } ?: initial
     var modifierText by remember(skill.id, skill.modifier) { mutableStateOf(skill.modifier.toString()) }
     var note by remember(skill.id, skill.formulaNote) { mutableStateOf(skill.formulaNote) }
     var attributes by remember(skill.id, skill.attributes) { mutableStateOf(skill.attributes.toSet()) }
@@ -197,7 +197,7 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
 
 @Composable
 private fun HiddenSkillsDialog(state: DesktopAppState, onDismiss: () -> Unit) {
-    val hidden = state.session.active.resolvedSkills(includeHidden = true).filter { it.id in state.session.active.hiddenSkillIds }
+    val hidden = state.activeCharacter.resolvedSkills(includeHidden = true).filter { it.id in state.activeCharacter.hiddenSkillIds }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Скрытые умения") },

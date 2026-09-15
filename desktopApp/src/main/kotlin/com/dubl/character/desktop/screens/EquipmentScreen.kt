@@ -37,7 +37,7 @@ private enum class EquipmentTab(val title: String) { INVENTORY("Инвентар
 
 @Composable
 fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
-    val character = state.session.active
+    val character = state.activeCharacter
     var tab by remember(character.id) { mutableStateOf(EquipmentTab.INVENTORY) }
     var search by remember(character.id) { mutableStateOf("") }
     var editItem by remember(character.id) { mutableStateOf<GearItem?>(null) }
@@ -110,7 +110,7 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     catalogDetails?.let { entry -> CatalogGearDialog(state, entry, onDismiss = { catalogDetails = null }) }
 
     pendingDeleteUid?.let { uid ->
-        val itemName = state.session.active.gear.items.firstOrNull { it.uid == uid }?.name ?: "предмет"
+        val itemName = state.activeCharacter.gear.items.firstOrNull { it.uid == uid }?.name ?: "предмет"
         AlertDialog(
             onDismissRequest = { pendingDeleteUid = null },
             title = { Text("Удалить предмет?") },

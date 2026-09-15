@@ -39,7 +39,7 @@ private enum class MagicTab(val title: String) { SCHOOLS("Школы"), SPELLBOO
 
 @Composable
 fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
-    val character = state.session.active
+    val character = state.activeCharacter
     var tab by remember(character.id) { mutableStateOf(MagicTab.SCHOOLS) }
     var search by remember(character.id) { mutableStateOf("") }
     var hideUnlearned by remember(character.id) { mutableStateOf(true) }
@@ -160,7 +160,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     }
 
     pendingDeleteSpellUid?.let { uid ->
-        val spellName = state.session.active.magic.spells.firstOrNull { it.uid == uid }?.name ?: "заклинание"
+        val spellName = state.activeCharacter.magic.spells.firstOrNull { it.uid == uid }?.name ?: "заклинание"
         AlertDialog(
             onDismissRequest = { pendingDeleteSpellUid = null },
             title = { Text("Удалить заклинание?") },
@@ -172,7 +172,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
         )
     }
     pendingDeleteSchoolIndex?.let { index ->
-        val schoolName = state.session.active.magic.schools.getOrNull(index)?.name ?: "школа"
+        val schoolName = state.activeCharacter.magic.schools.getOrNull(index)?.name ?: "школа"
         AlertDialog(
             onDismissRequest = { pendingDeleteSchoolIndex = null },
             title = { Text("Удалить школу?") },
@@ -187,9 +187,9 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AddSchoolDialog(state: DesktopAppState, onError: (String) -> Unit, onDismiss: () -> Unit) {
-    val owned = state.session.active.magic.schools.mapNotNull { MagicSchoolCatalog.canonicalizeOrNull(it.name) }.toSet()
+    val owned = state.activeCharacter.magic.schools.mapNotNull { MagicSchoolCatalog.canonicalizeOrNull(it.name) }.toSet()
     val available = MagicSchoolCatalog.schools.filterNot { it in owned }
-    var school by remember(state.session.active.id) { mutableStateOf(available.firstOrNull().orEmpty()) }
+    var school by remember(state.activeCharacter.id) { mutableStateOf(available.firstOrNull().orEmpty()) }
     var rank by remember { mutableStateOf("1") }
     var note by remember { mutableStateOf("") }
     var menu by remember { mutableStateOf(false) }
@@ -223,8 +223,8 @@ private fun AddSchoolDialog(state: DesktopAppState, onError: (String) -> Unit, o
 
 @Composable
 private fun SchoolDialog(state: DesktopAppState, school: String, onError: (String) -> Unit, onDelete: (Int) -> Unit, onDismiss: () -> Unit) {
-    val existingIndex = state.session.active.magic.schools.indexOfFirst { MagicSchoolCatalog.canonicalizeOrNull(it.name) == school }
-    val existing = state.session.active.magic.schools.getOrNull(existingIndex)
+    val existingIndex = state.activeCharacter.magic.schools.indexOfFirst { MagicSchoolCatalog.canonicalizeOrNull(it.name) == school }
+    val existing = state.activeCharacter.magic.schools.getOrNull(existingIndex)
     var rank by remember(school) { mutableStateOf((existing?.rank ?: 0).toString()) }
     var note by remember(school) { mutableStateOf(existing?.note.orEmpty()) }
     AlertDialog(
@@ -318,7 +318,7 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
 
 @Composable
 private fun CatalogSpellDialog(state: DesktopAppState, spell: SpellCatalogEntry, onDismiss: () -> Unit) {
-    val usability = MagicEquipmentRules.spellUsability(state.session.active, spell)
+    val usability = MagicEquipmentRules.spellUsability(state.activeCharacter, spell)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(spell.name) },

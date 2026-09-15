@@ -101,8 +101,8 @@ private fun DesktopRail(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         ) {
             Column(Modifier.padding(10.dp)) {
-                Text(state.session.active.name, fontWeight = FontWeight.SemiBold)
-                Text("${state.session.active.experience} XP · сменить ▼", color = DublMuted, style = MaterialTheme.typography.bodySmall)
+                Text(state.activeCharacter.name, fontWeight = FontWeight.SemiBold)
+                Text("${state.activeCharacter.experience} XP · сменить ▼", color = DublMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
         DropdownMenu(expanded = switcherOpen, onDismissRequest = { switcherOpen = false }) {

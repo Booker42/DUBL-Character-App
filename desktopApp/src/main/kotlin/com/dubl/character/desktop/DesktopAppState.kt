@@ -7,6 +7,7 @@ import com.dubl.character.android.data.DesktopCharacterExtrasStore
 import com.dubl.character.android.data.DesktopCharacterStore
 import com.dubl.character.android.model.AppSnapshot
 import com.dubl.character.android.model.CharacterSheetExtras
+import com.dubl.character.android.model.DublCharacter
 import com.dubl.character.android.state.CharacterExtrasSession
 import com.dubl.character.android.state.CharacterSession
 import com.dubl.character.desktop.data.DesktopCatalogLoader
@@ -18,7 +19,7 @@ import java.util.UUID
 class DesktopAppState {
     private val characterStore = DesktopCharacterStore()
     private val extrasStore = DesktopCharacterExtrasStore()
-    val session = CharacterSession(characterStore) { UUID.randomUUID().toString() }
+    private val session = CharacterSession(characterStore) { UUID.randomUUID().toString() }
     val extrasSession = CharacterExtrasSession(extrasStore)
     private val catalogLoader = DesktopCatalogLoader()
 
@@ -31,6 +32,8 @@ class DesktopAppState {
         private set
     var extras: CharacterSheetExtras by mutableStateOf(extrasSession.load(session.active.id))
         private set
+
+    val activeCharacter: DublCharacter get() = snapshot.activeCharacter
 
     init {
         // Android repairs old catalog gear weights on load. Desktop does the same once.

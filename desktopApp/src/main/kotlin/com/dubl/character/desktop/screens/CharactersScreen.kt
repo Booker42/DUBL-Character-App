@@ -74,7 +74,7 @@ fun CharactersScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Удалить персонажа?") },
-            text = { Text("${state.session.active.name} будет удалён вместе с desktop-настройками листа. Это действие нельзя отменить.") },
+            text = { Text("${state.activeCharacter.name} будет удалён вместе с desktop-настройками листа. Это действие нельзя отменить.") },
             confirmButton = {
                 TextButton(onClick = {
                     state.deleteActive()

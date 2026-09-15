@@ -40,17 +40,61 @@ import com.dubl.character.android.model.skillCalculationForRoll
 import com.dubl.character.android.ui.theme.DublMuted
 
 @Composable
+fun SkillAttributeChoiceDialog(
+    character: DublCharacter,
+    skill: ResolvedSkill,
+    onConfirm: (AttributeId) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedAttribute by remember(skill.id) { mutableStateOf(skill.stockAttribute) }
+    val calculation = character.skillCalculationForRoll(skill, selectedAttribute)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("${skill.name}: характеристика") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("По умолчанию выбрана стоковая характеристика. Для этого броска можно выбрать любую другую.", color = DublMuted)
+                Text("${selectedAttribute.title}: ${calculation.formulaText(skill, showConfiguredOptions = false)} · ${calculation.total?.let(::signed) ?: "—"}")
+                AttributeId.entries.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { option ->
+                            OutlinedButton(
+                                onClick = { selectedAttribute = option },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("${if (selectedAttribute == option) "✓ " else ""}${option.shortTitle} · ${signed(character.attribute(option))}")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = calculation.total != null,
+                onClick = { onConfirm(selectedAttribute) },
+            ) { Text("К броску · ${calculation.total?.let(::signed) ?: "—"}") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
+}
+
+@Composable
 fun SkillRollDialog(
     character: DublCharacter,
     skill: ResolvedSkill,
     preferredAttribute: AttributeId?,
+    initialAttribute: AttributeId? = null,
     developmentCatalog: DevelopmentCatalog,
     effectCatalog: SkillEffectCatalog,
     onPreferredAttribute: (AttributeId) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val attributes = skill.attributes.ifEmpty { listOf(skill.stockAttribute) }
-    var attribute by remember(skill.id) { mutableStateOf(preferredAttribute?.takeIf { it in attributes } ?: attributes.first()) }
+    val configuredAttributes = skill.attributes.ifEmpty { listOf(skill.stockAttribute) }
+    val attributes = initialAttribute?.let { listOf(it) } ?: configuredAttributes
+    val startingAttribute = initialAttribute ?: preferredAttribute?.takeIf { it in configuredAttributes } ?: configuredAttributes.first()
+    var attribute by remember(skill.id, initialAttribute, preferredAttribute) { mutableStateOf(startingAttribute) }
     var mode by remember(skill.id) { mutableStateOf(RollMode.NORMAL) }
     var effectCountText by remember(skill.id) { mutableStateOf("1") }
     var situationalText by remember(skill.id) { mutableStateOf("0") }

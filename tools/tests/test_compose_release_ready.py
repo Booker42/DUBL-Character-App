@@ -50,6 +50,8 @@ def test_release_workflow_runs_all_compose_parity_guards():
         'test_compose_destructive_and_validation_parity.py',
         'test_compose_development_purchase_parity.py',
         'test_compose_magic_parity.py',
+        'test_compose_state_observation.py',
+        'test_compose_android_062_sheet_roll_parity.py',
     ):
         assert test_name in text
 

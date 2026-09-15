@@ -26,9 +26,10 @@ def test_attribute_quick_roll_preserves_selected_attribute():
 
 def test_sheet_skills_roll_directly_without_forcing_navigation():
     text = SHEET.read_text(encoding='utf-8')
-    assert 'sheetRollSkill' in text
+    assert 'sheetRollAttributeChoice' in text
+    assert 'SkillAttributeChoiceDialog(' in text
+    assert 'sheetRollRequest' in text
     assert 'SkillRollDialog(' in text
-    assert 'preferredSkillAttributes' in text
 
 def test_context_rolls_show_owned_effect_reminders():
     roll = ROLL.read_text(encoding='utf-8')

@@ -44,7 +44,7 @@ private enum class DevelopmentTab(val title: String) {
 
 @Composable
 fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
-    val character = state.session.active
+    val character = state.activeCharacter
     var tab by remember(character.id) { mutableStateOf(DevelopmentTab.REGULAR) }
     var search by remember(character.id) { mutableStateOf("") }
     var availableOnly by remember(character.id) { mutableStateOf(false) }
@@ -217,7 +217,7 @@ private fun DevelopmentEntryCard(
     rules: DevelopmentRules,
     onDetails: () -> Unit,
 ) {
-    val owned = state.session.active.development[entry.id] ?: OwnedDevelopment()
+    val owned = state.activeCharacter.development[entry.id] ?: OwnedDevelopment()
     val availability = rules.availability(entry, owned.optionIndex)
     val failed = availability.checks.any { it.status == RequirementStatus.FAIL }
     SectionCard(title = entry.name, action = { OutlinedButton(onClick = onDetails) { Text("Подробнее") } }) {
@@ -234,7 +234,7 @@ private fun DevelopmentEntryCard(
 
 @Composable
 internal fun DevelopmentDetailsDialog(state: DesktopAppState, entry: DevelopmentEntry, onDismiss: () -> Unit) {
-    val character = state.session.active
+    val character = state.activeCharacter
     val owned = character.development[entry.id] ?: OwnedDevelopment()
     val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
     var optionIndex by remember(entry.id, owned.optionIndex) { mutableStateOf(owned.optionIndex) }
@@ -334,7 +334,7 @@ internal fun DevelopmentDetailsDialog(state: DesktopAppState, entry: Development
 
 @Composable
 private fun ChiResourceCard(state: DesktopAppState) {
-    val character = state.session.active
+    val character = state.activeCharacter
     SectionCard("Ресурс ЦИ") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
@@ -359,7 +359,7 @@ private fun ChiResourceCard(state: DesktopAppState) {
 
 @Composable
 private fun ChiTechniquesCard(state: DesktopAppState) {
-    val character = state.session.active
+    val character = state.activeCharacter
     val rules = ChiRules(character, state.developmentCatalog)
     SectionCard("Приёмы ЦИ") {
         if (state.chiCatalog.techniques.isEmpty()) EmptyState("Приёмов ЦИ в каталоге нет.")
