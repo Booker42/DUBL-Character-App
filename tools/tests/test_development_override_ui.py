@@ -5,6 +5,7 @@ ANDROID_CONTROLLER = ROOT / "app/src/main/java/com/dubl/character/android/state/
 ANDROID_SCREEN = ROOT / "app/src/main/java/com/dubl/character/android/ui/screens/FeatsScreen.kt"
 DESKTOP_STATE = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/DesktopAppState.kt"
 DESKTOP_SCREEN = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/DevelopmentScreen.kt"
+DESKTOP_SHEET = ROOT / "desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/CharacterSheetScreen.kt"
 WORKFLOW = ROOT / ".github/workflows/linux-appimage.yml"
 
 
@@ -33,6 +34,16 @@ def test_desktop_development_ui_exposes_local_override_and_custom_escape_hatch()
     assert "setDevelopmentOverride" in screen
     assert "addCustomDevelopment" in screen
     assert ".filter { entry -> !entry.incomplete" not in screen
+
+
+def test_desktop_character_sheet_wires_development_local_override_callbacks():
+    sheet = DESKTOP_SHEET.read_text()
+    assert "onEditLocal =" in sheet
+    assert "onResetLocal =" in sheet
+    assert "onDeleteCustom =" in sheet
+    assert "hasLocalOverride =" in sheet
+    assert "isCustom =" in sheet
+    assert "DevelopmentLocalEditDialog(" in sheet
 
 
 def test_development_escape_hatch_contracts_are_in_linux_release_gate():

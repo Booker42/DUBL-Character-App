@@ -462,7 +462,7 @@ private fun emptyCustomDevelopmentEntry(): DevelopmentEntry = DevelopmentEntry(
 )
 
 @Composable
-private fun DevelopmentLocalEditDialog(
+internal fun DevelopmentLocalEditDialog(
     initial: DevelopmentEntry,
     title: String,
     onSave: (DevelopmentEntry) -> Unit,

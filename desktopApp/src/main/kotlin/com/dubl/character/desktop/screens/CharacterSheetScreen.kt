@@ -124,6 +124,7 @@ fun CharacterSheetScreen(
     var sheetRollAttributeChoice by remember(character.id) { mutableStateOf<ResolvedSkill?>(null) }
     var sheetRollRequest by remember(character.id) { mutableStateOf<SheetSkillRollRequest?>(null) }
     var sheetDevelopmentEntry by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
+    var sheetEditingDevelopment by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
     var grouping by remember(character.id) { mutableStateOf<GroupingKind?>(null) }
     var recent by remember(character.id) { mutableStateOf<RecentSheetChange?>(null) }
 
@@ -402,7 +403,35 @@ fun CharacterSheetScreen(
             state = state,
             entry = entry,
             onOpenEntry = { targetId -> state.developmentCatalog.byId(targetId)?.let { sheetDevelopmentEntry = it } },
+            onEditLocal = {
+                sheetEditingDevelopment = entry
+                sheetDevelopmentEntry = null
+            },
+            onResetLocal = {
+                state.mutate { resetDevelopmentOverride(entry.id) }
+                sheetDevelopmentEntry = null
+            },
+            onDeleteCustom = {
+                state.mutate { removeCustomDevelopment(entry.id) }
+                sheetDevelopmentEntry = null
+            },
+            hasLocalOverride = character.developmentOverrides.containsKey(entry.id),
+            isCustom = character.customDevelopmentEntries.any { it.id == entry.id },
             onDismiss = { sheetDevelopmentEntry = null },
+        )
+    }
+    sheetEditingDevelopment?.let { entry ->
+        val isCustom = state.activeCharacter.customDevelopmentEntries.any { it.id == entry.id }
+        DevelopmentLocalEditDialog(
+            initial = entry,
+            title = if (isCustom) "Редактировать свою запись" else "Локальная правка",
+            onSave = { updated ->
+                state.mutate {
+                    if (isCustom) updateCustomDevelopment(updated) else setDevelopmentOverride(updated)
+                }
+                sheetEditingDevelopment = null
+            },
+            onDismiss = { sheetEditingDevelopment = null },
         )
     }
     sheetRollAttributeChoice?.let { skill ->
