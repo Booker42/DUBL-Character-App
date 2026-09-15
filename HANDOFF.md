@@ -10,7 +10,7 @@ Web/Wasm, server/accounts, and sync remain out of scope. The old PySide/Electron
 
 Implemented and wired to shared state/persistence:
 
-- `DesktopAppState` owns `DesktopCharacterStore`, `DesktopCharacterExtrasStore`, `CharacterSession`, `CharacterExtrasSession`, and the four canonical catalog loaders; the catalog payloads physically live once in shared resources and Android reads those same files;
+- `DesktopAppState` owns persistent desktop stores plus a shared `DublApplication`; raw `CharacterSession` / `CharacterExtrasSession` are internal shared implementation details. The catalog payloads physically live once in shared resources and Android reads those same files;
 - six top-level workflows: Character Sheet, Skills, Development/Martial Arts/Chi, Magic, Equipment, Characters;
 - persistent roster/active character and schema-8 character data with `dubl` / `3.69` ruleset identity plus schema-7 migration;
 - persistent character-sheet extras/grouping;
@@ -19,6 +19,14 @@ Implemented and wired to shared state/persistence:
 - destructive-action confirmation and custom-skill validation;
 - native Compose portrait rendering with a desktop file chooser;
 - no app-level horizontal scrolling; compact/normal/wide responsive policy remains shared.
+
+## Shared Application Lock
+
+Android and Compose Desktop now use the same public state-changing boundary: `shared/commonMain/.../application/DublApplication`. It exposes focused capabilities for character/resources, skills, development/Chi, magic, equipment, and sheet extras/grouping. Platform adapters may observe state and invoke typed application operations, but must not import raw sessions, expose arbitrary `DublCharacter` / extras transforms, or write extras repositories directly.
+
+Typed Kotlin golden scenarios use deterministic IDs plus in-memory stores and assert canonical snapshot/extras outcomes. One-step recent-change Undo is also shared: platform UIs keep only presentation metadata while `DublApplication.undoLast()` owns the reverse mutation. Treat these as **behavior-parity locks**, not proof that every migrated DUBL 3.69 mechanic is rulebook-correct. A later rulebook audit may intentionally change a shared behavior and its golden expectation once, after which both platforms inherit the correction.
+
+This is deliberately not a generic ruleset/module engine. The boundary is compatible with future ruleset/module composition, but current work remains DUBL 3.69 core behavior first.
 
 
 ## Rulebook-first import status
@@ -57,6 +65,11 @@ before packaging. `packaging/linux/build-portable-appimage.sh` and `packaging/li
 
 ## Verification already completed in this sandbox
 
+- Shared Application hard-lock/source regression sweep: 229 passed, 4 skipped across the fast non-compiler test set after platform migration;
+- hard-lock + typed-golden source contracts: 6/6 passed;
+- typed Shared Application golden scenarios now live in `shared/commonTest` and execute through the project Kotlin 2.4.20 `:shared:desktopTest` gate; the earlier standalone harness executed the original four scenarios successfully before being replaced because the sandbox system compiler is Kotlin 1.9 and pathologically slow on this source set;
+- Gradle/Compose compile remains unavailable in this sandbox because `services.gradle.org` DNS resolution is blocked; the networked CI compile/AppImage gate remains authoritative.
+- Shared Application patch verification: `git apply --check` and real apply both succeed against the untouched rulebook-compile-hotfix source ZIP; the applied tree matches the generated source snapshot byte-for-byte aside from pre-existing cache directories. Focused lock/golden/release tests on the applied copy: 26/26 passed.
 - Exact offline Linux parity-release test list: **102/102 passed** when run in bounded groups (87 source/parity checks plus Development/Chi 2/2, Magic 2/2, Equipment 4/4, rules-boundary 6/6, and desktop persistence 1/1);
 - additional Kotlin harnesses independently confirmed CharacterSession 1/1, desktop catalog parsing 1/1, and Character Sheet workflow 3/3;
 - a cumulative patch was applied to a clean copy of the last compile-hotfixed baseline with `git apply --check`, `git apply`, and `git diff --check`, then the 87 fast guards and all newly introduced backend/rules harnesses were rerun successfully on that applied copy;

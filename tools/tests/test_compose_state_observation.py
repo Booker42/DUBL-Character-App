@@ -24,4 +24,5 @@ def test_compose_ui_never_reads_unobservable_session_active_directly():
 
 def test_desktop_session_is_private_behind_observable_state_adapter():
     text = STATE.read_text(encoding='utf-8')
-    assert 'private val session = CharacterSession' in text
+    assert 'private val application = DublApplication' in text
+    assert 'CharacterSession' not in text

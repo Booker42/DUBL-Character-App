@@ -166,7 +166,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                         Text("${technique.chiCost} ЦИ · ${technique.action}", color = DublMuted)
                         Text(technique.effect, color = DublMuted)
                         if (availability.reason.isNotBlank()) Text(availability.reason, color = MaterialTheme.colorScheme.error)
-                        Button(enabled = availability.canUse, onClick = { state.mutate { changeChi(-availability.chiCost) } }) { Text("Использовать") }
+                        Button(enabled = availability.canUse, onClick = { state.changeChi(-availability.chiCost) }) { Text("Использовать") }
                     }
                 }
             }
@@ -222,11 +222,11 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             onOpenEntry = { targetId -> state.developmentCatalog.byId(targetId)?.let { selected = it } },
             onEditLocal = { editingDevelopment = entry },
             onResetLocal = {
-                state.mutate { resetDevelopmentOverride(entry.id) }
+                state.resetDevelopmentOverride(entry.id)
                 selected = null
             },
             onDeleteCustom = {
-                state.mutate { removeCustomDevelopment(entry.id) }
+                state.removeCustomDevelopment(entry.id)
                 selected = null
             },
             hasLocalOverride = character.developmentOverrides.containsKey(entry.id),
@@ -241,9 +241,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             initial = entry,
             title = if (isCustom) "Редактировать свою запись" else "Локальная правка",
             onSave = { updated ->
-                state.mutate {
-                    if (isCustom) updateCustomDevelopment(updated) else setDevelopmentOverride(updated)
-                }
+                if (isCustom) state.updateCustomDevelopment(updated) else state.setDevelopmentOverride(updated)
                 editingDevelopment = null
             },
             onDismiss = { editingDevelopment = null },
@@ -255,7 +253,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             initial = emptyCustomDevelopmentEntry(),
             title = "Своя запись",
             onSave = { updated ->
-                state.mutate { addCustomDevelopment(updated) }
+                state.addCustomDevelopment(updated)
                 creatingCustomDevelopment = false
             },
             onDismiss = { creatingCustomDevelopment = false },
@@ -367,9 +365,9 @@ internal fun DevelopmentDetailsDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     RankStepper(owned.rank, max = entry.maxRank.coerceAtLeast(1)) { next ->
                         when {
-                            next <= owned.rank -> state.mutate { setDevelopmentRank(entry.id, next, optionIndex) }
+                            next <= owned.rank -> state.setDevelopmentRank(entry.id, next, optionIndex)
                             availability.canIncrease && entry.isAbility -> pendingAbilityPurchase = true
-                            availability.canIncrease -> state.mutate { setDevelopmentRank(entry.id, next, optionIndex) }
+                            availability.canIncrease -> state.setDevelopmentRank(entry.id, next, optionIndex)
                             availability.canForceIncrease -> pendingRequirementOverride = true
                         }
                     }
@@ -408,7 +406,7 @@ internal fun DevelopmentDetailsDialog(
             },
             confirmButton = {
                 Button(onClick = {
-                    state.mutate { setDevelopmentRank(entry.id, owned.rank + 1, optionIndex) }
+                    state.setDevelopmentRank(entry.id, owned.rank + 1, optionIndex)
                     pendingRequirementOverride = false
                 }) { Text(if (entry.isAbility) "Открыть всё равно" else "Добавить всё равно") }
             },
@@ -431,7 +429,7 @@ internal fun DevelopmentDetailsDialog(
             },
             confirmButton = {
                 Button(onClick = {
-                    state.mutate { setDevelopmentRank(entry.id, owned.rank + 1, optionIndex) }
+                    state.setDevelopmentRank(entry.id, owned.rank + 1, optionIndex)
                     pendingAbilityPurchase = false
                 }) { Text("Открыть · $cost ОС") }
             },
@@ -577,21 +575,21 @@ private fun ChiResourceCard(state: DesktopAppState) {
             }
             Switch(
                 checked = character.chiActive,
-                onCheckedChange = { enabled -> state.mutate { setChiEnabled(enabled) } },
+                onCheckedChange = { enabled -> state.setChiEnabled(enabled) },
                 enabled = !automaticAccess,
             )
             if (character.chiActive) {
                 OutlinedButton(
                     enabled = character.chiCurrent > 0,
-                    onClick = { state.mutate { changeChi(-1) } },
+                    onClick = { state.changeChi(-1) },
                 ) { Text("−1") }
                 Button(
                     enabled = character.chiCurrent < character.chiMaximum,
-                    onClick = { state.mutate { changeChi(1) } },
+                    onClick = { state.changeChi(1) },
                 ) { Text("+1") }
                 TextButton(
                     enabled = character.chiCurrent < character.chiMaximum,
-                    onClick = { state.mutate { restoreChi() } },
+                    onClick = { state.restoreChi() },
                 ) { Text("Восстановить") }
             }
         }
@@ -603,7 +601,7 @@ private fun ChiResourceCard(state: DesktopAppState) {
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Бонусные ранги")
-                RankStepper(character.chiBonusRanks, max = 10) { state.mutate { setChiBonusRanks(it) } }
+                RankStepper(character.chiBonusRanks, max = 10) { state.setChiBonusRanks(it) }
             }
             Text(
                 "Максимум: база $baseMaximum + купленный запас ${character.chiBonusRanks} + развитие $progressionBonus = ${character.chiMaximum}.",
@@ -632,7 +630,7 @@ private fun ChiTechniquesCard(state: DesktopAppState) {
                     Text(technique.effect, color = DublMuted)
                     if (availability.reason.isNotBlank()) Text(availability.reason, color = MaterialTheme.colorScheme.error)
                 }
-                Button(enabled = availability.canUse, onClick = { state.mutate { changeChi(-availability.chiCost) } }) { Text("Использовать") }
+                Button(enabled = availability.canUse, onClick = { state.changeChi(-availability.chiCost) }) { Text("Использовать") }
             }
         }
     }

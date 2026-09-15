@@ -61,12 +61,12 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     Text("Нагрузка ${formatNumber(load)} / $capacity", color = DublFocus, fontWeight = FontWeight.Bold)
                     Text("${burden.title}${if (burden.penalty != 0) " (${signed(burden.penalty)})" else ""}", color = DublGold)
                     Text("Автоматически")
-                    Switch(checked = character.gear.loadAutomatic, onCheckedChange = { state.mutate { setGearLoadAutomatic(it) } })
+                    Switch(checked = character.gear.loadAutomatic, onCheckedChange = { state.setGearLoadAutomatic(it) })
                 }
                 if (!character.gear.loadAutomatic) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(manualLoad, { manualLoad = it.filter { c -> c.isDigit() || c == '.' || c == ',' } }, label = { Text("Ручная нагрузка") }, singleLine = true)
-                        Button(onClick = { state.mutate { setGearManualLoad(manualLoad.replace(',', '.').toDoubleOrNull() ?: 0.0) } }) { Text("Применить") }
+                        Button(onClick = { state.setGearManualLoad(manualLoad.replace(',', '.').toDoubleOrNull() ?: 0.0) }) { Text("Применить") }
                     }
                 }
             }
@@ -109,7 +109,7 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                 SectionCard(entry.name, action = {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         TextButton(onClick = { catalogDetails = entry }) { Text("Подробнее") }
-                        Button(onClick = { state.mutate { addCatalogGear(entry) } }) { Text("Добавить") }
+                        Button(onClick = { state.addCatalogGear(entry) }) { Text("Добавить") }
                     }
                 }) {
                     Text("${entry.category} · ${entry.section} · вес ${formatNumber(MagicEquipmentRules.catalogGearLoad(entry))}", color = DublMuted)
@@ -129,7 +129,7 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             onDismissRequest = { pendingDeleteUid = null },
             title = { Text("Удалить предмет?") },
             text = { Text("«$itemName» будет удалён из инвентаря персонажа.") },
-            confirmButton = { TextButton(onClick = { state.mutate { removeGearItem(uid) }; pendingDeleteUid = null }) { Text("Удалить") } },
+            confirmButton = { TextButton(onClick = { state.removeGearItem(uid); pendingDeleteUid = null }) { Text("Удалить") } },
             dismissButton = { TextButton(onClick = { pendingDeleteUid = null }) { Text("Отмена") } },
         )
     }
@@ -167,7 +167,7 @@ private fun GearDialog(state: DesktopAppState, item: GearItem?, onDelete: (Strin
                     load = load.replace(',', '.').toDoubleOrNull()?.coerceAtLeast(0.0) ?: 0.0,
                     carried = carried, category = category.trim(), section = section.trim(), description = description.trim(),
                 )
-                state.mutate { if (item == null) addCustomGear(updated) else updateGearItem(item.uid) { updated } }
+                if (item == null) state.addCustomGear(updated) else state.updateGearItem(updated)
                 onDismiss()
             }) { Text("Сохранить") }
         },
@@ -194,7 +194,7 @@ private fun CatalogGearDialog(state: DesktopAppState, entry: GearCatalogEntry, o
                 if (entry.description.isNotBlank()) Text(entry.description)
             }
         },
-        confirmButton = { TextButton(onClick = { state.mutate { addCatalogGear(entry) }; onDismiss() }) { Text("Добавить") } },
+        confirmButton = { TextButton(onClick = { state.addCatalogGear(entry); onDismiss() }) { Text("Добавить") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
     )
 }

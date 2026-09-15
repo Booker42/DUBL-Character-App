@@ -259,7 +259,7 @@ fun MagicScreen(controller: CharacterController) {
                 spell = spell,
                 onEdit = { editSpell = spell; selectedSpellUid = null },
                 onRemove = { selectedSpellUid = null; pendingDeleteSpellUid = uid },
-                onToggleLearned = { learned -> controller.updateSpell(uid) { it.copy(learned = learned) } },
+                onToggleLearned = { learned -> controller.setSpellLearned(uid, learned) },
                 onDismiss = { selectedSpellUid = null },
             )
         } ?: run { selectedSpellUid = null }
@@ -278,7 +278,7 @@ fun MagicScreen(controller: CharacterController) {
         SpellEditDialog(
             initial = spell,
             title = spell.name,
-            onSave = { updated -> controller.updateSpell(spell.uid) { updated }; editSpell = null },
+            onSave = { updated -> controller.updateSpell(updated); editSpell = null },
             onDismiss = { editSpell = null },
         )
     }

@@ -88,7 +88,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.dubl.character.android.data.CharacterSheetExtrasRepository
 import com.dubl.character.android.data.ConditionCatalogRepository
 import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.data.SkillEffectCatalogRepository
@@ -201,9 +200,6 @@ private data class StatInfo(
 fun OverviewScreen(controller: CharacterController) {
     val character = controller.active
     val context = LocalContext.current
-    val extrasRepository = remember(context.applicationContext) {
-        CharacterSheetExtrasRepository(context.applicationContext)
-    }
     val conditionCatalog = remember(context.applicationContext) {
         ConditionCatalogRepository(context.applicationContext).load()
     }
@@ -213,9 +209,7 @@ fun OverviewScreen(controller: CharacterController) {
     val economy = remember(character, developmentCatalog) {
         CharacterEconomy.breakdown(character, developmentCatalog)
     }
-    var sheetExtras by remember(character.id) {
-        mutableStateOf(extrasRepository.load(character.id))
-    }
+    val sheetExtras = controller.extras
     val listState = rememberLazyListState()
     val compactHeroVisible by remember {
         derivedStateOf {
@@ -247,11 +241,6 @@ fun OverviewScreen(controller: CharacterController) {
     var showExperienceEdit by remember { mutableStateOf(false) }
     var recentChange by remember(character.id) { mutableStateOf<RecentChange?>(null) }
 
-    fun saveExtras(updated: com.dubl.character.android.model.CharacterSheetExtras) {
-        sheetExtras = updated
-        extrasRepository.save(character.id, updated)
-    }
-
     fun recordRecent(change: RecentChange) {
         recentChange = change
     }
@@ -261,7 +250,7 @@ fun OverviewScreen(controller: CharacterController) {
         val next = previous.toMutableSet().apply {
             if (!add(condition)) remove(condition)
         }.toSet()
-        saveExtras(sheetExtras.copy(activeConditions = next))
+        controller.setConditions(next)
         val enabled = condition in next
         recordRecent(
             RecentChange(
@@ -280,7 +269,7 @@ fun OverviewScreen(controller: CharacterController) {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
             }
-            saveExtras(sheetExtras.copy(portraitUri = uri.toString()))
+            controller.setPortrait(uri.toString())
         }
     }
 
@@ -308,7 +297,7 @@ fun OverviewScreen(controller: CharacterController) {
     }
     LaunchedEffect(normalizedSkillGroups, sheetExtras.skillGroups) {
         if (normalizedSkillGroups != sheetExtras.skillGroups) {
-            saveExtras(sheetExtras.copy(skillGroups = normalizedSkillGroups))
+            controller.setSkillGroups(normalizedSkillGroups)
         }
     }
     val trainedSkillsById = remember(trainedSkills) { trainedSkills.associateBy { it.id } }
@@ -329,7 +318,7 @@ fun OverviewScreen(controller: CharacterController) {
     }
     LaunchedEffect(normalizedDevelopmentGroups, sheetExtras.developmentGroups) {
         if (normalizedDevelopmentGroups != sheetExtras.developmentGroups) {
-            saveExtras(sheetExtras.copy(developmentGroups = normalizedDevelopmentGroups))
+            controller.setDevelopmentGroups(normalizedDevelopmentGroups)
         }
     }
     val overviewDevelopmentById = remember(overviewDevelopmentItems) { overviewDevelopmentItems.associateBy { it.entry.id } }
@@ -354,21 +343,7 @@ fun OverviewScreen(controller: CharacterController) {
     }
 
     fun undoLast() {
-        when (val action = recentChange?.undo) {
-            is UndoAction.Resource -> when (action.resource) {
-                CharacterResource.HEALTH -> controller.changeHp(-action.appliedDelta)
-                CharacterResource.ENDURANCE -> controller.changeEndurance(-action.appliedDelta)
-                CharacterResource.MANA -> controller.changeMana(-action.appliedDelta)
-                CharacterResource.CHI -> controller.changeChi(-action.appliedDelta)
-            }
-            is UndoAction.Attribute -> controller.changeAttribute(action.id, -action.appliedDelta)
-            is UndoAction.Conditions -> saveExtras(sheetExtras.copy(activeConditions = action.previous))
-            is UndoAction.Name -> controller.updateActive { it.copy(name = action.previous) }
-            is UndoAction.Experience -> controller.updateActive { it.copy(experience = action.previous, creationExperience = action.previousCreation) }
-            is UndoAction.Size -> controller.updateActive { it.copy(size = action.previous) }
-            is UndoAction.Legs -> controller.updateActive { it.copy(legs = action.previous) }
-            null -> Unit
-        }
+        if (recentChange?.undo != null) controller.undoLast()
         recentChange = null
     }
 
@@ -451,7 +426,7 @@ fun OverviewScreen(controller: CharacterController) {
                 skills = trainedSkills,
                 groups = normalizedSkillGroups,
                 byId = trainedSkillsById,
-                onGroupsChanged = { groups -> saveExtras(sheetExtras.copy(skillGroups = groups)) },
+                onGroupsChanged = { groups -> controller.setSkillGroups(groups) },
                 onConfigure = { showSkillGroupManager = true },
                 onSkillClick = { selectedSkillId = it.id },
             )
@@ -462,7 +437,7 @@ fun OverviewScreen(controller: CharacterController) {
                 byId = overviewDevelopmentById,
                 parentById = developmentParentById,
                 invalidIds = invalidOverviewDevelopmentIds,
-                onGroupsChanged = { groups -> saveExtras(sheetExtras.copy(developmentGroups = groups)) },
+                onGroupsChanged = { groups -> controller.setDevelopmentGroups(groups) },
                 onConfigure = { showDevelopmentGroupManager = true },
                 onEntryClick = { selectedDevelopmentId = it.id },
             )
@@ -488,26 +463,7 @@ fun OverviewScreen(controller: CharacterController) {
             character = character,
             onDismiss = { showAdvancedEdit = false },
             onConfirm = { name, concept, experience, size, legs, manaEnabled ->
-                controller.updateActive { current ->
-                    val cleanExperience = experience.coerceAtLeast(0)
-                    var updated = current.copy(
-                        name = name.ifBlank { "Новый персонаж" },
-                        concept = concept,
-                        experience = cleanExperience,
-                        creationExperience = if (current.creationComplete) {
-                            current.creationExperience.coerceAtMost(cleanExperience)
-                        } else {
-                            cleanExperience
-                        },
-                        size = size,
-                        legs = legs,
-                        manaEnabled = manaEnabled,
-                    )
-                    if (!current.creationComplete) {
-                        updated = updated.copy(hpCurrent = updated.healthMaximum)
-                    }
-                    updated
-                }
+                controller.setProfile(name, concept, experience, size, legs, manaEnabled)
                 showAdvancedEdit = false
             },
         )
@@ -521,7 +477,7 @@ fun OverviewScreen(controller: CharacterController) {
             onSave = { value ->
                 val previous = character.name
                 val next = value.ifBlank { "Новый персонаж" }
-                controller.updateActive { it.copy(name = next) }
+                controller.setName(next)
                 if (next != previous) {
                     recordRecent(
                         RecentChange(
@@ -579,7 +535,7 @@ fun OverviewScreen(controller: CharacterController) {
                 selectedCondition = condition
             },
             onToggleCustom = { id, active ->
-                saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.map { if (it.id == id) it.copy(active = active) else it }))
+                controller.setCustomConditionActive(id, active)
             },
             onEditCustom = { id ->
                 showConditions = false
@@ -612,17 +568,11 @@ fun OverviewScreen(controller: CharacterController) {
             onSaveLocal = { title, description ->
                 val cleanTitle = title.trim().takeIf { it.isNotBlank() && it != condition.title }
                 val cleanDescription = description.trim().takeIf { it != canonicalSummary }
-                val override = ConditionLocalOverride(cleanTitle, cleanDescription)
-                val next = if (override.title == null && override.description == null) {
-                    sheetExtras.conditionOverrides - condition
-                } else {
-                    sheetExtras.conditionOverrides + (condition to override)
-                }
-                saveExtras(sheetExtras.copy(conditionOverrides = next))
+                controller.setConditionOverride(condition, cleanTitle, cleanDescription)
                 selectedCondition = null
             },
             onResetLocal = {
-                saveExtras(sheetExtras.copy(conditionOverrides = sheetExtras.conditionOverrides - condition))
+                controller.resetConditionOverride(condition)
                 selectedCondition = null
             },
             onDismiss = { selectedCondition = null },
@@ -636,16 +586,7 @@ fun OverviewScreen(controller: CharacterController) {
             onSave = { title, description, active ->
                 val clean = title.trim()
                 if (clean.isNotBlank()) {
-                    saveExtras(
-                        sheetExtras.copy(
-                            customConditions = sheetExtras.customConditions + CustomCondition(
-                                id = "custom-condition-${System.nanoTime()}",
-                                title = clean,
-                                description = description.trim(),
-                                active = active,
-                            ),
-                        ),
-                    )
+                    controller.addCustomCondition(clean, description.trim(), active)
                 }
                 createCustomCondition = false
             },
@@ -664,14 +605,12 @@ fun OverviewScreen(controller: CharacterController) {
                 onSave = { title, description, active ->
                     val clean = title.trim()
                     if (clean.isNotBlank()) {
-                        saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.map {
-                            if (it.id == id) it.copy(title = clean, description = description.trim(), active = active) else it
-                        }))
+                        controller.updateCustomCondition(id, clean, description.trim(), active)
                     }
                     editCustomConditionId = null
                 },
                 onDelete = {
-                    saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.filterNot { it.id == id }))
+                    controller.removeCustomCondition(id)
                     editCustomConditionId = null
                 },
                 onDismiss = { editCustomConditionId = null },
@@ -694,7 +633,7 @@ fun OverviewScreen(controller: CharacterController) {
             itemParentIds = emptyMap(),
             treeRootIds = emptySet(),
             ungroupedId = SKILL_UNGROUPED_ID,
-            onGroupsChanged = { groups -> saveExtras(sheetExtras.copy(skillGroups = groups)) },
+            onGroupsChanged = { groups -> controller.setSkillGroups(groups) },
             onDismiss = { showSkillGroupManager = false },
         )
     }
@@ -715,7 +654,7 @@ fun OverviewScreen(controller: CharacterController) {
             itemParentIds = developmentParentById,
             treeRootIds = developmentTreeRootIds,
             ungroupedId = DEVELOPMENT_UNGROUPED_ID,
-            onGroupsChanged = { groups -> saveExtras(sheetExtras.copy(developmentGroups = groups)) },
+            onGroupsChanged = { groups -> controller.setDevelopmentGroups(groups) },
             onDismiss = { showDevelopmentGroupManager = false },
         )
     }
@@ -781,10 +720,10 @@ fun OverviewScreen(controller: CharacterController) {
             character = character,
             hidden = sheetExtras.hiddenResourceIds,
             onToggle = { resourceId ->
-                val next = sheetExtras.hiddenResourceIds.toMutableSet().apply {
-                    if (!add(resourceId)) remove(resourceId)
-                }.toSet()
-                saveExtras(sheetExtras.copy(hiddenResourceIds = next))
+                controller.setResourceHidden(
+                    resourceId,
+                    hidden = resourceId !in sheetExtras.hiddenResourceIds,
+                )
             },
             onAddCustom = { showResourceVisibility = false; createCustomResource = true },
             onEditCustom = { uid -> showResourceVisibility = false; editCustomResourceId = uid },
@@ -987,10 +926,7 @@ fun OverviewScreen(controller: CharacterController) {
             onSetSize = { size ->
                 val previous = character.size
                 val next = size.coerceIn(1, 10)
-                controller.updateActive { current ->
-                    val updated = current.copy(size = next)
-                    if (current.creationComplete) updated else updated.copy(hpCurrent = updated.healthMaximum)
-                }
+                controller.setSize(next)
                 if (next != previous) {
                     recordRecent(
                         RecentChange(
@@ -1004,7 +940,7 @@ fun OverviewScreen(controller: CharacterController) {
             onSetLegs = { legs ->
                 val previous = character.legs
                 val next = legs.coerceAtLeast(2)
-                controller.updateActive { it.copy(legs = next) }
+                controller.setLegs(next)
                 if (next != previous) {
                     recordRecent(
                         RecentChange(

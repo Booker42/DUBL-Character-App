@@ -10,14 +10,21 @@ ANDROID_CONTROLLER = ROOT / 'app/src/main/java/com/dubl/character/android/state/
 DESKTOP_STATE = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/DesktopAppState.kt'
 
 
-def test_android_and_desktop_mutate_the_same_shared_session():
+def test_android_and_desktop_route_development_and_chi_through_shared_application():
     android = ANDROID_CONTROLLER.read_text(encoding='utf-8')
     desktop = DESKTOP_STATE.read_text(encoding='utf-8')
-    assert 'private val session = CharacterSession' in android
-    assert 'private val session = CharacterSession' in desktop
-    for method in ('setDevelopmentRank', 'setChiEnabled', 'setChiBonusRanks', 'restoreChi', 'changeChi'):
-        assert f'session.{method}' in android
-    assert 'fun mutate(action: CharacterSession.() -> Unit)' in desktop
+    mapping = {
+        'setDevelopmentRank': 'application.development.setRank',
+        'setChiEnabled': 'application.development.setChiEnabled',
+        'setChiBonusRanks': 'application.development.setChiBonusRanks',
+        'restoreChi': 'application.development.restoreChi',
+        'changeChi': 'application.development.changeChi',
+    }
+    for method, call in mapping.items():
+        assert f'fun {method}' in android and call in android, method
+        assert f'fun {method}' in desktop and call in desktop, method
+    assert 'CharacterSession' not in android + desktop
+    assert 'fun mutate(' not in desktop
 
 
 def test_shared_development_martial_and_chi_behavior_harness():

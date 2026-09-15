@@ -15,7 +15,7 @@ def test_compose_host_uses_real_shared_sessions_and_file_persistence():
     host = text(MAIN)
     state = text(STATE)
     for token in [
-        'CharacterSession', 'CharacterExtrasSession',
+        'DublApplication',
         'DesktopCharacterStore', 'DesktopCharacterExtrasStore',
         'DesktopCatalogLoader',
     ]:

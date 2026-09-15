@@ -121,7 +121,7 @@ fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             preferredAttribute = state.extras.preferredSkillAttributes[skill.id],
             developmentCatalog = state.developmentCatalog,
             effectCatalog = state.skillEffectCatalog,
-            onPreferredAttribute = { attr -> state.updateExtras { setPreferredSkillAttribute(character.id, skill.id, attr) } },
+            onPreferredAttribute = { attr -> state.setPreferredSkillAttribute(skill.id, attr) },
             onDismiss = { rollSkill = null },
         )
     }
@@ -162,7 +162,7 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
                 Text(skill.description.ifBlank { "Без описания" }, color = DublMuted)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Ранг")
-                    RankStepper(skill.rank, max = 10) { next -> state.mutate { changeSkillRank(skill.id, next - skill.rank) } }
+                    RankStepper(skill.rank, max = 10) { next -> state.changeSkillRank(skill.id, next - skill.rank) }
                 }
                 Text("Характеристики")
                 AttributeId.entries.forEach { attr ->
@@ -214,7 +214,7 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = effect.id !in state.activeCharacter.disabledSkillEffectIds,
-                                onCheckedChange = { enabled -> state.mutate { setSkillEffectEnabled(effect.id, enabled) } },
+                                onCheckedChange = { enabled -> state.setSkillEffectEnabled(effect.id, enabled) },
                             )
                             Column(Modifier.weight(1f)) {
                                 Text(effect.sourceName)
@@ -229,27 +229,25 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
             Row {
                 TextButton(onClick = onRoll) { Text("Бросок") }
                 TextButton(onClick = {
-                    state.mutate {
-                        setSkillAttributes(skill.id, attributes.toList())
-                        setSkillModifier(skill.id, modifierText.toIntOrNull() ?: 0)
-                        setSkillFormulaNote(skill.id, note)
-                        setSkillNameOverride(skill.id, localName)
-                        setSkillDescriptionOverride(skill.id, localDescription)
-                        setSkillCategoryOverride(skill.id, localCategory)
-                        setSkillUntrainedOverride(skill.id, localUntrained)
-                        setSkillAutoOverrides(skill.id, localAuto6, localAuto12)
-                    }
+                    state.setSkillAttributes(skill.id, attributes.toList())
+                    state.setSkillModifier(skill.id, modifierText.toIntOrNull() ?: 0)
+                    state.setSkillFormulaNote(skill.id, note)
+                    state.setSkillNameOverride(skill.id, localName)
+                    state.setSkillDescriptionOverride(skill.id, localDescription)
+                    state.setSkillCategoryOverride(skill.id, localCategory)
+                    state.setSkillUntrainedOverride(skill.id, localUntrained)
+                    state.setSkillAutoOverrides(skill.id, localAuto6, localAuto12)
                     onDismiss()
                 }) { Text("Сохранить") }
             }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = { state.mutate { hideSkill(skill.id) }; onDismiss() }) { Text("Скрыть") }
+                TextButton(onClick = { state.hideSkill(skill.id); onDismiss() }) { Text("Скрыть") }
                 if (skill.isBuiltIn) {
-                    TextButton(onClick = { state.mutate { resetSkillDefinitionOverrides(skill.id) }; onDismiss() }) { Text("К рулбуку") }
+                    TextButton(onClick = { state.resetSkillDefinitionOverrides(skill.id); onDismiss() }) { Text("К рулбуку") }
                 }
-                if (skill.isDynamic) TextButton(onClick = { state.mutate { deleteDynamicSkill(skill.id) }; onDismiss() }) { Text("Удалить") }
+                if (skill.isDynamic) TextButton(onClick = { state.deleteDynamicSkill(skill.id); onDismiss() }) { Text("Удалить") }
                 TextButton(onClick = onDismiss) { Text("Отмена") }
             }
         },
@@ -268,12 +266,12 @@ private fun HiddenSkillsDialog(state: DesktopAppState, onDismiss: () -> Unit) {
                 hidden.forEach { skill ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(skill.name, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { state.mutate { restoreSkill(skill.id) } }) { Text("Вернуть") }
+                        TextButton(onClick = { state.restoreSkill(skill.id) }) { Text("Вернуть") }
                     }
                 }
             }
         },
-        confirmButton = { if (hidden.isNotEmpty()) TextButton(onClick = { state.mutate { restoreAllSkills() }; onDismiss() }) { Text("Вернуть все") } },
+        confirmButton = { if (hidden.isNotEmpty()) TextButton(onClick = { state.restoreAllSkills(); onDismiss() }) { Text("Вернуть все") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
     )
 }
@@ -296,8 +294,7 @@ private fun SpecializedSkillDialog(state: DesktopAppState, onError: (String) -> 
             }
         },
         confirmButton = { TextButton(enabled = specialization.isNotBlank(), onClick = {
-            var added: String? = null
-            state.mutate { added = addSpecializedSkill(template.id, specialization) }
+            val added = state.addSpecializedSkill(template.id, specialization)
             if (added != null) onDismiss() else onError("Введите корректное уникальное название. Такое умение уже может существовать.")
         }) { Text("Добавить") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
@@ -334,8 +331,7 @@ private fun CustomSkillDialog(state: DesktopAppState, onError: (String) -> Unit,
             }
         },
         confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = {
-            var added: String? = null
-            state.mutate { added = addCustomSkill(name, description, attributes.toList(), untrained) }
+            val added = state.addCustomSkill(name, description, attributes.toList(), untrained)
             if (added != null) onDismiss() else onError("Введите корректное уникальное название. Такое умение уже может существовать.")
         }) { Text("Добавить") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },

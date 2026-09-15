@@ -135,13 +135,11 @@ fun CharacterSheetScreen(
             CharacterSheetResourceId.MANA -> character.manaCurrent
             CharacterSheetResourceId.CHI -> character.chiCurrent
         }
-        state.mutate {
-            when (resource) {
-                CharacterSheetResourceId.HEALTH -> changeHp(delta)
-                CharacterSheetResourceId.ENDURANCE -> changeEndurance(delta)
-                CharacterSheetResourceId.MANA -> changeMana(delta)
-                CharacterSheetResourceId.CHI -> changeChi(delta)
-            }
+        when (resource) {
+            CharacterSheetResourceId.HEALTH -> state.changeHp(delta)
+            CharacterSheetResourceId.ENDURANCE -> state.changeEndurance(delta)
+            CharacterSheetResourceId.MANA -> state.changeMana(delta)
+            CharacterSheetResourceId.CHI -> state.changeChi(delta)
         }
         val after = when (resource) {
             CharacterSheetResourceId.HEALTH -> state.activeCharacter.hpCurrent
@@ -154,24 +152,7 @@ fun CharacterSheetScreen(
     }
 
     fun undoRecent() {
-        when (val undo = recent?.undo) {
-            is SheetUndo.Resource -> state.mutate {
-                when (undo.resource) {
-                    CharacterSheetResourceId.HEALTH -> changeHp(-undo.delta)
-                    CharacterSheetResourceId.ENDURANCE -> changeEndurance(-undo.delta)
-                    CharacterSheetResourceId.MANA -> changeMana(-undo.delta)
-                    CharacterSheetResourceId.CHI -> changeChi(-undo.delta)
-                }
-            }
-            is SheetUndo.Attribute -> state.mutate { changeAttribute(undo.id, -undo.delta) }
-            is SheetUndo.Conditions -> state.updateExtras {
-                val current = load(character.id).activeConditions
-                current.filterNot { it in undo.previous }.forEach { toggleCondition(character.id, it) }
-                undo.previous.filterNot { it in current }.forEach { toggleCondition(character.id, it) }
-            }
-            is SheetUndo.Identity -> state.mutate { updateActive { undo.previous } }
-            null -> Unit
-        }
+        if (recent?.undo != null) state.undoLast()
         recent = null
     }
 
@@ -218,11 +199,11 @@ fun CharacterSheetScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         val file = pickPortraitFile()
-                        if (file != null) state.importPortrait(file)?.let { imported -> state.updateExtras { setPortrait(character.id, imported) } }
+                        if (file != null) state.importPortrait(file)?.let { imported -> state.setPortrait(imported) }
                     }) { Text(if (extras.portraitUri == null) "Добавить портрет" else "Сменить портрет") }
                     extras.portraitUri?.let {
                         Text(it.substringAfterLast('/'), color = DublMuted)
-                        TextButton(onClick = { state.updateExtras { setPortrait(character.id, null) } }) { Text("Убрать") }
+                        TextButton(onClick = { state.setPortrait(null) }) { Text("Убрать") }
                     }
                 }
             }
@@ -233,15 +214,15 @@ fun CharacterSheetScreen(
                 if (CharacterSheetResourceId.HEALTH !in extras.hiddenResourceIds) ResourceRow("Здоровье", character.hpCurrent, character.healthMaximum, DublHealth, { changeResource(CharacterSheetResourceId.HEALTH, -1) }, { changeResource(CharacterSheetResourceId.HEALTH, 1) }, { showHealthControl = true }, "Контроль")
                 if (CharacterSheetResourceId.ENDURANCE !in extras.hiddenResourceIds) ResourceRow("Выносливость", character.enduranceCurrent, character.enduranceMaximum, DublStamina, { changeResource(CharacterSheetResourceId.ENDURANCE, -1) }, { changeResource(CharacterSheetResourceId.ENDURANCE, 1) }, { maximumResource = CharacterSheetResourceId.ENDURANCE })
                 if ((character.manaEnabled || character.effectiveManaMaximum > 0) && CharacterSheetResourceId.MANA !in extras.hiddenResourceIds) ResourceRow("Мана", character.manaCurrent, character.effectiveManaMaximum, DublMana, { changeResource(CharacterSheetResourceId.MANA, -1) }, { changeResource(CharacterSheetResourceId.MANA, 1) }, { maximumResource = CharacterSheetResourceId.MANA })
-                if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) ResourceRow("ЦИ", character.chiCurrent, character.chiMaximum, DublFocus, { changeResource(CharacterSheetResourceId.CHI, -1) }, { changeResource(CharacterSheetResourceId.CHI, 1) }, { state.mutate { restoreChi() } }, "Полностью")
+                if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) ResourceRow("ЦИ", character.chiCurrent, character.chiMaximum, DublFocus, { changeResource(CharacterSheetResourceId.CHI, -1) }, { changeResource(CharacterSheetResourceId.CHI, 1) }, { state.restoreChi() }, "Полностью")
                 character.customResources.forEach { resource ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(resource.name, fontWeight = FontWeight.SemiBold)
                             Text("${resource.current} / ${resource.maximum}", color = DublCustomResource)
                         }
-                        OutlinedButton(onClick = { state.mutate { changeCustomResource(resource.uid, -1) } }) { Text("−") }
-                        Button(onClick = { state.mutate { changeCustomResource(resource.uid, 1) } }) { Text("+") }
+                        OutlinedButton(onClick = { state.changeCustomResource(resource.uid, -1) }) { Text("−") }
+                        Button(onClick = { state.changeCustomResource(resource.uid, 1) }) { Text("+") }
                         TextButton(onClick = { customResource = resource }) { Text("Изменить") }
                     }
                 }
@@ -284,8 +265,8 @@ fun CharacterSheetScreen(
                                     if (raw != effective) Text("База $raw", color = DublMuted)
                                     Text("↑ ${CharacterEconomy.nextAttributeCost(raw)?.let { "$it XP" } ?: "макс."} · ↓ ${CharacterEconomy.previousAttributeRefund(raw)?.let { "$it XP" } ?: "мин."}", color = DublMuted)
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        OutlinedButton(onClick = { state.mutate { changeAttribute(id, -1) }; recent = RecentSheetChange("${id.title} −1", SheetUndo.Attribute(id, -1)) }, modifier = Modifier.weight(1f)) { Text("−") }
-                                        Button(onClick = { state.mutate { changeAttribute(id, 1) }; recent = RecentSheetChange("${id.title} +1", SheetUndo.Attribute(id, 1)) }, modifier = Modifier.weight(1f)) { Text("+") }
+                                        OutlinedButton(onClick = { state.changeAttribute(id, -1); recent = RecentSheetChange("${id.title} −1", SheetUndo.Attribute(id, -1)) }, modifier = Modifier.weight(1f)) { Text("−") }
+                                        Button(onClick = { state.changeAttribute(id, 1); recent = RecentSheetChange("${id.title} +1", SheetUndo.Attribute(id, 1)) }, modifier = Modifier.weight(1f)) { Text("+") }
                                         TextButton(onClick = { rollRequest = ContextRollRequest(RollContext.ATTRIBUTE, id) }) { Text("Бросок") }
                                     }
                                 }
@@ -318,13 +299,13 @@ fun CharacterSheetScreen(
             val defaults = defaultSkillGroups(trained)
             val groups = SheetGroupingRules.normalize(extras.skillGroups, defaults, trained.map { it.id }, "skills:ungrouped")
             LaunchedEffect(groups, extras.skillGroups) {
-                if (groups != extras.skillGroups) state.updateExtras { setSkillGroups(character.id, groups) }
+                if (groups != extras.skillGroups) state.setSkillGroups(groups)
             }
             val byId = trained.associateBy { it.id }
             SectionCard("Умения · ${trained.size}", action = { TextButton(onClick = { grouping = GroupingKind.SKILLS }) { Text("Группы") } }) {
                 if (trained.isEmpty()) EmptyState("Изученные умения появятся здесь.")
                 groups.forEach { group ->
-                    GroupHeader(group, group.itemIds.size) { state.updateExtras { setSkillGroups(character.id, SheetGroupingRules.toggleCollapsed(groups, group.id)) } }
+                    GroupHeader(group, group.itemIds.size) { state.setSkillGroups(SheetGroupingRules.toggleCollapsed(groups, group.id)) }
                     if (!group.collapsed) group.itemIds.mapNotNull(byId::get).forEach { skill ->
                         val selected = skill.stockAttribute
                         val calc = character.skillCalculationForRoll(skill, selected)
@@ -345,13 +326,13 @@ fun CharacterSheetScreen(
             val defaults = defaultDevelopmentGroups(character, state)
             val groups = SheetGroupingRules.normalize(extras.developmentGroups, defaults, items.map { it.entry.id }, "development:ungrouped")
             LaunchedEffect(groups, extras.developmentGroups) {
-                if (groups != extras.developmentGroups) state.updateExtras { setDevelopmentGroups(character.id, groups) }
+                if (groups != extras.developmentGroups) state.setDevelopmentGroups(groups)
             }
             val byId = items.associateBy { it.entry.id }
             SectionCard("Взятые навыки · ${items.size}", action = { TextButton(onClick = { grouping = GroupingKind.DEVELOPMENT }) { Text("Группы") } }) {
                 if (items.isEmpty()) EmptyState("Взятых навыков и боевых искусств пока нет.")
                 groups.forEach { group ->
-                    GroupHeader(group, group.itemIds.size) { state.updateExtras { setDevelopmentGroups(character.id, SheetGroupingRules.toggleCollapsed(groups, group.id)) } }
+                    GroupHeader(group, group.itemIds.size) { state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(groups, group.id)) }
                     if (!group.collapsed) SheetGroupingRules.hierarchicalOrder(group.itemIds, parentById).mapNotNull(byId::get).forEach { item ->
                         val depth = SheetGroupingRules.localDepth(item.entry.id, group.itemIds, parentById)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -408,11 +389,11 @@ fun CharacterSheetScreen(
                 sheetDevelopmentEntry = null
             },
             onResetLocal = {
-                state.mutate { resetDevelopmentOverride(entry.id) }
+                state.resetDevelopmentOverride(entry.id)
                 sheetDevelopmentEntry = null
             },
             onDeleteCustom = {
-                state.mutate { removeCustomDevelopment(entry.id) }
+                state.removeCustomDevelopment(entry.id)
                 sheetDevelopmentEntry = null
             },
             hasLocalOverride = character.developmentOverrides.containsKey(entry.id),
@@ -426,9 +407,7 @@ fun CharacterSheetScreen(
             initial = entry,
             title = if (isCustom) "Редактировать свою запись" else "Локальная правка",
             onSave = { updated ->
-                state.mutate {
-                    if (isCustom) updateCustomDevelopment(updated) else setDevelopmentOverride(updated)
-                }
+                if (isCustom) state.updateCustomDevelopment(updated) else state.setDevelopmentOverride(updated)
                 sheetEditingDevelopment = null
             },
             onDismiss = { sheetEditingDevelopment = null },
@@ -545,7 +524,13 @@ private fun IdentityDialog(state: DesktopAppState, character: DublCharacter, onD
         },
         confirmButton = { TextButton(onClick = {
             val before = character
-            state.mutate { updateActive { it.copy(name = name.trim().ifBlank { "Новый персонаж" }, concept = concept.trim(), size = size.toIntOrNull()?.coerceIn(1, 10) ?: 5, legs = legs.toIntOrNull()?.coerceAtLeast(2) ?: 2, manaEnabled = manaEnabled) } }
+            state.setIdentity(
+                name = name,
+                concept = concept,
+                size = size.toIntOrNull() ?: 5,
+                legs = legs.toIntOrNull() ?: 2,
+                manaEnabled = manaEnabled,
+            )
             onChanged(before); onDismiss()
         }) { Text("Сохранить") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
@@ -573,17 +558,17 @@ private fun EconomyDialog(state: DesktopAppState, onDismiss: () -> Unit) {
                 Text("Потрачено ${economy.spentXp} · осталось ${economy.remainingXp}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DublFocus)
                 Text("ОС: ${economy.abilityPointsSpent}/${economy.abilityPointsBudget} · осталось ${economy.abilityPointsRemaining}", color = if (economy.overspentAbilityPoints) MaterialTheme.colorScheme.error else DublFocus)
                 if (economy.unpricedLearnedSpells > 0) Text("Заклинаний без цены XP: ${economy.unpricedLearnedSpells}", color = DublGold)
-                if (character.creationComplete) OutlinedButton(onClick = { state.mutate { reopenCreation() } }) { Text("Вернуться в создание") }
-                else Button(onClick = { state.mutate { completeCreation() } }) { Text("Завершить создание") }
+                if (character.creationComplete) OutlinedButton(onClick = { state.reopenCreation() }) { Text("Вернуться в создание") }
+                else Button(onClick = { state.completeCreation() }) { Text("Завершить создание") }
             }
         },
         confirmButton = { TextButton(onClick = {
-            state.mutate {
-                setExperience(total.toIntOrNull() ?: 0)
-                setCreationExperience(creation.toIntOrNull() ?: 0)
-                setXpAdjustment(adjustment.toIntOrNull() ?: 0)
-                setAbilityPointsOverride(abilityOverride.toIntOrNull())
-            }
+            state.setEconomy(
+                total = total.toIntOrNull() ?: 0,
+                creation = creation.toIntOrNull() ?: 0,
+                adjustment = adjustment.toIntOrNull() ?: 0,
+                abilityPointsOverride = abilityOverride.toIntOrNull(),
+            )
             onDismiss()
         }) { Text("Сохранить") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
@@ -606,10 +591,10 @@ private fun MaximumDialog(state: DesktopAppState, resource: CharacterSheetResour
         text = { OutlinedTextField(text, { text = it.filter(Char::isDigit).take(5) }, label = { Text("Ручной максимум") }) },
         confirmButton = { TextButton(enabled = resource != CharacterSheetResourceId.CHI, onClick = {
             val value = text.toIntOrNull()?.coerceAtLeast(0) ?: 0
-            state.mutate { when (resource) { CharacterSheetResourceId.HEALTH -> setHealthMaximumOverride(value); CharacterSheetResourceId.ENDURANCE -> setEnduranceMaximumOverride(value); CharacterSheetResourceId.MANA -> setManaMaximumOverride(value); CharacterSheetResourceId.CHI -> Unit } }
+            when (resource) { CharacterSheetResourceId.HEALTH -> state.setHealthMaximumOverride(value); CharacterSheetResourceId.ENDURANCE -> state.setEnduranceMaximumOverride(value); CharacterSheetResourceId.MANA -> state.setManaMaximumOverride(value); CharacterSheetResourceId.CHI -> Unit }
             onDismiss()
         }) { Text("Сохранить") } },
-        dismissButton = { Row { if (resource != CharacterSheetResourceId.CHI) TextButton(onClick = { state.mutate { when (resource) { CharacterSheetResourceId.HEALTH -> setHealthMaximumOverride(null); CharacterSheetResourceId.ENDURANCE -> setEnduranceMaximumOverride(null); CharacterSheetResourceId.MANA -> setManaMaximumOverride(null); CharacterSheetResourceId.CHI -> Unit } }; onDismiss() }) { Text("По формуле") }; TextButton(onClick = onDismiss) { Text("Отмена") } } },
+        dismissButton = { Row { if (resource != CharacterSheetResourceId.CHI) TextButton(onClick = { when (resource) { CharacterSheetResourceId.HEALTH -> state.setHealthMaximumOverride(null); CharacterSheetResourceId.ENDURANCE -> state.setEnduranceMaximumOverride(null); CharacterSheetResourceId.MANA -> state.setManaMaximumOverride(null); CharacterSheetResourceId.CHI -> Unit }; onDismiss() }) { Text("По формуле") }; TextButton(onClick = onDismiss) { Text("Отмена") } } },
     )
 }
 
@@ -622,8 +607,8 @@ private fun CustomResourceDialog(state: DesktopAppState, resource: CustomResourc
         onDismissRequest = onDismiss,
         title = { Text(if (resource == null) "Новый ресурс" else resource.name) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(7.dp)) { OutlinedTextField(name, { name = it }, label = { Text("Название") }); OutlinedTextField(current, { current = it.filter(Char::isDigit) }, label = { Text("Текущее") }); OutlinedTextField(maximum, { maximum = it.filter(Char::isDigit) }, label = { Text("Максимум") }) } },
-        confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { val max = maximum.toIntOrNull()?.coerceAtLeast(0) ?: 0; val cur = current.toIntOrNull()?.coerceIn(0, max) ?: 0; state.mutate { if (resource == null) addCustomResource(name, max, cur) else updateCustomResource(resource.uid, name, cur, max) }; onDismiss() }) { Text("Сохранить") } },
-        dismissButton = { Row { if (resource != null) TextButton(onClick = { state.mutate { removeCustomResource(resource.uid) }; onDismiss() }) { Text("Удалить") }; TextButton(onClick = onDismiss) { Text("Отмена") } } },
+        confirmButton = { TextButton(enabled = name.isNotBlank(), onClick = { val max = maximum.toIntOrNull()?.coerceAtLeast(0) ?: 0; val cur = current.toIntOrNull()?.coerceIn(0, max) ?: 0; if (resource == null) state.addCustomResource(name, max, cur) else state.updateCustomResource(resource.uid, name, cur, max); onDismiss() }) { Text("Сохранить") } },
+        dismissButton = { Row { if (resource != null) TextButton(onClick = { state.removeCustomResource(resource.uid); onDismiss() }) { Text("Удалить") }; TextButton(onClick = onDismiss) { Text("Отмена") } } },
     )
 }
 
@@ -643,7 +628,7 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             condition in state.extras.activeConditions,
-                            { state.updateExtras { toggleCondition(state.activeCharacter.id, condition) } },
+                            { state.toggleCondition(condition) },
                         )
                         Column(Modifier.weight(1f)) {
                             Text(local?.title ?: condition.title, fontWeight = FontWeight.Bold)
@@ -659,7 +644,7 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = condition.active,
-                                onCheckedChange = { checked -> state.updateExtras { setCustomConditionActive(state.activeCharacter.id, condition.id, checked) } },
+                                onCheckedChange = { checked -> state.setCustomConditionActive(condition.id, checked) },
                             )
                             Column(Modifier.weight(1f)) {
                                 Text(condition.title, fontWeight = FontWeight.Bold)
@@ -687,11 +672,11 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
             title = local?.title ?: condition.title,
             description = local?.description ?: state.conditionCatalog.summary(condition),
             onSave = { title, description ->
-                state.updateExtras { setConditionOverride(state.activeCharacter.id, condition, title, description) }
+                state.setConditionOverride(condition, title, description)
                 editCondition = null
             },
             onReset = {
-                state.updateExtras { resetConditionOverride(state.activeCharacter.id, condition) }
+                state.resetConditionOverride(condition)
                 editCondition = null
             },
             onDismiss = { editCondition = null },
@@ -702,9 +687,7 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
         CustomConditionDialog(
             condition = null,
             onSave = { title, description, active ->
-                var createdId: String? = null
-                state.updateExtras { createdId = addCustomCondition(state.activeCharacter.id, title, description) }
-                createdId?.let { id -> state.updateExtras { setCustomConditionActive(state.activeCharacter.id, id, active) } }
+                state.addCustomCondition(title, description, active)
                 createCustom = false
             },
             onDelete = {},
@@ -717,14 +700,11 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
             CustomConditionDialog(
                 condition = condition,
                 onSave = { title, description, active ->
-                    state.updateExtras {
-                        updateCustomCondition(state.activeCharacter.id, id, title, description)
-                        setCustomConditionActive(state.activeCharacter.id, id, active)
-                    }
+                    state.updateCustomCondition(id, title, description, active)
                     editCustomId = null
                 },
                 onDelete = {
-                    state.updateExtras { removeCustomCondition(state.activeCharacter.id, id) }
+                    state.removeCustomCondition(id)
                     editCustomId = null
                 },
                 onDismiss = { editCustomId = null },
@@ -805,7 +785,7 @@ private fun ResourceVisibilityDialog(state: DesktopAppState, onDismiss: () -> Un
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Видимость ресурсов") },
-        text = { Column { CharacterSheetResourceId.entries.forEach { resource -> Row(verticalAlignment = Alignment.CenterVertically) { val hidden = resource in state.extras.hiddenResourceIds; Checkbox(!hidden, { visible -> state.updateExtras { setResourceHidden(state.activeCharacter.id, resource, !visible) } }); Text(resource.title) } } } },
+        text = { Column { CharacterSheetResourceId.entries.forEach { resource -> Row(verticalAlignment = Alignment.CenterVertically) { val hidden = resource in state.extras.hiddenResourceIds; Checkbox(!hidden, { visible -> state.setResourceHidden(resource, !visible) }); Text(resource.title) } } } },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } },
     )
 }
@@ -843,10 +823,7 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
 
     fun persist(next: List<SheetGroup>) {
         groups = next
-        state.updateExtras {
-            if (kind == GroupingKind.SKILLS) setSkillGroups(character.id, next)
-            else setDevelopmentGroups(character.id, next)
-        }
+        if (kind == GroupingKind.SKILLS) state.setSkillGroups(next) else state.setDevelopmentGroups(next)
     }
 
     val visualGroups = groups.map { group ->

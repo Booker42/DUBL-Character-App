@@ -21,7 +21,7 @@ import com.dubl.character.android.model.UntrainedRule
 import com.dubl.character.android.model.resolvedSkills
 import com.dubl.character.android.model.developmentRank
 
-class CharacterSession(
+internal class CharacterSession(
     private val store: CharacterStore,
     private val idFactory: () -> String,
 ) {
@@ -30,7 +30,7 @@ class CharacterSession(
 
     val active: DublCharacter get() = snapshot.activeCharacter
 
-    fun updateActive(transform: (DublCharacter) -> DublCharacter) {
+    internal fun updateActive(transform: (DublCharacter) -> DublCharacter) {
         val activeId = snapshot.activeCharacterId
         val updated = snapshot.characters.map { character ->
             if (character.id == activeId) transform(character).normalized() else character
@@ -477,6 +477,9 @@ class CharacterSession(
         )
     }
 
+    fun replaceSpell(spell: KnownSpell) = updateSpell(spell.uid) { spell }
+    fun setSpellLearned(uid: String, learned: Boolean) = updateSpell(uid) { it.copy(learned = learned) }
+
     fun removeSpell(uid: String) = updateActive { character ->
         character.copy(magic = character.magic.copy(spells = character.magic.spells.filterNot { it.uid == uid }))
     }
@@ -550,6 +553,10 @@ class CharacterSession(
             ),
         )
     }
+
+    fun replaceGearItem(item: GearItem) = updateGearItem(item.uid) { item }
+    fun setGearItemCarried(uid: String, carried: Boolean) = updateGearItem(uid) { it.copy(carried = carried) }
+    fun setGearItemQuantity(uid: String, quantity: Int) = updateGearItem(uid) { it.copy(quantity = quantity.coerceAtLeast(1)) }
 
     fun removeGearItem(uid: String) = updateActive { character ->
         character.copy(gear = character.gear.copy(items = character.gear.items.filterNot { it.uid == uid }))

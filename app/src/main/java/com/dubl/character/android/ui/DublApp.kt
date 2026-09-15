@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dubl.character.android.data.CharacterRepository
+import com.dubl.character.android.data.CharacterSheetExtrasRepository
 import com.dubl.character.android.state.CharacterController
 import com.dubl.character.android.ui.components.dismissKeyboardOnPointerDown
 import com.dubl.character.android.ui.screens.CharactersScreen
@@ -64,7 +65,7 @@ private enum class AppSection(val label: String) {
 fun DublApp() {
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val controller = remember(appContext) {
-        CharacterController(CharacterRepository(appContext))
+        CharacterController(CharacterRepository(appContext), CharacterSheetExtrasRepository(appContext))
     }
     var selected by rememberSaveable { mutableStateOf(AppSection.OVERVIEW) }
 

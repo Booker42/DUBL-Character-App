@@ -51,6 +51,8 @@ jobs:
             tools/tests/test_desktop_persistence.py \
             tools/tests/test_compose_state_observation.py \
             tools/tests/test_compose_android_062_sheet_roll_parity.py \
+            tools/tests/test_shared_application_lock.py \
+            tools/tests/test_shared_application_golden.py \
             tools/tests/test_rulebook_raw_ir.py \
             tools/tests/test_rulebook_source_index.py \
             tools/tests/test_rulebook_diagnostics.py \

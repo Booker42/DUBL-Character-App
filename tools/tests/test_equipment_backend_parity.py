@@ -11,16 +11,24 @@ DESKTOP_STATE = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/De
 DESKTOP_SCREEN = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/EquipmentScreen.kt'
 
 
-def test_android_and_desktop_equipment_use_shared_session_and_rules():
+def test_android_and_desktop_equipment_use_shared_application_and_rules():
     android = ANDROID_CONTROLLER.read_text(encoding='utf-8')
     desktop_state = DESKTOP_STATE.read_text(encoding='utf-8')
     desktop_screen = DESKTOP_SCREEN.read_text(encoding='utf-8')
-    for method in (
-        'setGearLoadAutomatic', 'setGearManualLoad', 'syncCatalogGearLoads',
-        'addCatalogGear', 'addCustomGear', 'updateGearItem', 'removeGearItem',
-    ):
-        assert f'session.{method}' in android, method
-    assert 'session.syncCatalogGearLoads(magicEquipmentCatalog.gear)' in desktop_state
+    mapping = {
+        'setGearLoadAutomatic': 'application.equipment.setLoadAutomatic',
+        'setGearManualLoad': 'application.equipment.setManualLoad',
+        'syncCatalogGearLoads': 'application.equipment.syncCatalogLoads',
+        'addCatalogGear': 'application.equipment.addCatalog',
+        'addCustomGear': 'application.equipment.addCustom',
+        'updateGearItem': 'application.equipment.updateItem',
+        'removeGearItem': 'application.equipment.removeItem',
+    }
+    for method, call in mapping.items():
+        assert f'fun {method}' in android and call in android, method
+        assert f'fun {method}' in desktop_state and call in desktop_state, method
+    assert 'application.equipment.syncCatalogLoads(magicEquipmentCatalog.gear)' in desktop_state
+    assert 'CharacterSession' not in android + desktop_state
     for rule in ('equipmentLoad', 'equipmentCapacity', 'burden', 'catalogGearLoad'):
         assert f'MagicEquipmentRules.{rule}' in desktop_screen, rule
 

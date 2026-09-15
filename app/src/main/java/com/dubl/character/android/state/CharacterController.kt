@@ -3,121 +3,146 @@ package com.dubl.character.android.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.dubl.character.android.application.DublApplication
 import com.dubl.character.android.data.CharacterRepository
+import com.dubl.character.android.data.CharacterSheetExtrasRepository
 import com.dubl.character.android.model.AppSnapshot
 import com.dubl.character.android.model.AttributeId
-import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.CharacterConditionId
+import com.dubl.character.android.model.CharacterSheetExtras
+import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.DevelopmentEntry
+import com.dubl.character.android.model.DublCharacter
 import com.dubl.character.android.model.GearCatalogEntry
 import com.dubl.character.android.model.GearItem
 import com.dubl.character.android.model.KnownSpell
+import com.dubl.character.android.model.SheetGroup
 import com.dubl.character.android.model.SpellCatalogEntry
 import com.dubl.character.android.model.UntrainedRule
 import java.util.UUID
 
-/**
- * Android observable adapter over the platform-independent CharacterSession.
- *
- * All game mutations live in shared commonMain. This class only mirrors the latest
- * snapshot into Compose state so existing Android screens keep their public API.
- */
-class CharacterController(repository: CharacterRepository) {
-    private val session = CharacterSession(repository) { UUID.randomUUID().toString() }
+/** Android observable adapter over the shared application boundary. */
+class CharacterController(
+    repository: CharacterRepository,
+    extrasRepository: CharacterSheetExtrasRepository,
+) {
+    private val application = DublApplication(
+        characterStore = repository,
+        extrasStore = extrasRepository,
+        idFactory = { UUID.randomUUID().toString() },
+    )
 
-    var snapshot: AppSnapshot by mutableStateOf(session.snapshot)
+    var snapshot: AppSnapshot by mutableStateOf(application.snapshot)
+        private set
+    var extras: CharacterSheetExtras by mutableStateOf(application.activeExtras)
         private set
 
     val active: DublCharacter get() = snapshot.activeCharacter
 
     private inline fun <T> sync(block: () -> T): T {
         val result = block()
-        snapshot = session.snapshot
+        snapshot = application.snapshot
+        extras = application.activeExtras
         return result
     }
 
-    fun updateActive(transform: (DublCharacter) -> DublCharacter) = sync { session.updateActive(transform) }
-    fun changeAttribute(id: AttributeId, delta: Int) = sync { session.changeAttribute(id, delta) }
-    fun setExperience(total: Int) = sync { session.setExperience(total) }
-    fun setCreationExperience(value: Int) = sync { session.setCreationExperience(value) }
-    fun setXpAdjustment(value: Int) = sync { session.setXpAdjustment(value) }
-    fun setAbilityPointsOverride(value: Int?) = sync { session.setAbilityPointsOverride(value) }
-    fun completeCreation() = sync { session.completeCreation() }
-    fun reopenCreation() = sync { session.reopenCreation() }
-    fun changeHp(delta: Int) = sync { session.changeHp(delta) }
-    fun changeEndurance(delta: Int) = sync { session.changeEndurance(delta) }
-    fun changeMana(delta: Int) = sync { session.changeMana(delta) }
-    fun changeChi(delta: Int) = sync { session.changeChi(delta) }
-    fun setChiEnabled(enabled: Boolean) = sync { session.setChiEnabled(enabled) }
-    fun setChiBonusRanks(rank: Int) = sync { session.setChiBonusRanks(rank) }
-    fun restoreChi() = sync { session.restoreChi() }
-    fun setHealthMaximumOverride(value: Int?) = sync { session.setHealthMaximumOverride(value) }
-    fun setEnduranceMaximumOverride(value: Int?) = sync { session.setEnduranceMaximumOverride(value) }
-    fun setManaMaximumOverride(value: Int?) = sync { session.setManaMaximumOverride(value) }
+    fun setProfile(name: String, concept: String, experience: Int, size: Int, legs: Int, manaEnabled: Boolean) =
+        sync { application.character.setProfile(name, concept, experience, size, legs, manaEnabled) }
+    fun setIdentity(name: String, concept: String, size: Int, legs: Int, manaEnabled: Boolean) =
+        sync { application.character.setIdentity(name, concept, size, legs, manaEnabled) }
+    fun setName(name: String) = sync { application.character.setName(name) }
+    fun setSize(size: Int) = sync { application.character.setSize(size) }
+    fun setLegs(legs: Int) = sync { application.character.setLegs(legs) }
+    fun changeAttribute(id: AttributeId, delta: Int) = sync { application.character.changeAttribute(id, delta) }
+    fun setExperience(total: Int) = sync { application.character.setExperience(total) }
+    fun setCreationExperience(value: Int) = sync { application.character.setCreationExperience(value) }
+    fun setXpAdjustment(value: Int) = sync { application.character.setXpAdjustment(value) }
+    fun setAbilityPointsOverride(value: Int?) = sync { application.character.setAbilityPointsOverride(value) }
+    fun completeCreation() = sync { application.character.completeCreation() }
+    fun reopenCreation() = sync { application.character.reopenCreation() }
+    fun changeHp(delta: Int) = sync { application.character.changeHp(delta) }
+    fun changeEndurance(delta: Int) = sync { application.character.changeEndurance(delta) }
+    fun changeMana(delta: Int) = sync { application.magic.changeMana(delta) }
+    fun changeChi(delta: Int) = sync { application.development.changeChi(delta) }
+    fun setChiEnabled(enabled: Boolean) = sync { application.development.setChiEnabled(enabled) }
+    fun setChiBonusRanks(rank: Int) = sync { application.development.setChiBonusRanks(rank) }
+    fun restoreChi() = sync { application.development.restoreChi() }
+    fun setHealthMaximumOverride(value: Int?) = sync { application.character.setHealthMaximumOverride(value) }
+    fun setEnduranceMaximumOverride(value: Int?) = sync { application.character.setEnduranceMaximumOverride(value) }
+    fun setManaMaximumOverride(value: Int?) = sync { application.character.setManaMaximumOverride(value) }
 
     fun addCustomResource(name: String, maximum: Int, current: Int = maximum): String? =
-        sync { session.addCustomResource(name, maximum, current) }
-
+        sync { application.character.addCustomResource(name, maximum, current) }
     fun updateCustomResource(uid: String, name: String, current: Int, maximum: Int) =
-        sync { session.updateCustomResource(uid, name, current, maximum) }
+        sync { application.character.updateCustomResource(uid, name, current, maximum) }
+    fun changeCustomResource(uid: String, delta: Int) = sync { application.character.changeCustomResource(uid, delta) }
+    fun removeCustomResource(uid: String) = sync { application.character.removeCustomResource(uid) }
 
-    fun changeCustomResource(uid: String, delta: Int) = sync { session.changeCustomResource(uid, delta) }
-    fun removeCustomResource(uid: String) = sync { session.removeCustomResource(uid) }
-    fun changeSkillRank(skillId: String, delta: Int) = sync { session.changeSkillRank(skillId, delta) }
-    fun setSkillAttributes(skillId: String, attributes: List<AttributeId>) = sync { session.setSkillAttributes(skillId, attributes) }
-    fun setSkillModifier(skillId: String, modifier: Int) = sync { session.setSkillModifier(skillId, modifier) }
-    fun setSkillFormulaNote(skillId: String, note: String) = sync { session.setSkillFormulaNote(skillId, note) }
-    fun setSkillNameOverride(skillId: String, name: String) = sync { session.setSkillNameOverride(skillId, name) }
-    fun setSkillDescriptionOverride(skillId: String, description: String) = sync { session.setSkillDescriptionOverride(skillId, description) }
-    fun setSkillCategoryOverride(skillId: String, category: com.dubl.character.android.model.SkillCategory?) = sync { session.setSkillCategoryOverride(skillId, category) }
-    fun setSkillUntrainedOverride(skillId: String, rule: com.dubl.character.android.model.UntrainedRule?) = sync { session.setSkillUntrainedOverride(skillId, rule) }
-    fun setSkillAutoOverrides(skillId: String, auto6: String?, auto12: String?) = sync { session.setSkillAutoOverrides(skillId, auto6, auto12) }
-    fun resetSkillDefinitionOverrides(skillId: String) = sync { session.resetSkillDefinitionOverrides(skillId) }
-    fun hideSkill(skillId: String) = sync { session.hideSkill(skillId) }
-    fun restoreSkill(skillId: String) = sync { session.restoreSkill(skillId) }
-    fun setSkillEffectEnabled(effectId: String, enabled: Boolean) = sync { session.setSkillEffectEnabled(effectId, enabled) }
-    fun restoreAllSkills() = sync { session.restoreAllSkills() }
-    fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) =
-        sync { session.setDevelopmentRank(entryId, rank, optionIndex) }
-    fun setDevelopmentOverride(entry: DevelopmentEntry) = sync { session.setDevelopmentOverride(entry) }
-    fun resetDevelopmentOverride(entryId: String) = sync { session.resetDevelopmentOverride(entryId) }
-    fun addCustomDevelopment(entry: DevelopmentEntry): String? = sync { session.addCustomDevelopment(entry) }
-    fun updateCustomDevelopment(entry: DevelopmentEntry): Boolean = sync { session.updateCustomDevelopment(entry) }
-    fun removeCustomDevelopment(entryId: String) = sync { session.removeCustomDevelopment(entryId) }
+    fun changeSkillRank(skillId: String, delta: Int) = sync { application.skills.changeRank(skillId, delta) }
+    fun setSkillAttributes(skillId: String, attributes: List<AttributeId>) = sync { application.skills.setAttributes(skillId, attributes) }
+    fun setSkillModifier(skillId: String, modifier: Int) = sync { application.skills.setModifier(skillId, modifier) }
+    fun setSkillFormulaNote(skillId: String, note: String) = sync { application.skills.setFormulaNote(skillId, note) }
+    fun setSkillNameOverride(skillId: String, name: String) = sync { application.skills.setNameOverride(skillId, name) }
+    fun setSkillDescriptionOverride(skillId: String, description: String) = sync { application.skills.setDescriptionOverride(skillId, description) }
+    fun setSkillCategoryOverride(skillId: String, category: com.dubl.character.android.model.SkillCategory?) = sync { application.skills.setCategoryOverride(skillId, category) }
+    fun setSkillUntrainedOverride(skillId: String, rule: UntrainedRule?) = sync { application.skills.setUntrainedOverride(skillId, rule) }
+    fun setSkillAutoOverrides(skillId: String, auto6: String?, auto12: String?) = sync { application.skills.setAutoOverrides(skillId, auto6, auto12) }
+    fun resetSkillDefinitionOverrides(skillId: String) = sync { application.skills.resetDefinitionOverrides(skillId) }
+    fun hideSkill(skillId: String) = sync { application.skills.hide(skillId) }
+    fun restoreSkill(skillId: String) = sync { application.skills.restore(skillId) }
+    fun setSkillEffectEnabled(effectId: String, enabled: Boolean) = sync { application.skills.setEffectEnabled(effectId, enabled) }
+    fun restoreAllSkills() = sync { application.skills.restoreAll() }
+    fun addSpecializedSkill(templateId: String, specialization: String): String? = sync { application.skills.addSpecialized(templateId, specialization) }
+    fun addCustomSkill(name: String, description: String, attributes: List<AttributeId>, untrained: UntrainedRule): String? =
+        sync { application.skills.addCustom(name, description, attributes, untrained) }
+    fun deleteDynamicSkill(skillId: String) = sync { application.skills.deleteDynamic(skillId) }
+    fun setPreferredSkillAttribute(skillId: String, attribute: AttributeId?) = sync { application.skills.setPreferredAttribute(skillId, attribute) }
 
-    fun setMagicManaRank(rank: Int) = sync { session.setMagicManaRank(rank) }
+    fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) = sync { application.development.setRank(entryId, rank, optionIndex) }
+    fun setDevelopmentOverride(entry: DevelopmentEntry) = sync { application.development.setOverride(entry) }
+    fun resetDevelopmentOverride(entryId: String) = sync { application.development.resetOverride(entryId) }
+    fun addCustomDevelopment(entry: DevelopmentEntry): String? = sync { application.development.addCustom(entry) }
+    fun updateCustomDevelopment(entry: DevelopmentEntry): Boolean = sync { application.development.updateCustom(entry) }
+    fun removeCustomDevelopment(entryId: String) = sync { application.development.removeCustom(entryId) }
 
+    fun setMagicManaRank(rank: Int) = sync { application.magic.setManaRank(rank) }
     @Deprecated("0.3.1 uses per-school magic power")
-    fun setMagicPower(power: Int) = sync { session.setMagicPower(power) }
+    fun setMagicPower(power: Int) = sync { application.magic.setLegacyPower(power) }
+    fun setMagicSchoolPower(name: String, power: Int) = sync { application.magic.setSchoolPower(name, power) }
+    fun addMagicSchool(name: String, rank: Int, note: String): Boolean = sync { application.magic.addSchool(name, rank, note) }
+    fun updateMagicSchool(index: Int, name: String, rank: Int, note: String): Boolean = sync { application.magic.updateSchool(index, name, rank, note) }
+    fun removeMagicSchool(index: Int) = sync { application.magic.removeSchool(index) }
+    fun addCatalogSpell(entry: SpellCatalogEntry): Boolean = sync { application.magic.addCatalogSpell(entry) }
+    fun addCustomSpell(spell: KnownSpell): String = sync { application.magic.addCustomSpell(spell) }
+    fun updateSpell(spell: KnownSpell) = sync { application.magic.updateSpell(spell) }
+    fun setSpellLearned(uid: String, learned: Boolean) = sync { application.magic.setSpellLearned(uid, learned) }
+    fun removeSpell(uid: String) = sync { application.magic.removeSpell(uid) }
 
-    fun setMagicSchoolPower(name: String, power: Int) = sync { session.setMagicSchoolPower(name, power) }
-    fun addMagicSchool(name: String, rank: Int, note: String): Boolean = sync { session.addMagicSchool(name, rank, note) }
-    fun updateMagicSchool(index: Int, name: String, rank: Int, note: String): Boolean =
-        sync { session.updateMagicSchool(index, name, rank, note) }
-    fun removeMagicSchool(index: Int) = sync { session.removeMagicSchool(index) }
-    fun addCatalogSpell(entry: SpellCatalogEntry): Boolean = sync { session.addCatalogSpell(entry) }
-    fun addCustomSpell(spell: KnownSpell): String = sync { session.addCustomSpell(spell) }
-    fun updateSpell(uid: String, transform: (KnownSpell) -> KnownSpell) = sync { session.updateSpell(uid, transform) }
-    fun removeSpell(uid: String) = sync { session.removeSpell(uid) }
-    fun setGearLoadAutomatic(enabled: Boolean) = sync { session.setGearLoadAutomatic(enabled) }
-    fun setGearManualLoad(value: Double) = sync { session.setGearManualLoad(value) }
-    fun syncCatalogGearLoads(entries: List<GearCatalogEntry>) = sync { session.syncCatalogGearLoads(entries) }
-    fun addCatalogGear(entry: GearCatalogEntry): String = sync { session.addCatalogGear(entry) }
-    fun addCustomGear(item: GearItem): String = sync { session.addCustomGear(item) }
-    fun updateGearItem(uid: String, transform: (GearItem) -> GearItem) = sync { session.updateGearItem(uid, transform) }
-    fun removeGearItem(uid: String) = sync { session.removeGearItem(uid) }
+    fun setGearLoadAutomatic(enabled: Boolean) = sync { application.equipment.setLoadAutomatic(enabled) }
+    fun setGearManualLoad(value: Double) = sync { application.equipment.setManualLoad(value) }
+    fun syncCatalogGearLoads(entries: List<GearCatalogEntry>) = sync { application.equipment.syncCatalogLoads(entries) }
+    fun addCatalogGear(entry: GearCatalogEntry): String = sync { application.equipment.addCatalog(entry) }
+    fun addCustomGear(item: GearItem): String = sync { application.equipment.addCustom(item) }
+    fun updateGearItem(item: GearItem) = sync { application.equipment.updateItem(item) }
+    fun setGearItemCarried(uid: String, carried: Boolean) = sync { application.equipment.setItemCarried(uid, carried) }
+    fun setGearItemQuantity(uid: String, quantity: Int) = sync { application.equipment.setItemQuantity(uid, quantity) }
+    fun removeGearItem(uid: String) = sync { application.equipment.removeItem(uid) }
 
-    fun addSpecializedSkill(templateId: String, specialization: String): String? =
-        sync { session.addSpecializedSkill(templateId, specialization) }
+    fun setPortrait(uri: String?) = sync { application.sheet.setPortrait(uri) }
+    fun toggleCondition(condition: CharacterConditionId) = sync { application.sheet.toggleCondition(condition) }
+    fun setConditions(conditions: Set<CharacterConditionId>) = sync { application.sheet.setConditions(conditions) }
+    fun setResourceHidden(resource: CharacterSheetResourceId, hidden: Boolean) = sync { application.sheet.setResourceHidden(resource, hidden) }
+    fun setSkillGroups(groups: List<SheetGroup>) = sync { application.sheet.setSkillGroups(groups) }
+    fun setDevelopmentGroups(groups: List<SheetGroup>) = sync { application.sheet.setDevelopmentGroups(groups) }
+    fun setConditionOverride(condition: CharacterConditionId, title: String?, description: String?) = sync { application.sheet.setConditionOverride(condition, title, description) }
+    fun resetConditionOverride(condition: CharacterConditionId) = sync { application.sheet.resetConditionOverride(condition) }
+    fun addCustomCondition(title: String, description: String = "", active: Boolean = false): String? = sync { application.sheet.addCustomCondition(title, description, active) }
+    fun updateCustomCondition(id: String, title: String, description: String, active: Boolean? = null) = sync { application.sheet.updateCustomCondition(id, title, description, active) }
+    fun setCustomConditionActive(id: String, active: Boolean) = sync { application.sheet.setCustomConditionActive(id, active) }
+    fun removeCustomCondition(id: String) = sync { application.sheet.removeCustomCondition(id) }
 
-    fun addCustomSkill(
-        name: String,
-        description: String,
-        attributes: List<AttributeId>,
-        untrained: UntrainedRule,
-    ): String? = sync { session.addCustomSkill(name, description, attributes, untrained) }
-
-    fun deleteDynamicSkill(skillId: String) = sync { session.deleteDynamicSkill(skillId) }
-    fun createCharacter() = sync { session.createCharacter() }
-    fun selectCharacter(id: String) = sync { session.selectCharacter(id) }
-    fun deleteActive() = sync { session.deleteActive() }
+    fun createCharacter() = sync { application.character.createCharacter() }
+    fun selectCharacter(id: String) = sync { application.character.selectCharacter(id) }
+    fun deleteActive() = sync { application.character.deleteActive() }
+    fun undoLast(): Boolean = sync { application.undoLast() }
 }

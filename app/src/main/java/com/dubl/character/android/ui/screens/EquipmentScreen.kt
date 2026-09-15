@@ -210,8 +210,8 @@ fun EquipmentScreen(controller: CharacterController) {
                 item = item,
                 onEdit = { editItem = item; selectedUid = null },
                 onRemove = { selectedUid = null; pendingDeleteUid = uid },
-                onToggleCarried = { carried -> controller.updateGearItem(uid) { it.copy(carried = carried) } },
-                onQuantity = { qty -> controller.updateGearItem(uid) { it.copy(quantity = qty.coerceAtLeast(1)) } },
+                onToggleCarried = { carried -> controller.setGearItemCarried(uid, carried) },
+                onQuantity = { qty -> controller.setGearItemQuantity(uid, qty) },
                 onDismiss = { selectedUid = null },
             )
         } ?: run { selectedUid = null }
@@ -230,7 +230,7 @@ fun EquipmentScreen(controller: CharacterController) {
         GearEditDialog(
             initial = item,
             title = item.name,
-            onSave = { updated -> controller.updateGearItem(item.uid) { updated }; editItem = null },
+            onSave = { updated -> controller.updateGearItem(updated); editItem = null },
             onDismiss = { editItem = null },
         )
     }

@@ -24,7 +24,7 @@ def test_desktop_skill_settings_exposes_local_override_and_reset():
     assert "К рулбуку" in text
 
 
-def test_android_controller_delegates_override_mutations_to_shared_session():
+def test_android_controller_delegates_override_mutations_to_shared_application():
     text = CONTROLLER.read_text(encoding="utf-8")
     for method in (
         "setSkillNameOverride",
@@ -34,4 +34,12 @@ def test_android_controller_delegates_override_mutations_to_shared_session():
         "setSkillAutoOverrides",
         "resetSkillDefinitionOverrides",
     ):
-        assert f"session.{method}" in text
+        mapping = {
+            "setSkillNameOverride": "application.skills.setNameOverride",
+            "setSkillDescriptionOverride": "application.skills.setDescriptionOverride",
+            "setSkillCategoryOverride": "application.skills.setCategoryOverride",
+            "setSkillUntrainedOverride": "application.skills.setUntrainedOverride",
+            "setSkillAutoOverrides": "application.skills.setAutoOverrides",
+            "resetSkillDefinitionOverrides": "application.skills.resetDefinitionOverrides",
+        }
+        assert mapping[method] in text

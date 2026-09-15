@@ -58,10 +58,12 @@ docs/superpowers/plans/2026-09-14-android-0.6.2-grouping-roll-flow.md
 docs/superpowers/plans/2026-09-14-kmp-foundation.md
 docs/superpowers/plans/2026-09-15-desktop-0.2-android-parity.md
 docs/superpowers/plans/2026-09-15-parity-contract-ruleset-magic.md
+docs/superpowers/plans/2026-09-16-shared-application-lock.md
 docs/superpowers/specs/2026-09-14-android-0.6.2-grouping-roll-flow-design.md
 docs/superpowers/specs/2026-09-14-kmp-foundation-design.md
 docs/superpowers/specs/2026-09-15-desktop-0.2-android-parity-design.md
 docs/superpowers/specs/2026-09-15-parity-contract-ruleset-magic-design.md
+docs/superpowers/specs/2026-09-16-shared-application-lock-design.md
 gradle.properties
 gradle/wrapper/gradle-wrapper.properties
 gradlew
@@ -76,6 +78,14 @@ packaging/linux/portable-src/com/dubl/character/portable/UiKit.kt
 packaging/linux/tests/appimage-smoke.sh
 settings.gradle.kts
 shared/build.gradle.kts
+shared/src/commonMain/kotlin/com/dubl/character/android/application/ApplicationUndoManager.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/CharacterApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/DevelopmentApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/DublApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/EquipmentApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/MagicApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/SheetApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/SkillsApplication.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CatalogData.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CharacterExtrasStore.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CharacterStore.kt
@@ -109,6 +119,7 @@ shared/src/commonMain/resources/chi_catalog.json
 shared/src/commonMain/resources/development_catalog.json
 shared/src/commonMain/resources/magic_equipment_catalog.json
 shared/src/commonMain/resources/skill_effects_catalog.json
+shared/src/commonTest/kotlin/com/dubl/character/android/application/SharedApplicationGoldenTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/data/CharacterStoreTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/CharacterEconomyTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/CharacterNormalizationTest.kt
@@ -173,3 +184,5 @@ tools/tests/test_kmp_boundaries.py
 tools/tests/test_kmp_ui_foundation.py
 tools/tests/test_magic_backend_parity.py
 tools/tests/test_ruleset_parity_contract.py
+tools/tests/test_shared_application_golden.py
+tools/tests/test_shared_application_lock.py

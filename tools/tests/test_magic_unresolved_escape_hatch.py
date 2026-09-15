@@ -20,4 +20,4 @@ def test_android_catalog_keeps_incomplete_spell_addable_and_editable_after_add()
 
 def test_desktop_catalog_keeps_incomplete_spell_addable():
     assert 'enabled = !spell.incomplete' not in DESKTOP
-    assert 'state.mutate { addCatalogSpell(spell) }' in DESKTOP
+    assert 'state.addCatalogSpell(spell)' in DESKTOP

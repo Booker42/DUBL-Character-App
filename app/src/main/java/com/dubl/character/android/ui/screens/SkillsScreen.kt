@@ -45,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.dubl.character.android.data.CharacterSheetExtrasRepository
 import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.data.SkillEffectCatalogRepository
 import com.dubl.character.android.model.AttributeId
@@ -71,12 +70,7 @@ import com.dubl.character.android.ui.theme.DublGold
 fun SkillsScreen(controller: CharacterController) {
     val character = controller.active
     val context = LocalContext.current
-    val extrasRepository = remember(context.applicationContext) {
-        CharacterSheetExtrasRepository(context.applicationContext)
-    }
-    var sheetExtras by remember(character.id) {
-        mutableStateOf(extrasRepository.load(character.id))
-    }
+    val sheetExtras = controller.extras
 
     var query by remember(character.id) { mutableStateOf("") }
     var selectedCategory by remember(character.id) { mutableStateOf<SkillCategory?>(null) }
@@ -89,11 +83,7 @@ fun SkillsScreen(controller: CharacterController) {
     var showHidden by remember(character.id) { mutableStateOf(false) }
 
     fun rememberSkillAttribute(skillId: String, attribute: AttributeId) {
-        val updated = sheetExtras.copy(
-            preferredSkillAttributes = sheetExtras.preferredSkillAttributes + (skillId to attribute),
-        )
-        sheetExtras = updated
-        extrasRepository.save(character.id, updated)
+        controller.setPreferredSkillAttribute(skillId, attribute)
     }
 
     val visibleSkills = character.resolvedSkills()

@@ -10,15 +10,28 @@ ANDROID_CONTROLLER = ROOT / 'app/src/main/java/com/dubl/character/android/state/
 DESKTOP_STATE = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/DesktopAppState.kt'
 
 
-def test_android_and_desktop_magic_mutate_the_same_character_session():
+def test_android_and_desktop_magic_route_through_shared_application_capability():
     android = ANDROID_CONTROLLER.read_text(encoding='utf-8')
     desktop = DESKTOP_STATE.read_text(encoding='utf-8')
-    for method in (
-        'setMagicManaRank', 'setMagicSchoolPower', 'addMagicSchool', 'updateMagicSchool',
-        'removeMagicSchool', 'addCatalogSpell', 'addCustomSpell', 'updateSpell', 'removeSpell', 'changeMana',
-    ):
-        assert f'session.{method}' in android, method
-    assert 'fun mutate(action: CharacterSession.() -> Unit)' in desktop
+    mapping = {
+        'setMagicManaRank': 'application.magic.setManaRank',
+        'setMagicSchoolPower': 'application.magic.setSchoolPower',
+        'addMagicSchool': 'application.magic.addSchool',
+        'updateMagicSchool': 'application.magic.updateSchool',
+        'removeMagicSchool': 'application.magic.removeSchool',
+        'addCatalogSpell': 'application.magic.addCatalogSpell',
+        'addCustomSpell': 'application.magic.addCustomSpell',
+        'updateSpell': 'application.magic.updateSpell',
+        'removeSpell': 'application.magic.removeSpell',
+        'changeMana': 'application.magic.changeMana',
+    }
+    for method, call in mapping.items():
+        assert f'fun {method}' in android, method
+        assert call in android, method
+        assert f'fun {method}' in desktop, method
+        assert call in desktop, method
+    assert 'CharacterSession' not in android + desktop
+    assert 'fun mutate(' not in desktop
 
 
 def test_shared_magic_behavior_harness():

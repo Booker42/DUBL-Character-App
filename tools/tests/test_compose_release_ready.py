@@ -59,8 +59,11 @@ def test_release_workflow_runs_all_compose_parity_guards():
         'test_desktop_persistence.py',
         'test_compose_state_observation.py',
         'test_compose_android_062_sheet_roll_parity.py',
+        'test_shared_application_lock.py',
+        'test_shared_application_golden.py',
     ):
         assert test_name in text
+    assert ':shared:desktopTest' in text
 
 
 def test_linux_compose_ci_uses_project_jvm_toolchain_version():

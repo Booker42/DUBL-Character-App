@@ -3,13 +3,13 @@ package com.dubl.character.android.state
 import com.dubl.character.android.data.CharacterExtrasStore
 import com.dubl.character.android.model.*
 
-class CharacterExtrasSession(
+internal class CharacterExtrasSession(
     private val store: CharacterExtrasStore,
     private val customConditionIdFactory: () -> String = { "" },
 ) {
     fun load(characterId: String): CharacterSheetExtras = store.load(characterId)
 
-    fun update(characterId: String, transform: (CharacterSheetExtras) -> CharacterSheetExtras): CharacterSheetExtras {
+    internal fun update(characterId: String, transform: (CharacterSheetExtras) -> CharacterSheetExtras): CharacterSheetExtras {
         val next = transform(store.load(characterId))
         store.save(characterId, next)
         return next

@@ -74,14 +74,14 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     Text("Мана ${character.manaCurrent}/${character.effectiveManaMaximum}", color = DublFocus, fontWeight = FontWeight.Bold)
                     TextButton(
                         enabled = character.manaCurrent > 0,
-                        onClick = { state.mutate { changeMana(-1) } },
+                        onClick = { state.changeMana(-1) },
                     ) { Text("−") }
                     TextButton(
                         enabled = character.manaCurrent < character.effectiveManaMaximum,
-                        onClick = { state.mutate { changeMana(1) } },
+                        onClick = { state.changeMana(1) },
                     ) { Text("+") }
                     Text("Ранг маны ${character.magic.manaRank}/5", color = DublGold)
-                    RankStepper(character.magic.manaRank, max = 5, enabled = !character.creationComplete) { next -> state.mutate { setMagicManaRank(next) } }
+                    RankStepper(character.magic.manaRank, max = 5, enabled = !character.creationComplete) { next -> state.setMagicManaRank(next) }
                     Text("Восстановление ${MagicEquipmentRules.manaRecoveryPerRound(character)}/раунд", color = DublMuted)
                 }
                 Text("XP: ранг маны ${MagicEquipmentRules.manaRankXp(character)} · школы ${MagicEquipmentRules.magicSchoolPowerXp(character)} · заклинания ${MagicEquipmentRules.learnedSpellXp(character)}", color = DublMuted)
@@ -106,7 +106,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     SectionCard(school, action = { OutlinedButton(onClick = { editSchool = school }) { Text("Изменить") } }) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Сила $power", color = DublFocus, fontWeight = FontWeight.Bold)
-                            RankStepper(power, max = Int.MAX_VALUE) { next -> state.mutate { setMagicSchoolPower(school, next) } }
+                            RankStepper(power, max = Int.MAX_VALUE) { next -> state.setMagicSchoolPower(school, next) }
                         }
                         character.magic.schools.firstOrNull { MagicSchoolCatalog.canonicalizeOrNull(it.name) == school }?.note?.takeIf { it.isNotBlank() }?.let { Text(it, color = DublMuted) }
                     }
@@ -143,7 +143,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(onClick = { catalogDetails = spell }) { Text("Подробнее") }
                             Button(
-                                onClick = { state.mutate { addCatalogSpell(spell) } },
+                                onClick = { state.addCatalogSpell(spell) },
                             ) { Text(if (spell.incomplete) "Добавить и исправить" else "Добавить") }
                         }
                     }) {
@@ -176,7 +176,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             title = { Text("Удалить заклинание?") },
             text = { Text("«$spellName» будет удалено из книги персонажа.") },
             confirmButton = {
-                TextButton(onClick = { state.mutate { removeSpell(uid) }; pendingDeleteSpellUid = null }) { Text("Удалить") }
+                TextButton(onClick = { state.removeSpell(uid); pendingDeleteSpellUid = null }) { Text("Удалить") }
             },
             dismissButton = { TextButton(onClick = { pendingDeleteSpellUid = null }) { Text("Отмена") } },
         )
@@ -188,7 +188,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             title = { Text("Удалить школу?") },
             text = { Text("«$schoolName» будет удалена у персонажа. Заклинания из книги не удаляются автоматически.") },
             confirmButton = {
-                TextButton(onClick = { state.mutate { removeMagicSchool(index) }; pendingDeleteSchoolIndex = null }) { Text("Удалить") }
+                TextButton(onClick = { state.removeMagicSchool(index); pendingDeleteSchoolIndex = null }) { Text("Удалить") }
             },
             dismissButton = { TextButton(onClick = { pendingDeleteSchoolIndex = null }) { Text("Отмена") } },
         )
@@ -222,8 +222,7 @@ private fun AddSchoolDialog(state: DesktopAppState, onError: (String) -> Unit, o
         },
         confirmButton = {
             TextButton(enabled = school.isNotBlank(), onClick = {
-                var ok = false
-                state.mutate { ok = addMagicSchool(school, rank.toIntOrNull()?.coerceAtLeast(0) ?: 0, note) }
+                val ok = state.addMagicSchool(school, rank.toIntOrNull()?.coerceAtLeast(0) ?: 0, note)
                 if (ok) onDismiss() else onError("Проверьте название школы: школа уже существует или не поддерживается.")
             }) { Text("Добавить") }
         },
@@ -250,13 +249,9 @@ private fun SchoolDialog(state: DesktopAppState, school: String, onError: (Strin
             TextButton(onClick = {
                 val value = rank.toIntOrNull()?.coerceAtLeast(0) ?: 0
                 val saved = if (existingIndex >= 0) {
-                    var ok = false
-                    state.mutate { ok = updateMagicSchool(existingIndex, school, value, note) }
-                    ok
+                    state.updateMagicSchool(existingIndex, school, value, note)
                 } else {
-                    var ok = false
-                    state.mutate { ok = addMagicSchool(school, value, note) }
-                    ok
+                    state.addMagicSchool(school, value, note)
                 }
                 if (saved) onDismiss() else onError("Проверьте название школы: допустима одна каноническая школа, без дубликатов.")
             }) { Text("Сохранить") }
@@ -314,7 +309,7 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
                     time = time.trim(), range = range.trim(), area = area.trim(), action = action.trim(), duration = duration.trim(),
                     description = description.trim(), enhancement = enhancement.trim(), learned = learned, xpOverride = xp.toIntOrNull()?.coerceAtLeast(0),
                 )
-                state.mutate { if (spell == null) addCustomSpell(updated) else updateSpell(spell.uid) { updated } }
+                if (spell == null) state.addCustomSpell(updated) else state.updateSpell(updated)
                 onDismiss()
             }) { Text("Сохранить") }
         },
@@ -350,7 +345,7 @@ private fun CatalogSpellDialog(state: DesktopAppState, spell: SpellCatalogEntry,
         },
         confirmButton = {
             TextButton(
-                onClick = { state.mutate { addCatalogSpell(spell) }; onDismiss() },
+                onClick = { state.addCatalogSpell(spell); onDismiss() },
             ) { Text(if (spell.incomplete) "Добавить и исправить" else "Добавить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },

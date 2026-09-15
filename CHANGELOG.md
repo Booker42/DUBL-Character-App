@@ -2,6 +2,11 @@
 
 ## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
 
+- Added a hard Shared Application Lock: `DublApplication` is now the only public state-changing boundary used by Android and Compose Desktop, split into character, skills, development/Chi, magic, equipment, and sheet capabilities.
+- Internalized raw `CharacterSession` / `CharacterExtrasSession` mutation surfaces and removed platform escape hatches such as `updateActive`, generic Desktop `mutate`, direct extras writes, and arbitrary spell/gear transform lambdas from public adapters.
+- Added typed deterministic Shared Application golden scenarios in `shared/commonTest` covering profile/resources, skills + preferred attributes, Chi/Magic/equipment, sheet extras/grouping/custom conditions, per-character extras isolation, and shared semantic Undo.
+- Moved recent-change Undo semantics into the shared application boundary; Android/Desktop now invoke the same `undoLast()` operation instead of implementing reverse mutations independently.
+- Added hard-lock and golden contracts to the Linux parity release gate before Compose compilation/packaging. Golden scenarios execute through the project `:shared:desktopTest` Kotlin toolchain and protect Android/Desktop behavior parity; they do not declare current behavior rulebook-correct.
 - Started the DUBL 3.69 rulebook-first import pipeline: deterministic multi-source DOCX Raw IR, source-qualified provenance, diagnostics/resolutions, structural validation, and reproducibility baselines.
 - Registered stock DUBL 3.69, Masters of Melee, and Archmage books as distinct authority scopes instead of pretending all imported module content comes from one document.
 - Added explicit ambiguity policy: source conflicts/incomplete mechanics are preserved as diagnostics and cannot become executable rules without a human resolution record.
@@ -15,7 +20,7 @@
 - Added a rules-boundary contract for combat roll choices, selected skill-effect aggregation, Chi/Magic XP constants, and passive derived-stat components so presentation code cannot silently become a second rules implementation.
 - Corrected Character Sheet stat explanations to use the exact shared components used by Defense, Reflexes, Initiative, Fortitude, Run, and Size calculations, including load and passive-development bonuses.
 - Promoted `desktopApp` Compose Desktop from scaffold to the primary desktop frontend.
-- Wired Compose to persistent `DesktopCharacterStore` / `DesktopCharacterExtrasStore`, shared `CharacterSession`, extras session, and canonical catalogs.
+- Wired Compose to persistent `DesktopCharacterStore` / `DesktopCharacterExtrasStore`, shared `DublApplication`, and canonical catalogs.
 - Added complete Compose workflows for Character Sheet, Skills/Rolls, Development/Special Branches/Martial Arts/Chi, Magic, Equipment, and Characters.
 - Preserved Android mutation semantics through shared `CharacterSession` and schema-8-compatible persistence instead of duplicating DUBL formulas in desktop UI code.
 - Added Android-parity sheet behavior: XP economy, conditions, automatic Weakness, custom resources, portrait storage/rendering, quick checks, formula/details, recent-change Undo, learned summaries, and persistent grouping/tree movement.
