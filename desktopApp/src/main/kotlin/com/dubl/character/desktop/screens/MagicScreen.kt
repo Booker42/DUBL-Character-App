@@ -143,9 +143,8 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(onClick = { catalogDetails = spell }) { Text("Подробнее") }
                             Button(
-                                enabled = !spell.incomplete,
                                 onClick = { state.mutate { addCatalogSpell(spell) } },
-                            ) { Text(if (spell.incomplete) "Черновик" else "Добавить") }
+                            ) { Text(if (spell.incomplete) "Добавить и исправить" else "Добавить") }
                         }
                     }) {
                         Text("${spell.school} · мана ${spell.cost}", color = if (usability.usable) DublFocus else DublMuted)
@@ -345,14 +344,14 @@ private fun CatalogSpellDialog(state: DesktopAppState, spell: SpellCatalogEntry,
                 KeyValue("Длительность", spell.duration)
                 Text(spell.description)
                 if (spell.enhancement.isNotBlank()) Text("Усиление: ${spell.enhancement}", color = DublMuted)
+                if (spell.conflictNote.isNotBlank()) Text(spell.conflictNote, color = DublMuted)
                 Text(if (usability.usable) "Доступно по силе школы" else "Нужно ${usability.requiredPower} силы школы", color = if (usability.usable) DublFocus else DublMuted)
             }
         },
         confirmButton = {
             TextButton(
-                enabled = !spell.incomplete,
                 onClick = { state.mutate { addCatalogSpell(spell) }; onDismiss() },
-            ) { Text(if (spell.incomplete) "Черновик" else "Добавить") }
+            ) { Text(if (spell.incomplete) "Добавить и исправить" else "Добавить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
     )

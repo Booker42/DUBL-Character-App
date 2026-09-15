@@ -3,15 +3,25 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEV = ROOT / "shared/src/commonMain/resources/development_catalog.json"
+DEV_REGULAR = ROOT / "shared/src/commonMain/resources/development_regular_catalog.json"
+DEV_FILES = [
+    ROOT / "shared/src/commonMain/resources/development_regular_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_special_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_ability_roots_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_martial_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_chi_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_magic_catalog.json",
+    ROOT / "shared/src/commonMain/resources/development_catalog.json",
+]
 MAGIC = ROOT / "shared/src/commonMain/resources/magic_equipment_catalog.json"
 
 
 class Android06ContentTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dev_root = json.loads(DEV.read_text(encoding="utf-8"))
-        cls.entries = cls.dev_root["entries"]
+        cls.entries = []
+        for path in DEV_FILES:
+            cls.entries.extend(json.loads(path.read_text(encoding="utf-8"))["entries"])
         cls.by_name = {entry["name"]: entry for entry in cls.entries}
         cls.magic_root = json.loads(MAGIC.read_text(encoding="utf-8"))
         cls.spells = cls.magic_root["spells"]
@@ -22,9 +32,9 @@ class Android06ContentTest(unittest.TestCase):
             self.assertIn(name, self.by_name)
             self.assertEqual("Мастер-ремесленник", self.by_name[name]["category"])
 
-    def test_blocking_uses_agility_or_speed(self):
+    def test_blocking_uses_rulebook_requirement(self):
         self.assertEqual(
-            "Ловкость 3 или Скорость 3; Холодное оружие 3 или Рукопашный бой 3",
+            "Ловкость 3, Скорость 3, Холодное оружие 3 или Рукопашный бой 3",
             self.by_name["Блокирование"]["requirements"],
         )
 

@@ -7,6 +7,7 @@ import com.dubl.character.android.data.CharacterRepository
 import com.dubl.character.android.model.AppSnapshot
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.GearCatalogEntry
 import com.dubl.character.android.model.GearItem
 import com.dubl.character.android.model.KnownSpell
@@ -65,11 +66,23 @@ class CharacterController(repository: CharacterRepository) {
     fun setSkillAttributes(skillId: String, attributes: List<AttributeId>) = sync { session.setSkillAttributes(skillId, attributes) }
     fun setSkillModifier(skillId: String, modifier: Int) = sync { session.setSkillModifier(skillId, modifier) }
     fun setSkillFormulaNote(skillId: String, note: String) = sync { session.setSkillFormulaNote(skillId, note) }
+    fun setSkillNameOverride(skillId: String, name: String) = sync { session.setSkillNameOverride(skillId, name) }
+    fun setSkillDescriptionOverride(skillId: String, description: String) = sync { session.setSkillDescriptionOverride(skillId, description) }
+    fun setSkillCategoryOverride(skillId: String, category: com.dubl.character.android.model.SkillCategory?) = sync { session.setSkillCategoryOverride(skillId, category) }
+    fun setSkillUntrainedOverride(skillId: String, rule: com.dubl.character.android.model.UntrainedRule?) = sync { session.setSkillUntrainedOverride(skillId, rule) }
+    fun setSkillAutoOverrides(skillId: String, auto6: String?, auto12: String?) = sync { session.setSkillAutoOverrides(skillId, auto6, auto12) }
+    fun resetSkillDefinitionOverrides(skillId: String) = sync { session.resetSkillDefinitionOverrides(skillId) }
     fun hideSkill(skillId: String) = sync { session.hideSkill(skillId) }
     fun restoreSkill(skillId: String) = sync { session.restoreSkill(skillId) }
+    fun setSkillEffectEnabled(effectId: String, enabled: Boolean) = sync { session.setSkillEffectEnabled(effectId, enabled) }
     fun restoreAllSkills() = sync { session.restoreAllSkills() }
     fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) =
         sync { session.setDevelopmentRank(entryId, rank, optionIndex) }
+    fun setDevelopmentOverride(entry: DevelopmentEntry) = sync { session.setDevelopmentOverride(entry) }
+    fun resetDevelopmentOverride(entryId: String) = sync { session.resetDevelopmentOverride(entryId) }
+    fun addCustomDevelopment(entry: DevelopmentEntry): String? = sync { session.addCustomDevelopment(entry) }
+    fun updateCustomDevelopment(entry: DevelopmentEntry): Boolean = sync { session.updateCustomDevelopment(entry) }
+    fun removeCustomDevelopment(entryId: String) = sync { session.removeCustomDevelopment(entryId) }
 
     fun setMagicManaRank(rank: Int) = sync { session.setMagicManaRank(rank) }
 

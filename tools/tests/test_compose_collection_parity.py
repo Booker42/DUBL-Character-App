@@ -18,7 +18,8 @@ def test_development_has_available_filter_and_android_grouping_semantics():
     assert 'groupBy(::branchName)' in DEV
     assert 'groupBy { it.category.ifBlank { "Общие" } }' in DEV
     assert 'groupBy { it.category.ifBlank { "Боевые искусства" } }' in DEV
-    assert 'entry.incomplete' in DEV
+    assert '&& !entry.incomplete' not in DEV
+    assert 'filterNot { it.incomplete }' not in DEV
     assert 'MagicEquipmentRules.BASE_MANA_ENTRY_ID' in DEV
 
 

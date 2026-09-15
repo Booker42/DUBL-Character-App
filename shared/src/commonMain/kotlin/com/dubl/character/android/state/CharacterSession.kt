@@ -13,6 +13,8 @@ import com.dubl.character.android.model.MagicSchool
 import com.dubl.character.android.model.MagicSchoolCatalog
 import com.dubl.character.android.model.SpellCatalogEntry
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.normalizedLocalCopy
+import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.OwnedDevelopment
 import com.dubl.character.android.model.SkillCatalog
 import com.dubl.character.android.model.UntrainedRule
@@ -196,6 +198,50 @@ class CharacterSession(
         it.copy(formulaNote = note.trim())
     }
 
+    fun setSkillNameOverride(skillId: String, name: String) = updateSkill(skillId) {
+        val canonical = com.dubl.character.android.model.SkillCatalog.definition(it.definitionId ?: skillId)?.name.orEmpty()
+        val clean = name.trim().replace(Regex("\\s+"), " ")
+        it.copy(name = clean.takeUnless { value -> value.isBlank() || value == canonical }.orEmpty())
+    }
+
+    fun setSkillDescriptionOverride(skillId: String, description: String) = updateSkill(skillId) {
+        val canonical = com.dubl.character.android.model.SkillCatalog.definition(it.definitionId ?: skillId)?.description.orEmpty()
+        val clean = description.trim()
+        it.copy(description = clean.takeUnless { value -> value == canonical }.orEmpty())
+    }
+
+    fun setSkillCategoryOverride(skillId: String, category: com.dubl.character.android.model.SkillCategory?) = updateSkill(skillId) {
+        val canonical = com.dubl.character.android.model.SkillCatalog.definition(it.definitionId ?: skillId)?.category
+        it.copy(categoryOverride = category.takeUnless { value -> value == canonical })
+    }
+
+    fun setSkillUntrainedOverride(skillId: String, rule: com.dubl.character.android.model.UntrainedRule?) = updateSkill(skillId) {
+        val canonical = com.dubl.character.android.model.SkillCatalog.definition(it.definitionId ?: skillId)?.untrained
+        it.copy(untrainedOverride = rule.takeUnless { value -> value == canonical })
+    }
+
+    fun setSkillAutoOverrides(skillId: String, auto6: String?, auto12: String?) = updateSkill(skillId) {
+        val canonical = com.dubl.character.android.model.SkillCatalog.definition(it.definitionId ?: skillId)
+        val clean6 = auto6?.trim()
+        val clean12 = auto12?.trim()
+        it.copy(
+            auto6Override = clean6.takeUnless { value -> value == null || value == canonical?.auto6 },
+            auto12Override = clean12.takeUnless { value -> value == null || value == canonical?.auto12 },
+        )
+    }
+
+    fun resetSkillDefinitionOverrides(skillId: String) = updateSkill(skillId) {
+        it.copy(
+            name = "",
+            description = "",
+            attributes = emptyList(),
+            categoryOverride = null,
+            untrainedOverride = null,
+            auto6Override = null,
+            auto12Override = null,
+        )
+    }
+
     fun hideSkill(skillId: String) = updateActive { character ->
         character.copy(hiddenSkillIds = character.hiddenSkillIds + skillId)
     }
@@ -205,6 +251,18 @@ class CharacterSession(
     }
 
     fun restoreAllSkills() = updateActive { it.copy(hiddenSkillIds = emptySet()) }
+
+    fun setSkillEffectEnabled(effectId: String, enabled: Boolean) = updateActive { character ->
+        val id = effectId.trim()
+        if (id.isBlank()) return@updateActive character
+        character.copy(
+            disabledSkillEffectIds = if (enabled) {
+                character.disabledSkillEffectIds - id
+            } else {
+                character.disabledSkillEffectIds + id
+            },
+        )
+    }
 
     fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) = updateActive { character ->
         val next = character.development.toMutableMap()
@@ -221,6 +279,55 @@ class CharacterSession(
             updated = updated.copy(manaCurrent = MagicEquipmentRules.manaMaximum(updated))
         }
         updated
+    }
+
+    fun setDevelopmentOverride(entry: DevelopmentEntry) = updateActive { character ->
+        val id = entry.id.trim()
+        if (id.isBlank()) return@updateActive character
+        character.copy(
+            developmentOverrides = character.developmentOverrides + (id to entry.normalizedLocalCopy(id)),
+        )
+    }
+
+    fun resetDevelopmentOverride(entryId: String) = updateActive { character ->
+        character.copy(developmentOverrides = character.developmentOverrides - entryId)
+    }
+
+    fun addCustomDevelopment(entry: DevelopmentEntry): String? {
+        val cleanName = entry.name.trim().takeIf(String::isNotBlank) ?: return null
+        val existing = active.customDevelopmentEntries.mapTo(linkedSetOf()) { it.id }
+        var id = "custom-development-${idFactory().trim()}"
+        if (id == "custom-development-" || id in existing) {
+            id = generateSequence(1) { it + 1 }
+                .map { "custom-development-$it" }
+                .first { it !in existing }
+        }
+        val normalized = entry.copy(id = id, name = cleanName).normalizedLocalCopy(id)
+        updateActive { character ->
+            character.copy(customDevelopmentEntries = character.customDevelopmentEntries + normalized)
+        }
+        return id
+    }
+
+    fun updateCustomDevelopment(entry: DevelopmentEntry): Boolean {
+        val id = entry.id.trim()
+        if (id.isBlank() || active.customDevelopmentEntries.none { it.id == id }) return false
+        val normalized = entry.normalizedLocalCopy(id)
+        updateActive { character ->
+            character.copy(
+                customDevelopmentEntries = character.customDevelopmentEntries.map { current ->
+                    if (current.id == id) normalized else current
+                },
+            )
+        }
+        return true
+    }
+
+    fun removeCustomDevelopment(entryId: String) = updateActive { character ->
+        character.copy(
+            customDevelopmentEntries = character.customDevelopmentEntries.filterNot { it.id == entryId },
+            development = character.development - entryId,
+        )
     }
 
 
@@ -314,13 +421,21 @@ class CharacterSession(
         updated
     }
 
+    private fun uniqueSpellUid(): String {
+        val existing = active.magic.spells.mapTo(linkedSetOf()) { it.uid }
+        val base = idFactory().trim().ifBlank { "spell" }
+        if (base !in existing) return base
+        return generateSequence(2) { it + 1 }
+            .map { "$base-$it" }
+            .first { it !in existing }
+    }
+
     fun addCatalogSpell(entry: SpellCatalogEntry): Boolean {
-        if (entry.incomplete) return false
         if (active.magic.spells.any {
                 it.catalogId == entry.id || it.name.equals(entry.name, ignoreCase = true)
             }) return false
         val spell = KnownSpell(
-            uid = idFactory(),
+            uid = uniqueSpellUid(),
             catalogId = entry.id,
             name = entry.name,
             school = entry.school,
@@ -342,7 +457,8 @@ class CharacterSession(
     }
 
     fun addCustomSpell(spell: KnownSpell): String {
-        val uid = spell.uid.ifBlank { idFactory() }
+        val requested = spell.uid.trim()
+        val uid = if (requested.isNotBlank() && active.magic.spells.none { it.uid == requested }) requested else uniqueSpellUid()
         updateActive { character ->
             character.copy(
                 magic = character.magic.copy(

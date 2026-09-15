@@ -52,7 +52,10 @@ data class DublCharacter(
     val customResources: List<CustomResource> = emptyList(),
     val skills: Map<String, CharacterSkill> = emptyMap(),
     val hiddenSkillIds: Set<String> = emptySet(),
+    val disabledSkillEffectIds: Set<String> = emptySet(),
     val development: Map<String, OwnedDevelopment> = emptyMap(),
+    val developmentOverrides: Map<String, DevelopmentEntry> = emptyMap(),
+    val customDevelopmentEntries: List<DevelopmentEntry> = emptyList(),
     val magic: CharacterMagic = CharacterMagic(),
     val gear: CharacterGear = CharacterGear(),
 ) {
@@ -252,6 +255,9 @@ data class DublCharacter(
             hiddenSkillIds = hiddenSkillIds.filterTo(linkedSetOf()) { id ->
                 SkillCatalog.builtIns.any { it.id == id } || normalizedSkills.containsKey(id)
             },
+            disabledSkillEffectIds = disabledSkillEffectIds
+                .map(String::trim)
+                .filterTo(linkedSetOf(), String::isNotBlank),
             development = development.mapNotNull { (id, owned) ->
                 val rank = owned.rank.coerceAtLeast(0)
                 if (rank == 0 || id.isBlank() || id == MagicEquipmentRules.BASE_MANA_ENTRY_ID) null else id to owned.copy(
@@ -259,6 +265,14 @@ data class DublCharacter(
                     optionIndex = owned.optionIndex.coerceAtLeast(0),
                 )
             }.toMap(linkedMapOf()),
+            developmentOverrides = developmentOverrides.mapNotNull { (id, entry) ->
+                val cleanId = id.trim()
+                if (cleanId.isBlank()) null else cleanId to entry.normalizedLocalCopy(cleanId)
+            }.toMap(linkedMapOf()),
+            customDevelopmentEntries = customDevelopmentEntries
+                .map { entry -> entry.normalizedLocalCopy(entry.id.trim()) }
+                .filter { it.id.isNotBlank() }
+                .distinctBy { it.id },
             magic = normalizedMagic,
             gear = normalizedGear,
         )

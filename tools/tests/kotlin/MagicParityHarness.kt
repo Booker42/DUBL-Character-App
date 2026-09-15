@@ -52,8 +52,11 @@ fun main() {
         incomplete = true,
         conflictNote = "",
     )
-    check(!session.addCatalogSpell(incomplete)) { "incomplete canonical spells must be rejected by shared backend" }
-    check(session.active.magic.spells.none { it.catalogId == incomplete.id })
+    check(session.addCatalogSpell(incomplete)) { "incomplete canonical spells must remain locally addable" }
+    val unresolved = session.active.magic.spells.single { it.catalogId == incomplete.id }
+    check(unresolved.incomplete)
+    session.updateSpell(unresolved.uid) { it.copy(description = "локальная трактовка") }
+    check(session.active.magic.spells.single { it.uid == unresolved.uid }.description == "локальная трактовка")
 
     val catalogSpell = SpellCatalogEntry(
         id = "spell-ok",

@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "dubl-3.69",
+  "note": "Persistence IDs and client presentation hints. These bindings are not rulebook authority for mechanics.",
+  "bindings": [
+    {
+      "id": "athletics",
+      "name": "Атлетика",
+      "category": "PHYSICAL",
+      "defaultAttributeHint": "STRENGTH",
+      "template": false
+    },
+    {
+      "id": "barter",
+      "name": "Бартер",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "awareness",
+      "name": "Внимательность",
+      "category": "FIELD",
+      "defaultAttributeHint": "PERCEPTION",
+      "template": false
+    },
+    {
+      "id": "riding",
+      "name": "Верховая езда",
+      "category": "PHYSICAL",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "lockpicking",
+      "name": "Взлом",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "driving",
+      "name": "Вождение",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "survival",
+      "name": "Выживание",
+      "category": "FIELD",
+      "defaultAttributeHint": "PERCEPTION",
+      "template": false
+    },
+    {
+      "id": "animal_handling",
+      "name": "Дрессировка",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "intimidation",
+      "name": "Запугивание",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "knowledge_academic",
+      "name": "Знание (Академическое)",
+      "category": "KNOWLEDGE",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": false
+    },
+    {
+      "id": "knowledge_template",
+      "name": "Знание (Любое)",
+      "category": "KNOWLEDGE",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": true
+    },
+    {
+      "id": "engineering_repair",
+      "name": "Инженерное дело (Ремонт)",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": false
+    },
+    {
+      "id": "performance_vocal",
+      "name": "Исполнение (Вокал)",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "performance_template",
+      "name": "Исполнение (Любое)",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": true
+    },
+    {
+      "id": "leadership",
+      "name": "Лидерство",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "eloquence",
+      "name": "Красноречие",
+      "category": "SOCIAL",
+      "defaultAttributeHint": "CHARISMA",
+      "template": false
+    },
+    {
+      "id": "medicine",
+      "name": "Медицина",
+      "category": "KNOWLEDGE",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": false
+    },
+    {
+      "id": "piloting",
+      "name": "Пилотирование",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "search",
+      "name": "Поиск",
+      "category": "FIELD",
+      "defaultAttributeHint": "PERCEPTION",
+      "template": false
+    },
+    {
+      "id": "profession_template",
+      "name": "Профессия",
+      "category": "KNOWLEDGE",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": true
+    },
+    {
+      "id": "craft_template",
+      "name": "Ремесло",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": true
+    },
+    {
+      "id": "stealth",
+      "name": "Скрытность",
+      "category": "FIELD",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "shooting",
+      "name": "Стрельба",
+      "category": "COMBAT",
+      "defaultAttributeHint": "PERCEPTION",
+      "template": false
+    },
+    {
+      "id": "melee_weapon",
+      "name": "Холодное оружие",
+      "category": "COMBAT",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "throwing",
+      "name": "Метание",
+      "category": "COMBAT",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "unarmed",
+      "name": "Рукопашный бой",
+      "category": "COMBAT",
+      "defaultAttributeHint": "DEXTERITY",
+      "template": false
+    },
+    {
+      "id": "computers",
+      "name": "Компьютеры",
+      "category": "TECHNICAL",
+      "defaultAttributeHint": "INTELLIGENCE",
+      "template": false
+    }
+  ]
+}

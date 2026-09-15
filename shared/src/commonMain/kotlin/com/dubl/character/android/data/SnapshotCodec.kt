@@ -1,6 +1,9 @@
 package com.dubl.character.android.data
 
 import com.dubl.character.android.model.AppSnapshot
+import com.dubl.character.android.model.DevelopmentEntry
+import com.dubl.character.android.model.DevelopmentCostType
+import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.AttributeValue
 import com.dubl.character.android.model.CharacterGear
@@ -18,7 +21,7 @@ import com.dubl.character.android.model.UntrainedRule
 import com.dubl.character.android.model.defaultAttributes
 
 object SnapshotCodec {
-    const val SCHEMA = 8
+    const val SCHEMA = 11
 
     fun fresh(idFactory: () -> String): AppSnapshot {
         val character = DublCharacter(id = idFactory(), name = "Новый персонаж")
@@ -86,6 +89,7 @@ object SnapshotCodec {
         }),
         "skills" to jsonArray(character.skills.values.map(::encodeSkill)),
         "hiddenSkillIds" to jsonArray(character.hiddenSkillIds.map(::jsonString)),
+        "disabledSkillEffectIds" to jsonArray(character.disabledSkillEffectIds.map(::jsonString)),
         "development" to jsonArray(character.development.map { (id, owned) ->
             jsonObject(
                 "id" to jsonString(id),
@@ -93,6 +97,8 @@ object SnapshotCodec {
                 "option" to jsonNumber(owned.optionIndex),
             )
         }),
+        "developmentOverrides" to jsonArray(character.developmentOverrides.values.map(::encodeDevelopmentEntry)),
+        "customDevelopmentEntries" to jsonArray(character.customDevelopmentEntries.map(::encodeDevelopmentEntry)),
         "magic" to encodeMagic(character.magic),
         "gear" to encodeGear(character.gear),
     )
@@ -106,7 +112,33 @@ object SnapshotCodec {
         "attributes" to jsonArray(skill.attributes.map { jsonString(it.name) }),
         "modifier" to jsonNumber(skill.modifier),
         "formulaNote" to jsonString(skill.formulaNote),
+        "categoryOverride" to skill.categoryOverride?.name?.let(::jsonString),
         "untrainedOverride" to skill.untrainedOverride?.name?.let(::jsonString),
+        "auto6Override" to skill.auto6Override?.let(::jsonString),
+        "auto12Override" to skill.auto12Override?.let(::jsonString),
+    )
+
+    private fun encodeDevelopmentEntry(entry: DevelopmentEntry): JsonValue.Obj = jsonObject(
+        "id" to jsonString(entry.id),
+        "name" to jsonString(entry.name),
+        "section" to jsonString(entry.section),
+        "category" to jsonString(entry.category),
+        "cost" to jsonNumber(entry.cost),
+        "costType" to jsonString(entry.costType.name),
+        "maxRank" to jsonNumber(entry.maxRank),
+        "requirements" to jsonString(entry.requirements),
+        "benefit" to jsonString(entry.benefit),
+        "notes" to jsonString(entry.notes),
+        "tags" to jsonArray(entry.tags.map(::jsonString)),
+        "accessId" to entry.accessId?.let(::jsonString),
+        "abilityOptions" to jsonArray(entry.abilityOptions.map { option ->
+            jsonObject("source" to jsonString(option.source), "value" to jsonNumber(option.value))
+        }),
+        "incomplete" to jsonBoolean(entry.incomplete),
+        "repeatable" to jsonBoolean(entry.repeatable),
+        "perfectRoot" to jsonBoolean(entry.perfectRoot),
+        "mechanicsConflict" to jsonString(entry.mechanicsConflict),
+        "conflictNote" to jsonString(entry.conflictNote),
     )
 
     private fun encodeMagic(magic: CharacterMagic): JsonValue.Obj = jsonObject(
@@ -177,6 +209,9 @@ object SnapshotCodec {
             item.asObject()?.let(::decodeSkill)?.let { skills[it.id] = it }
         }
         val hidden = root.array("hiddenSkillIds").mapNotNull { it.asString()?.takeIf(String::isNotBlank) }.toCollection(linkedSetOf())
+        val disabledSkillEffectIds = root.array("disabledSkillEffectIds")
+            .mapNotNull { it.asString()?.trim()?.takeIf(String::isNotBlank) }
+            .toCollection(linkedSetOf())
         val development = linkedMapOf<String, OwnedDevelopment>()
         root.array("development").forEach { value ->
             val item = value.asObject() ?: return@forEach
@@ -184,6 +219,12 @@ object SnapshotCodec {
             val rank = item.int("rank", 0)
             if (id.isNotBlank() && rank > 0) development[id] = OwnedDevelopment(rank, item.int("option", 0).coerceAtLeast(0))
         }
+        val developmentOverrides = root.array("developmentOverrides").mapNotNull { value ->
+            value.asObject()?.let(::decodeDevelopmentEntry)
+        }.associateBy { it.id }
+        val customDevelopmentEntries = root.array("customDevelopmentEntries").mapNotNull { value ->
+            value.asObject()?.let(::decodeDevelopmentEntry)
+        }.distinctBy { it.id }
         val customResources = root.array("customResources").mapNotNull { value ->
             val item = value.asObject() ?: return@mapNotNull null
             CustomResource(
@@ -234,10 +275,42 @@ object SnapshotCodec {
             customResources = customResources,
             skills = skills,
             hiddenSkillIds = hidden,
+            disabledSkillEffectIds = disabledSkillEffectIds,
             development = development,
+            developmentOverrides = developmentOverrides,
+            customDevelopmentEntries = customDevelopmentEntries,
             magic = decodeMagic(root.objectValue("magic"), idFactory),
             gear = decodeGear(root.objectValue("gear"), idFactory),
         ).normalized()
+    }
+
+    private fun decodeDevelopmentEntry(root: JsonValue.Obj): DevelopmentEntry? {
+        val id = root.string("id").trim().takeIf(String::isNotBlank) ?: return null
+        val costType = DevelopmentCostType.entries.firstOrNull { it.name == root.string("costType") } ?: DevelopmentCostType.XP
+        val options = root.array("abilityOptions").mapNotNull { value ->
+            val item = value.asObject() ?: return@mapNotNull null
+            AbilityOption(source = item.string("source"), value = item.int("value", 0).coerceAtLeast(0))
+        }
+        return DevelopmentEntry(
+            id = id,
+            name = root.string("name", "Без названия"),
+            section = root.string("section"),
+            category = root.string("category"),
+            cost = root.int("cost", 0).coerceAtLeast(0),
+            costType = costType,
+            maxRank = root.int("maxRank", 1).coerceAtLeast(1),
+            requirements = root.string("requirements"),
+            benefit = root.string("benefit"),
+            notes = root.string("notes"),
+            tags = root.array("tags").mapNotNull { it.asString() },
+            accessId = root.string("accessId").trim().takeIf(String::isNotBlank),
+            abilityOptions = options,
+            incomplete = root.bool("incomplete", false),
+            repeatable = root.bool("repeatable", false),
+            perfectRoot = root.bool("perfectRoot", false),
+            mechanicsConflict = root.string("mechanicsConflict"),
+            conflictNote = root.string("conflictNote"),
+        )
     }
 
     private fun decodeSkill(root: JsonValue.Obj): CharacterSkill? {
@@ -246,6 +319,9 @@ object SnapshotCodec {
             val raw = value.asString() ?: return@mapNotNull null
             AttributeId.entries.firstOrNull { it.name == raw }
         }.distinct()
+        val categoryOverride = root.string("categoryOverride").takeIf(String::isNotBlank)?.let { raw ->
+            com.dubl.character.android.model.SkillCategory.entries.firstOrNull { it.name == raw }
+        }
         val untrained = root.string("untrainedOverride").takeIf(String::isNotBlank)?.let { raw ->
             UntrainedRule.entries.firstOrNull { it.name == raw }
         }
@@ -258,7 +334,10 @@ object SnapshotCodec {
             attributes = attrs,
             modifier = root.int("modifier", 0),
             formulaNote = root.string("formulaNote"),
+            categoryOverride = categoryOverride,
             untrainedOverride = untrained,
+            auto6Override = root.string("auto6Override").takeIf(String::isNotBlank),
+            auto12Override = root.string("auto12Override").takeIf(String::isNotBlank),
         )
     }
 

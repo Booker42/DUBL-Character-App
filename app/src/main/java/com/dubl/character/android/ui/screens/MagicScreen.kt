@@ -636,8 +636,8 @@ private fun SpellCatalogSheet(
                     val owned = entry.id in ownedIds
                     val usability = MagicEquipmentRules.spellUsability(character, entry)
                     Surface(
-                        onClick = { if (!owned && !entry.incomplete) onAdd(entry) },
-                        enabled = !owned && !entry.incomplete,
+                        onClick = { if (!owned) onAdd(entry) },
+                        enabled = !owned,
                         shape = RoundedCornerShape(13.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
@@ -671,9 +671,9 @@ private fun SpellCatalogSheet(
                                 }
                             }
                             Text(
-                                if (owned) "Изучено" else if (entry.incomplete) "Черновик" else "Добавить",
+                                if (owned) "Изучено" else if (entry.incomplete) "Добавить и исправить" else "Добавить",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (owned || entry.incomplete) DublMuted else DublMana,
+                                color = if (owned) DublMuted else DublMana,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }

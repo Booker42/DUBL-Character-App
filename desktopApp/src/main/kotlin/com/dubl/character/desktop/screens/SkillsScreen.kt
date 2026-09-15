@@ -30,6 +30,7 @@ import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.ResolvedSkill
 import com.dubl.character.android.model.SkillCatalog
 import com.dubl.character.android.model.SkillCategory
+import com.dubl.character.android.model.SkillEffectRules
 import com.dubl.character.android.model.UntrainedRule
 import com.dubl.character.android.model.resolvedSkills
 import com.dubl.character.android.model.skillCalculation
@@ -144,6 +145,15 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
     var modifierText by remember(skill.id, skill.modifier) { mutableStateOf(skill.modifier.toString()) }
     var note by remember(skill.id, skill.formulaNote) { mutableStateOf(skill.formulaNote) }
     var attributes by remember(skill.id, skill.attributes) { mutableStateOf(skill.attributes.toSet()) }
+    var localName by remember(skill.id, skill.name) { mutableStateOf(skill.name) }
+    var localDescription by remember(skill.id, skill.description) { mutableStateOf(skill.description) }
+    var localCategory by remember(skill.id, skill.category) { mutableStateOf(skill.category) }
+    var localUntrained by remember(skill.id, skill.untrained) { mutableStateOf(skill.untrained) }
+    var localAuto6 by remember(skill.id, skill.auto6) { mutableStateOf(skill.auto6) }
+    var localAuto12 by remember(skill.id, skill.auto12) { mutableStateOf(skill.auto12) }
+    val configurableEffects = remember(state.activeCharacter, skill.id, state.developmentCatalog, state.skillEffectCatalog) {
+        SkillEffectRules(state.activeCharacter, state.developmentCatalog, state.skillEffectCatalog).configuredForSkill(skill)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(skill.name) },
@@ -170,6 +180,49 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
                 OutlinedTextField(modifierText, { modifierText = it.take(4) }, label = { Text("Поправка") }, singleLine = true)
                 OutlinedTextField(note, { note = it }, label = { Text("Примечание к формуле") })
                 Text("Без обучения: ${skill.untrained.label}", color = DublMuted)
+                Text("Локальные правки (канон не меняется)", fontWeight = FontWeight.Bold)
+                OutlinedTextField(localName, { localName = it }, label = { Text("Название") }, singleLine = true)
+                OutlinedTextField(localDescription, { localDescription = it }, label = { Text("Описание") })
+                SkillCategory.entries.chunked(3).forEach { options ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        options.forEach { option ->
+                            FilterChip(
+                                selected = localCategory == option,
+                                onClick = { localCategory = option },
+                                label = { Text(option.title) },
+                            )
+                        }
+                    }
+                }
+                UntrainedRule.entries.chunked(2).forEach { options ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        options.forEach { option ->
+                            FilterChip(
+                                selected = localUntrained == option,
+                                onClick = { localUntrained = option },
+                                label = { Text(option.label) },
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(localAuto6, { localAuto6 = it }, label = { Text("Auto 6") }, singleLine = true)
+                OutlinedTextField(localAuto12, { localAuto12 = it }, label = { Text("Auto 12") }, singleLine = true)
+                if (configurableEffects.isNotEmpty()) {
+                    Text("Автоматизация правил", fontWeight = FontWeight.Bold)
+                    Text("Можно отключить ошибочную трактовку приложения только для этого персонажа.", color = DublMuted)
+                    configurableEffects.forEach { effect ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = effect.id !in state.activeCharacter.disabledSkillEffectIds,
+                                onCheckedChange = { enabled -> state.mutate { setSkillEffectEnabled(effect.id, enabled) } },
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(effect.sourceName)
+                                Text(effect.effectText, color = DublMuted)
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -180,6 +233,11 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
                         setSkillAttributes(skill.id, attributes.toList())
                         setSkillModifier(skill.id, modifierText.toIntOrNull() ?: 0)
                         setSkillFormulaNote(skill.id, note)
+                        setSkillNameOverride(skill.id, localName)
+                        setSkillDescriptionOverride(skill.id, localDescription)
+                        setSkillCategoryOverride(skill.id, localCategory)
+                        setSkillUntrainedOverride(skill.id, localUntrained)
+                        setSkillAutoOverrides(skill.id, localAuto6, localAuto12)
                     }
                     onDismiss()
                 }) { Text("Сохранить") }
@@ -188,6 +246,9 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
         dismissButton = {
             Row {
                 TextButton(onClick = { state.mutate { hideSkill(skill.id) }; onDismiss() }) { Text("Скрыть") }
+                if (skill.isBuiltIn) {
+                    TextButton(onClick = { state.mutate { resetSkillDefinitionOverrides(skill.id) }; onDismiss() }) { Text("К рулбуку") }
+                }
                 if (skill.isDynamic) TextButton(onClick = { state.mutate { deleteDynamicSkill(skill.id) }; onDismiss() }) { Text("Удалить") }
                 TextButton(onClick = onDismiss) { Text("Отмена") }
             }

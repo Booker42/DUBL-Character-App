@@ -14,8 +14,8 @@ Android 0.6.2 remains the behavioral reference. The executable source of truth i
 
 `CharacterStore` is the character persistence boundary.
 
-- Android uses its Android repository/SharedPreferences adapter with shared schema 8.
-- Desktop uses `DesktopCharacterStore` and `DesktopCharacterExtrasStore` under the user's local data directory with the same shared schema 8.
+- Android uses its Android repository/SharedPreferences adapter with shared schema 9.
+- Desktop uses `DesktopCharacterStore` and `DesktopCharacterExtrasStore` under the user's local data directory with the same shared schema 9.
 - Each character persists `RulesetRef`; existing schema-7 saves migrate to canonical DUBL `dubl` / `3.69`.
 - Compose Desktop is wired to those real stores through `DesktopAppState`; it does not use `InMemoryCharacterStore` for the shipped workflow.
 

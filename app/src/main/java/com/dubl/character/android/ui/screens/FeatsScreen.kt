@@ -48,6 +48,9 @@ import androidx.compose.ui.unit.sp
 import com.dubl.character.android.data.ChiCatalogRepository
 import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.model.CharacterEconomy
+import com.dubl.character.android.model.effectiveDevelopmentCatalog
+import com.dubl.character.android.model.DevelopmentCostType
+import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
 import com.dubl.character.android.model.ChiTechnique
@@ -93,8 +96,11 @@ private data class PendingRequirementOverride(
 fun FeatsScreen(controller: CharacterController) {
     val character = controller.active
     val context = LocalContext.current
-    val catalog = remember(context.applicationContext) {
+    val canonicalCatalog = remember(context.applicationContext) {
         DevelopmentCatalogRepository(context.applicationContext).load()
+    }
+    val catalog = remember(character, canonicalCatalog) {
+        character.effectiveDevelopmentCatalog(canonicalCatalog)
     }
     val chiCatalog = remember(context.applicationContext) {
         ChiCatalogRepository(context.applicationContext).load()
@@ -106,6 +112,8 @@ fun FeatsScreen(controller: CharacterController) {
     var selectedEntryId by remember(character.id) { mutableStateOf<String?>(null) }
     var pendingAbilityPurchase by remember(character.id) { mutableStateOf<PendingAbilityPurchase?>(null) }
     var pendingRequirementOverride by remember(character.id) { mutableStateOf<PendingRequirementOverride?>(null) }
+    var editingDevelopment by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
+    var creatingCustomDevelopment by remember(character.id) { mutableStateOf(false) }
 
     val rules = remember(character, progress, catalog) {
         DevelopmentRules(character, catalog, progress)
@@ -150,8 +158,7 @@ fun FeatsScreen(controller: CharacterController) {
         val needle = developmentNormalize(query)
         catalog.entries
             .asSequence()
-            .filter { entry -> !entry.incomplete || (tab == DevelopmentTab.OWNED && progress.rank(entry.id) > 0) }
-            .filterNot { it.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
+                .filterNot { it.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
             .filter { entry ->
                 when (tab) {
                     DevelopmentTab.REGULAR -> entry.isRegularDevelopment
@@ -229,6 +236,12 @@ fun FeatsScreen(controller: CharacterController) {
                         label = { Text(target.title) },
                     )
                 }
+            }
+        }
+
+        item {
+            OutlinedButton(onClick = { creatingCustomDevelopment = true }) {
+                Text("Своя запись")
             }
         }
 
@@ -526,9 +539,45 @@ fun FeatsScreen(controller: CharacterController) {
                 onOpenEntry = { targetId -> selectedEntryId = targetId },
                 onIncrease = { optionIndex -> increase(entry, optionIndex) },
                 onDecrease = { decrease(entry) },
+                onEditLocal = { editingDevelopment = entry },
+                onResetLocal = {
+                    controller.resetDevelopmentOverride(entry.id)
+                    selectedEntryId = null
+                },
+                onDeleteCustom = {
+                    controller.removeCustomDevelopment(entry.id)
+                    selectedEntryId = null
+                },
+                hasLocalOverride = character.developmentOverrides.containsKey(entry.id),
+                isCustom = character.customDevelopmentEntries.any { it.id == entry.id },
                 onDismiss = { selectedEntryId = null },
             )
         } ?: run { selectedEntryId = null }
+    }
+
+    editingDevelopment?.let { entry ->
+        val isCustom = character.customDevelopmentEntries.any { it.id == entry.id }
+        DevelopmentLocalEditDialog(
+            initial = entry,
+            title = if (isCustom) "Редактировать свою запись" else "Локальная правка",
+            onSave = { updated ->
+                if (isCustom) controller.updateCustomDevelopment(updated) else controller.setDevelopmentOverride(updated)
+                editingDevelopment = null
+            },
+            onDismiss = { editingDevelopment = null },
+        )
+    }
+
+    if (creatingCustomDevelopment) {
+        DevelopmentLocalEditDialog(
+            initial = emptyCustomDevelopmentEntry(),
+            title = "Своя запись",
+            onSave = { updated ->
+                controller.addCustomDevelopment(updated)
+                creatingCustomDevelopment = false
+            },
+            onDismiss = { creatingCustomDevelopment = false },
+        )
     }
 
     pendingRequirementOverride?.let { pending ->
@@ -1186,6 +1235,11 @@ private fun DevelopmentDetailSheet(
     onOpenEntry: (String) -> Unit,
     onIncrease: (Int) -> Unit,
     onDecrease: () -> Unit,
+    onEditLocal: () -> Unit,
+    onResetLocal: () -> Unit,
+    onDeleteCustom: () -> Unit,
+    hasLocalOverride: Boolean,
+    isCustom: Boolean,
     onDismiss: () -> Unit,
 ) {
     val currentRank = progress.rank(entry.id)
@@ -1360,9 +1414,144 @@ private fun DevelopmentDetailSheet(
                     )
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(onClick = onEditLocal, modifier = Modifier.weight(1f)) {
+                    Text("Локальная правка")
+                }
+                when {
+                    isCustom -> TextButton(onClick = onDeleteCustom) { Text("Удалить свою запись") }
+                    hasLocalOverride -> TextButton(onClick = onResetLocal) { Text("Сбросить к рулбуку") }
+                }
+            }
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+private fun emptyCustomDevelopmentEntry(): DevelopmentEntry = DevelopmentEntry(
+    id = "",
+    name = "",
+    section = "Свои",
+    category = "Домашние правила",
+    cost = 0,
+    costType = DevelopmentCostType.XP,
+    maxRank = 1,
+    requirements = "",
+    benefit = "",
+    notes = "",
+    tags = emptyList(),
+    accessId = null,
+    abilityOptions = emptyList(),
+    incomplete = false,
+    repeatable = false,
+    perfectRoot = false,
+    mechanicsConflict = "",
+    conflictNote = "",
+)
+
+@Composable
+private fun DevelopmentLocalEditDialog(
+    initial: DevelopmentEntry,
+    title: String,
+    onSave: (DevelopmentEntry) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember(initial.id) { mutableStateOf(initial.name) }
+    var section by remember(initial.id) { mutableStateOf(initial.section) }
+    var category by remember(initial.id) { mutableStateOf(initial.category) }
+    var cost by remember(initial.id) { mutableStateOf(initial.cost.toString()) }
+    var maxRank by remember(initial.id) { mutableStateOf(initial.maxRank.toString()) }
+    var requirements by remember(initial.id) { mutableStateOf(initial.requirements) }
+    var benefit by remember(initial.id) { mutableStateOf(initial.benefit) }
+    var notes by remember(initial.id) { mutableStateOf(initial.notes) }
+    var tags by remember(initial.id) { mutableStateOf(initial.tags.joinToString(", ")) }
+    var accessId by remember(initial.id) { mutableStateOf(initial.accessId.orEmpty()) }
+    var abilityOptions by remember(initial.id) { mutableStateOf(initial.abilityOptions.joinToString("; ") { "${it.source}=${it.value}" }) }
+    var mechanicsConflict by remember(initial.id) { mutableStateOf(initial.mechanicsConflict) }
+    var conflictNote by remember(initial.id) { mutableStateOf(initial.conflictNote) }
+    var costType by remember(initial.id) { mutableStateOf(initial.costType) }
+    var incomplete by remember(initial.id) { mutableStateOf(initial.incomplete) }
+    var repeatable by remember(initial.id) { mutableStateOf(initial.repeatable) }
+    var perfectRoot by remember(initial.id) { mutableStateOf(initial.perfectRoot) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(
+                modifier = Modifier.heightIn(max = 620.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(name, { name = it }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(section, { section = it }, label = { Text("Раздел") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(category, { category = it }, label = { Text("Категория") }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = costType == DevelopmentCostType.XP, onClick = { costType = DevelopmentCostType.XP }, label = { Text("XP") })
+                    FilterChip(selected = costType == DevelopmentCostType.ABILITY, onClick = { costType = DevelopmentCostType.ABILITY }, label = { Text("ОС") })
+                }
+                OutlinedTextField(cost, { cost = it.filter(Char::isDigit) }, label = { Text("Стоимость") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(maxRank, { maxRank = it.filter(Char::isDigit) }, label = { Text("Макс. ранг") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(requirements, { requirements = it }, label = { Text("Требования") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(benefit, { benefit = it }, label = { Text("Эффект") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(notes, { notes = it }, label = { Text("Особое / заметки") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(tags, { tags = it }, label = { Text("Теги через запятую") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(accessId, { accessId = it }, label = { Text("ID родительской ветки") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(abilityOptions, { abilityOptions = it }, label = { Text("Варианты ОС: источник=цена; …") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(mechanicsConflict, { mechanicsConflict = it }, label = { Text("Механический конфликт") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(conflictNote, { conflictNote = it }, label = { Text("Комментарий конфликта") }, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Правило неполное / спорное")
+                    DublSwitch(checked = incomplete, onCheckedChange = { incomplete = it })
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Повторяемая запись")
+                    DublSwitch(checked = repeatable, onCheckedChange = { repeatable = it })
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Корень совершенной ветки")
+                    DublSwitch(checked = perfectRoot, onCheckedChange = { perfectRoot = it })
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = name.isNotBlank(),
+                onClick = {
+                    onSave(
+                        initial.copy(
+                            name = name,
+                            section = section,
+                            category = category,
+                            cost = cost.toIntOrNull() ?: 0,
+                            costType = costType,
+                            maxRank = maxRank.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                            requirements = requirements,
+                            benefit = benefit,
+                            notes = notes,
+                            tags = tags.split(',').map(String::trim).filter(String::isNotBlank),
+                            accessId = accessId.trim().takeIf(String::isNotBlank),
+                            abilityOptions = abilityOptions.split(';').mapNotNull { raw ->
+                                val parts = raw.split('=', limit = 2)
+                                val source = parts.getOrNull(0)?.trim().orEmpty()
+                                val value = parts.getOrNull(1)?.trim()?.toIntOrNull()
+                                if (source.isBlank() || value == null) null else AbilityOption(source, value)
+                            },
+                            incomplete = incomplete,
+                            repeatable = repeatable,
+                            perfectRoot = perfectRoot,
+                            mechanicsConflict = mechanicsConflict,
+                            conflictNote = conflictNote,
+                        ),
+                    )
+                },
+            ) { Text("Сохранить локально") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
 }
 
 @Composable

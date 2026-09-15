@@ -23,7 +23,7 @@ jobs:
           java-version: '17'
 
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install -y curl unzip python3-pytest xvfb
+        run: sudo apt-get update && sudo apt-get install -y curl unzip python3-pytest python3-docx xvfb
 
       - name: Run Desktop 0.2 parity release gate
         run: |
@@ -51,6 +51,47 @@ jobs:
             tools/tests/test_desktop_persistence.py \
             tools/tests/test_compose_state_observation.py \
             tools/tests/test_compose_android_062_sheet_roll_parity.py \
+            tools/tests/test_rulebook_raw_ir.py \
+            tools/tests/test_rulebook_source_index.py \
+            tools/tests/test_rulebook_diagnostics.py \
+            tools/tests/test_rulebook_source_diagnostics.py \
+            tools/tests/test_rulebook_ruleset_build.py \
+            tools/tests/test_rulebook_validator.py \
+            tools/tests/test_rulebook_baseline.py \
+            tools/tests/test_rulebook_baseline_cli.py \
+            tools/tests/test_rulebook_conditions_import.py \
+            tools/tests/test_rulebook_conditions_runtime_parity.py \
+            tools/tests/test_rulebook_skills_import.py \
+            tools/tests/test_rulebook_skill_kotlin_renderer.py \
+            tools/tests/test_rulebook_skills_runtime_parity.py \
+            tools/tests/test_rulebook_development_import.py \
+            tools/tests/test_rulebook_ability_roots_import.py \
+            tools/tests/test_rulebook_martial_arts_import.py \
+            tools/tests/test_rulebook_chi_import.py \
+            tools/tests/test_rulebook_magic_import.py \
+            tools/tests/test_rulebook_equipment_import.py \
+            tools/tests/test_rulebook_skill_effects_import.py \
+            tools/tests/test_rulebook_skill_effects_runtime_promotion.py \
+            tools/tests/test_rulebook_source_of_truth_contract.py \
+            tools/tests/test_skill_effect_stable_id.py \
+            tools/tests/test_skill_effect_disable_escape_hatch.py \
+            tools/tests/test_rulebook_magic_equipment_runtime_promotion.py \
+            tools/tests/test_magic_unresolved_escape_hatch.py \
+            tools/tests/test_development_rulebook_unresolved_runtime.py \
+            tools/tests/test_skill_untrained_contract.py \
+            tools/tests/test_skill_local_override_contract.py \
+            tools/tests/test_skill_override_persistence.py \
+            tools/tests/test_skill_local_override_ui.py \
+            tools/tests/test_condition_local_override_contract.py \
+            tools/tests/test_condition_override_persistence.py \
+            tools/tests/test_condition_local_override_ui.py \
+            tools/tests/test_development_unresolved_escape_hatch.py \
+            tools/tests/test_development_local_override_contract.py \
+            tools/tests/test_development_override_persistence.py \
+            tools/tests/test_development_override_session.py \
+            tools/tests/test_development_override_ui.py \
+            tools/tests/test_rulebook_development_runtime_promotion.py \
+            tools/tests/test_rulebook_release_gate.py \
             tools/tests/test_build_version_matrix.py \
             tools/tests/test_compose_release_ready.py
 

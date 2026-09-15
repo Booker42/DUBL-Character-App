@@ -3,6 +3,7 @@ package com.dubl.character.android.data
 import android.content.Context
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
+import com.dubl.character.android.model.ConditionLocalDataCodec
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.SheetGroupingRules
@@ -24,6 +25,8 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .toSet()
         val skillGroups = SheetGroupingRules.decode(prefs.getString("${prefix}skill_groups", null))
         val developmentGroups = SheetGroupingRules.decode(prefs.getString("${prefix}development_groups", null))
+        val conditionOverrides = ConditionLocalDataCodec.decodeOverrides(prefs.getString("${prefix}condition_overrides", null))
+        val customConditions = ConditionLocalDataCodec.decodeCustom(prefs.getString("${prefix}custom_conditions", null))
         val preferredSkillAttributes = prefs
             .getStringSet("${prefix}preferred_skill_attributes", emptySet())
             .orEmpty()
@@ -44,6 +47,8 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             preferredSkillAttributes = preferredSkillAttributes,
             skillGroups = skillGroups,
             developmentGroups = developmentGroups,
+            conditionOverrides = conditionOverrides,
+            customConditions = customConditions,
         )
     }
 
@@ -55,6 +60,8 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .putStringSet("${prefix}hidden_resources", extras.hiddenResourceIds.map { it.name }.toSet())
             .putString("${prefix}skill_groups", SheetGroupingRules.encode(extras.skillGroups))
             .putString("${prefix}development_groups", SheetGroupingRules.encode(extras.developmentGroups))
+            .putString("${prefix}condition_overrides", ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides))
+            .putString("${prefix}custom_conditions", ConditionLocalDataCodec.encodeCustom(extras.customConditions))
             .putStringSet(
                 "${prefix}preferred_skill_attributes",
                 extras.preferredSkillAttributes.map { (skillId, attribute) ->
@@ -74,6 +81,8 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .remove("${prefix}hidden_resources")
             .remove("${prefix}skill_groups")
             .remove("${prefix}development_groups")
+            .remove("${prefix}condition_overrides")
+            .remove("${prefix}custom_conditions")
             .remove("${prefix}preferred_skill_attributes")
             .remove("${prefix}favorite_skill_ids")
             .remove("${prefix}favorites")

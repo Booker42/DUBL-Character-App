@@ -52,6 +52,41 @@ data class DevelopmentEntry(
         get() = !isMartialArt && !isChiDevelopment && !isSpecialDevelopment && costType == DevelopmentCostType.XP
 }
 
+
+fun DevelopmentEntry.normalizedLocalCopy(forcedId: String = id): DevelopmentEntry = copy(
+    id = forcedId.trim(),
+    name = name.trim().replace(Regex("\\s+"), " ").ifBlank { "Без названия" },
+    section = section.trim(),
+    category = category.trim(),
+    cost = cost.coerceAtLeast(0),
+    maxRank = maxRank.coerceAtLeast(1),
+    requirements = requirements.trim(),
+    benefit = benefit.trim(),
+    notes = notes.trim(),
+    tags = tags.map(String::trim).filter(String::isNotBlank).distinct(),
+    accessId = accessId?.trim()?.takeIf(String::isNotBlank),
+    abilityOptions = abilityOptions.map { option ->
+        option.copy(source = option.source.trim(), value = option.value.coerceAtLeast(0))
+    },
+    mechanicsConflict = mechanicsConflict.trim(),
+    conflictNote = conflictNote.trim(),
+)
+
+fun DublCharacter.effectiveDevelopmentCatalog(canonical: DevelopmentCatalog): DevelopmentCatalog {
+    val canonicalIds = canonical.entries.mapTo(linkedSetOf()) { it.id }
+    val overridden = canonical.entries.map { entry ->
+        developmentOverrides[entry.id]?.normalizedLocalCopy(entry.id) ?: entry
+    }
+    val custom = customDevelopmentEntries
+        .map { it.normalizedLocalCopy() }
+        .filter { it.id.isNotBlank() && it.id !in canonicalIds }
+        .distinctBy { it.id }
+    return DevelopmentCatalog(
+        version = if (developmentOverrides.isEmpty() && custom.isEmpty()) canonical.version else canonical.version + "+local",
+        entries = overridden + custom,
+    )
+}
+
 data class OwnedDevelopment(
     val rank: Int = 0,
     val optionIndex: Int = 0,
@@ -271,7 +306,7 @@ class DevelopmentRules(
         // The rulebook phrases the OS budget as a recommendation, not a hard limit.
         // Overspending is surfaced by the budget summary but does not invalidate a GM-approved build.
         val canIncrease = !entry.incomplete && !failed && !manual && !maxed
-        val canForceIncrease = !entry.incomplete && !maxed && (failed || manual)
+        val canForceIncrease = !maxed && (entry.incomplete || failed || manual)
         val reason = when {
             entry.incomplete -> "Запись книги не завершена"
             maxed -> "Максимальный ранг"

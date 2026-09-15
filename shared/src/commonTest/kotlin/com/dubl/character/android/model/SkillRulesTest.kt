@@ -87,6 +87,35 @@ class SkillRulesTest {
     }
 
     @Test
+    fun unspecifiedUntrainedRuleIsNotExecutableAtRankZero() {
+        val character = character(AttributeId.INTELLIGENCE to 5)
+        val skill = character.resolveSkill("computers")!!
+        val result = character.skillCalculation(skill)
+
+        assertNull(result.total)
+        assertEquals(
+            "Правило нетренированного использования не определено в рулбуке",
+            result.unavailableReason,
+        )
+    }
+
+    @Test
+    fun unspecifiedUntrainedRuleDoesNotBlockLearnedSkill() {
+        val state = CharacterSkill(
+            id = "computers",
+            definitionId = "computers",
+            rank = 1,
+        )
+        val character = character(
+            AttributeId.INTELLIGENCE to 5,
+            skills = mapOf("computers" to state),
+        )
+        val skill = character.resolveSkill("computers")!!
+
+        assertEquals(6, character.skillCalculation(skill).total)
+    }
+
+    @Test
     fun rankCostsMatchDesktopCatalog() {
         assertEquals(listOf(0, 10, 30, 60, 100, 150, 210, 280, 360, 450, 550), SkillCatalog.rankCosts)
         assertEquals(50, SkillCatalog.nextRankCost(4))

@@ -8,6 +8,7 @@ import com.dubl.character.android.data.DesktopCharacterStore
 import com.dubl.character.android.model.AppSnapshot
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.effectiveDevelopmentCatalog
 import com.dubl.character.android.state.CharacterExtrasSession
 import com.dubl.character.android.state.CharacterSession
 import com.dubl.character.desktop.data.DesktopCatalogLoader
@@ -23,7 +24,9 @@ class DesktopAppState {
     val extrasSession = CharacterExtrasSession(extrasStore)
     private val catalogLoader = DesktopCatalogLoader()
 
-    val developmentCatalog = catalogLoader.loadDevelopment()
+    val conditionCatalog = catalogLoader.loadConditions()
+    private val canonicalDevelopmentCatalog = catalogLoader.loadDevelopment()
+    val developmentCatalog get() = activeCharacter.effectiveDevelopmentCatalog(canonicalDevelopmentCatalog)
     val chiCatalog = catalogLoader.loadChi()
     val magicEquipmentCatalog = catalogLoader.loadMagicEquipment()
     val skillEffectCatalog = catalogLoader.loadSkillEffects()

@@ -2,6 +2,12 @@
 
 ## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
 
+- Started the DUBL 3.69 rulebook-first import pipeline: deterministic multi-source DOCX Raw IR, source-qualified provenance, diagnostics/resolutions, structural validation, and reproducibility baselines.
+- Registered stock DUBL 3.69, Masters of Melee, and Archmage books as distinct authority scopes instead of pretending all imported module content comes from one document.
+- Added explicit ambiguity policy: source conflicts/incomplete mechanics are preserved as diagnostics and cannot become executable rules without a human resolution record.
+- Added a compact tracked ruleset control plane (`config`, `resolutions`, `baseline`) while keeping full Raw IR/mirror bundles in ignored `build/` output rather than creating a second committed catalog source.
+- Promoted Conditions as the first source-generated domain: 23 runtime conditions and 2 related mechanics are extracted from the core rulebook with stable provenance and runtime-title parity checks.
+- Added rulebook importer/validator contracts to the Linux release gate without making the DOCX books runtime or CI dependencies.
 - Added an executable Android/Desktop parity contract: shared resources are now the only physical canonical DUBL catalogs, Android repository adapters use the same shared parsers, and importer defaults write to shared resources.
 - Added persisted ruleset identity (`dubl` / `3.69`) and bumped snapshots to schema 8 with automatic schema-7 migration.
 - Hardened Magic parity in shared `CharacterSession`: incomplete canonical spells are rejected by backend, creation-time school edits keep mana synchronized to the effective maximum, and Compose Desktop exposes the same mana mutation/creation-lock semantics as Android.

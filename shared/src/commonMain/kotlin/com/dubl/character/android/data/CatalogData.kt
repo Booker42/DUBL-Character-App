@@ -4,6 +4,8 @@ import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.ChiCatalog
 import com.dubl.character.android.model.ChiSchool
 import com.dubl.character.android.model.ChiTechnique
+import com.dubl.character.android.model.ConditionCatalog
+import com.dubl.character.android.model.ConditionDefinition
 import com.dubl.character.android.model.DevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentCostType
 import com.dubl.character.android.model.DevelopmentEntry
@@ -14,6 +16,20 @@ import com.dubl.character.android.model.SkillEffectCatalog
 import com.dubl.character.android.model.SkillEffectDefinition
 import com.dubl.character.android.model.SkillEffectMode
 import com.dubl.character.android.model.SpellCatalogEntry
+
+
+fun parseConditionCatalog(raw: String): ConditionCatalog {
+    val root = parseRoot(raw)
+    val conditions = root.array("conditions").mapNotNull { value ->
+        val item = value.asObject() ?: return@mapNotNull null
+        ConditionDefinition(
+            id = item.string("id"),
+            name = item.string("name"),
+            description = item.string("description"),
+        )
+    }
+    return ConditionCatalog(conditions)
+}
 
 
 fun parseDevelopmentCatalog(raw: String): DevelopmentCatalog {
@@ -45,6 +61,21 @@ fun parseDevelopmentCatalog(raw: String): DevelopmentCatalog {
         )
     }
     return DevelopmentCatalog(root.string("version", "desktop"), entries)
+}
+
+
+fun mergeDevelopmentCatalogs(vararg catalogs: DevelopmentCatalog): DevelopmentCatalog {
+    val merged = linkedMapOf<String, DevelopmentEntry>()
+    catalogs.forEach { catalog ->
+        catalog.entries.forEach { entry ->
+            require(entry.id !in merged) { "Duplicate development id across catalog layers: ${entry.id}" }
+            merged[entry.id] = entry
+        }
+    }
+    return DevelopmentCatalog(
+        version = catalogs.joinToString("+") { it.version },
+        entries = merged.values.toList(),
+    )
 }
 
 fun parseChiCatalog(raw: String): ChiCatalog {
@@ -140,6 +171,8 @@ fun parseSkillEffectCatalog(raw: String): SkillEffectCatalog {
             value = item.int("value", 0),
             perRank = item.bool("perRank"),
             toggleLabel = item.string("toggleLabel", item.string("sourceName")),
+            developmentId = item.string("developmentId"),
+            sourceRefs = item.stringList("sourceRefs"),
         )
     }
     return SkillEffectCatalog(root.string("version", "0.5"), effects)

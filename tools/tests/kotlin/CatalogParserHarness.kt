@@ -3,7 +3,15 @@ import java.io.File
 
 fun main(args: Array<String>) {
     val root = File(args.single())
-    val development = parseDevelopmentCatalog(File(root, "development_catalog.json").readText())
+    val development = mergeDevelopmentCatalogs(
+        parseDevelopmentCatalog(File(root, "development_regular_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_special_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_ability_roots_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_martial_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_chi_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_magic_catalog.json").readText()),
+        parseDevelopmentCatalog(File(root, "development_catalog.json").readText()),
+    )
     val chi = parseChiCatalog(File(root, "chi_catalog.json").readText())
     val magic = parseMagicEquipmentCatalog(File(root, "magic_equipment_catalog.json").readText())
     val effects = parseSkillEffectCatalog(File(root, "skill_effects_catalog.json").readText())

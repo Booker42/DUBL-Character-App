@@ -2,6 +2,7 @@ package com.dubl.character.android.data
 
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
+import com.dubl.character.android.model.ConditionLocalDataCodec
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.SheetGroup
@@ -65,6 +66,8 @@ class DesktopCharacterExtrasStore(
             append('}')
             append(",\"skillGroups\":").append(quoted(SheetGroupingRules.encode(extras.skillGroups)))
             append(",\"developmentGroups\":").append(quoted(SheetGroupingRules.encode(extras.developmentGroups)))
+            append(",\"conditionOverrides\":").append(quoted(ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides)))
+            append(",\"customConditions\":").append(quoted(ConditionLocalDataCodec.encodeCustom(extras.customConditions)))
             append('}')
         }
         append("}}")
@@ -84,6 +87,8 @@ class DesktopCharacterExtrasStore(
                 }.toMap(),
                 skillGroups = SheetGroupingRules.decode(objectValue.strings["skillGroups"]),
                 developmentGroups = SheetGroupingRules.decode(objectValue.strings["developmentGroups"]),
+                conditionOverrides = ConditionLocalDataCodec.decodeOverrides(objectValue.strings["conditionOverrides"]),
+                customConditions = ConditionLocalDataCodec.decodeCustom(objectValue.strings["customConditions"]),
             )
         }
     }

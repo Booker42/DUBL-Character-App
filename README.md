@@ -1,6 +1,6 @@
 # DUBL — Android 0.6.2 + Desktop 0.2.0
 
-This source snapshot contains the canonical Android 0.6.2 application and the Compose Desktop 0.2 parity migration. Android 0.6.2 remains the behavioral reference while shared Kotlin now owns the executable rules, application mutations, catalog parsers, and the single canonical catalog payloads. Shared model/rules/application code is Kotlin Multiplatform. Web/Wasm, server accounts, and sync are intentionally out of scope.
+This source snapshot contains the Android 0.6.2 application and the Compose Desktop 0.2 parity migration over a shared Kotlin Multiplatform rules/application layer. **DUBL 3.69 rulebooks are the authority for rules and canonical content**; Android is the mature implementation/UX reference, not an authority when it conflicts with the books. Shared Kotlin owns executable rules, application mutations, catalog parsers, and runtime catalog payloads. Web/Wasm, server accounts, and sync are intentionally out of scope.
 
 ## Modules
 
@@ -26,6 +26,41 @@ The Compose desktop frontend is wired to the real desktop stores, shared `Charac
 - Characters: create, list, switch active character, delete, and persistent roster state.
 
 Android and Desktop use schema-8 character persistence with an explicit `dubl` / `3.69` ruleset reference; schema-7 saves migrate to that identity automatically. Game formulas are not duplicated in either platform UI. Canonical catalog JSON lives only in `shared/src/commonMain/resources`; Android exposes those same files as assets and delegates parsing to shared code.
+
+
+## Rulebook import pipeline
+
+DUBL 3.69 content is being moved to an auditable rulebook-first pipeline. The stock book plus approved module books are development inputs; they are **not** runtime dependencies and are not duplicated into release packages.
+
+The current source set is:
+
+- `core` — `Dубль All Stars 3.69 REWORK(1)(2).docx`; authoritative core DUBL 3.69 rules;
+- `melee` — `Dубль, Мастера ближнего боя.docx`; authoritative for the imported Martial Arts / Chi module content;
+- `archmage` — `Книга Архимага.docx`; authoritative only for approved additions to already-supported magic schools.
+
+A local rebuild writes the complete Raw IR, source index, mirrored migration catalogs, diagnostics, and manifest under ignored `build/rulesets/dubl-3.69`:
+
+```bash
+python3 -m tools.rulebook.build_ruleset \
+  --source 'core=/path/to/Dубль All Stars 3.69 REWORK(1)(2).docx' \
+  --source 'melee=/path/to/Dубль, Мастера ближнего боя.docx' \
+  --source 'archmage=/path/to/Книга Архимага.docx' \
+  --repo-root .
+python3 -m tools.rulebook.validate_ruleset build/rulesets/dubl-3.69
+python3 -m tools.rulebook.check_baseline build/rulesets/dubl-3.69 \
+  --baseline rulesets/dubl-3.69/baseline.json
+```
+
+If a reviewed rulebook/importer change is intentional, update the compact baseline and promoted generated artifacts explicitly:
+
+```bash
+python3 -m tools.rulebook.check_baseline build/rulesets/dubl-3.69 \
+  --baseline rulesets/dubl-3.69/baseline.json --update
+```
+
+`validate_ruleset` is a structural/executable-promotion gate, not a claim that the prose rulebook has no contradictions. The existing full semantic audit found many blocker/critical ambiguities; those become blocking domain diagnostics as the affected domains are promoted. A bootstrap mirror may therefore validate structurally while still carrying warning-level ambiguous provenance.
+
+`rulesets/dubl-3.69/resolutions.json` is the only place where an ambiguous/contradictory source may receive an explicit executable interpretation. Importers do not infer a resolution from current Android/Desktop behavior. `conditions` is the first source-generated domain; the larger Development, Chi, Magic/Equipment, and skill-effect catalogs remain explicitly marked migration mirrors until promoted domain-by-domain.
 
 ## Linux release
 

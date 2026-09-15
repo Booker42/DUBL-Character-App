@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "bindings": [
+    {
+      "id": "access_11f3a49ee9802ad0",
+      "name": "Авангард"
+    },
+    {
+      "id": "access_45edee695a349bf7",
+      "name": "Акробатика"
+    },
+    {
+      "id": "access_17f99cc35c559d82",
+      "name": "Боевые крики"
+    },
+    {
+      "id": "access_5b50c9c8ead88fd5",
+      "name": "Берсерк"
+    },
+    {
+      "id": "access_224a2229ad335a33",
+      "name": "Боевая фокусировка"
+    },
+    {
+      "id": "access_40c3d6bcbdac132a",
+      "name": "Боевой азарт"
+    },
+    {
+      "id": "access_60f7faada295fcfc",
+      "name": "Броненосец"
+    },
+    {
+      "id": "access_e8245289051beebc",
+      "name": "Второе дыхание"
+    },
+    {
+      "id": "access_bb18db3acee8d8c0",
+      "name": "Гнев"
+    },
+    {
+      "id": "access_99adfccc91b11167",
+      "name": "Громила"
+    },
+    {
+      "id": "access_b7ab9ab06b30dd98",
+      "name": "Дуэлянт"
+    },
+    {
+      "id": "access_e9d24a11c1717b4b",
+      "name": "Изувер"
+    },
+    {
+      "id": "access_d0fdba646d5da299",
+      "name": "Капканщик / Мастер ловушек"
+    },
+    {
+      "id": "access_1b7b5d63bbfe5999",
+      "name": "Мастер-лучник"
+    },
+    {
+      "id": "access_d0703df3ea56baab",
+      "name": "Мастер-метатель"
+    },
+    {
+      "id": "access_3080526640119bbc",
+      "name": "Мастер оружия"
+    },
+    {
+      "id": "access_fa467b4e9d83447b",
+      "name": "Мастер-ремесленник"
+    },
+    {
+      "id": "access_72ff998a42c1b5fa",
+      "name": "Мастер щитов"
+    },
+    {
+      "id": "access_471c1aa054fcf62f",
+      "name": "Неистовство"
+    },
+    {
+      "id": "access_597f3218972b15b7",
+      "name": "Охотник за головами"
+    },
+    {
+      "id": "access_a8bdafdea2ef268e",
+      "name": "Пироманьяк"
+    },
+    {
+      "id": "access_c4bae7903fbe31be",
+      "name": "Подлая атака"
+    },
+    {
+      "id": "access_fc1a6c172730bb9d",
+      "name": "Последний выживший"
+    },
+    {
+      "id": "access_7e908586113358b3",
+      "name": "Сверхчеловеческие рефлексы"
+    },
+    {
+      "id": "access_b832538f3a803048",
+      "name": "Связи",
+      "repeatable": true
+    },
+    {
+      "id": "access_bd7119a29fbad30f",
+      "name": "Скаут"
+    },
+    {
+      "id": "access_3fa2fc858d18365b",
+      "name": "Совершенная точность"
+    },
+    {
+      "id": "access_7a53a3d465dd1c00",
+      "name": "Телохранитель"
+    },
+    {
+      "id": "access_0cda2f98e9ea984c",
+      "name": "Удача"
+    },
+    {
+      "id": "access_0ae1b0eb999784a7",
+      "name": "Чемпион"
+    },
+    {
+      "id": "access_f9a25e27a88a7d61",
+      "name": "Шестое чувство"
+    },
+    {
+      "id": "access_a80140e55e6b3033",
+      "name": "Штурмовик"
+    },
+    {
+      "id": "access_6ee5e1d18064717b",
+      "name": "Чарокрад"
+    },
+    {
+      "id": "access_7295ddf972d38038",
+      "name": "Владыка мистического пламени"
+    },
+    {
+      "id": "access_c55a5bee28052c88",
+      "name": "Мистический рыцарь"
+    },
+    {
+      "id": "access_5a507d1433ae0b0d",
+      "name": "Трикстер"
+    },
+    {
+      "id": "access_f9116a33157b64d4",
+      "name": "Пиромант"
+    },
+    {
+      "id": "access_ee0f09d57b95080c",
+      "name": "Ледяной маг"
+    },
+    {
+      "id": "access_169a9294a567006e",
+      "name": "Энергетический вампир"
+    },
+    {
+      "id": "access_a1ba386fab363965",
+      "name": "Киберпанк",
+      "category": "Киберпанк"
+    },
+    {
+      "id": "access_19955388f7d405f5",
+      "name": "Хакер"
+    }
+  ]
+}

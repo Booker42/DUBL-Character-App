@@ -2,7 +2,7 @@
 
 ## Current target
 
-Android **0.6.2** remains the source of truth. Desktop **0.2.0** is now implemented as a real **Compose Desktop** frontend over the shared KMP application/domain layer. Do not resume feature work in the legacy portable/Swing shell; keep it only as a parity oracle/fallback until a Compose AppImage has been built and smoke-tested in an environment with Gradle/Maven network access.
+The **DUBL 3.69 rulebook set is the source of truth for rules/content**. Android **0.6.2** remains the mature implementation/UX reference, while Desktop **0.2.0** is a real **Compose Desktop** frontend over the shared KMP application/domain layer. Do not resume feature work in the legacy portable/Swing shell; keep it only as a parity oracle/fallback until a Compose AppImage has been built and smoke-tested in an environment with Gradle/Maven network access.
 
 Web/Wasm, server/accounts, and sync remain out of scope. The old PySide/Electron desktop project is not a source of rules, architecture, or layout.
 
@@ -19,6 +19,30 @@ Implemented and wired to shared state/persistence:
 - destructive-action confirmation and custom-skill validation;
 - native Compose portrait rendering with a desktop file chooser;
 - no app-level horizontal scrolling; compact/normal/wide responsive policy remains shared.
+
+
+## Rulebook-first import status
+
+The next architecture phase has started. Do not add another direct DOCX parser to Android/Desktop or silently copy a rule from the app back into the ruleset.
+
+Implemented pipeline:
+
+- deterministic DOCX -> Raw Source IR extraction preserving ordered paragraphs/tables, heading paths, original text, source SHA-256, and stable block IDs;
+- multi-source qualified provenance (`core:...`, `melee:...`, `archmage:...`) with duplicate occurrences preserved rather than collapsed;
+- source diagnostics for draft markers and identical/variant duplicate headings;
+- explicit diagnostics/resolutions model where unresolved `error` blocks validation;
+- bootstrap provenance coverage over the existing canonical runtime catalogs;
+- compact reproducibility baseline with source hashes, structure counts, domain coverage, and diagnostic counts;
+- first source-generated domain: 23 runtime conditions + 2 condition-related mechanics extracted from the core book, with a parity guard against `CharacterConditionId`;
+- Linux release gate coverage for all synthetic importer/validator contracts without requiring the DOCX fixtures.
+
+`validate_ruleset` currently guarantees structural integrity and that promoted executable domains have no unresolved `error`; it does **not** erase or supersede the full semantic rulebook audit. The known blocker/critical prose ambiguities must be converted into domain diagnostics/resolutions as those domains are promoted.
+
+The full generated bundle belongs under ignored `build/rulesets/dubl-3.69`. The tracked `rulesets/dubl-3.69` directory contains only `config.json`, `resolutions.json`, `baseline.json`, and promoted small generated artifacts. The DOCX books are development inputs and are not app/runtime assets.
+
+Current real-source baseline: 32,233 ordered blocks across three books (31,910 paragraphs, 323 tables, 3,018 headings). Bootstrap provenance currently links Development 713/796 uniquely (83 ambiguous), Chi 72/77 (5 ambiguous), Magic/Equipment 306/525 (219 ambiguous), and skill effects 259/283 (23 ambiguous, 1 missing). The remaining ambiguity is intentionally surfaced instead of auto-resolved.
+
+Normal rebuild/check sequence is documented in `README.md`. Only run `check_baseline --update` after reviewing the source/import diff.
 
 ## Release architecture
 

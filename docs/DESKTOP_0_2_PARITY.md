@@ -23,7 +23,7 @@ The primary frontend is now `desktopApp` Compose Desktop. The legacy portable/Sw
 | XP economy | PASS (source/parity) | total/start/adjustment, attribute/development/magic costs, ability points and override |
 | Conditions | PASS (source/parity) | manual conditions plus automatic Weakness at zero Endurance |
 | Grouping/order | PASS (source/parity) | persistent groups, rename/delete/reorder, root subtree move and independent child movement |
-| Persistence | PASS (JVM harness) | schema-8 snapshot with `dubl` / `3.69` ruleset identity, schema-7 migration, desktop extras and restart round-trip |
+| Persistence | PASS (JVM harness) | schema-9 snapshot with `dubl` / `3.69` ruleset identity, schema-7 migration, desktop extras and restart round-trip |
 | Catalogs | PASS (JVM/source) | one physical shared copy of development, Chi, magic/equipment and skill-effect data; Android/Desktop use the same parsers/payloads |
 | Custom content | PASS (source/parity) | custom resources, skills, specialized skills, spells, schools and gear where Android supports them |
 

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "rulesetId": "dubl",
+  "rulesetVersion": "3.69",
+  "sources": {
+    "core": {
+      "filename": "Dубль All Stars 3.69 REWORK(1)(2).docx",
+      "role": "core",
+      "authority": "Canonical stock DUBL 3.69 rules"
+    },
+    "melee": {
+      "filename": "Dубль, Мастера ближнего боя.docx",
+      "role": "module",
+      "authority": "Martial Arts and Chi module content imported into the current ruleset"
+    },
+    "archmage": {
+      "filename": "Книга Архимага.docx",
+      "role": "module",
+      "authority": "Approved Archmage additions imported into already-supported magic schools"
+    }
+  },
+  "domains": {
+    "conditions": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/conditions_catalog.json"
+    },
+    "development": {
+      "status": "bootstrap_mirror",
+      "sources": [
+        "core",
+        "melee"
+      ]
+    },
+    "chi": {
+      "status": "source_generated",
+      "sources": [
+        "melee"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/chi_catalog.json",
+      "note": "Chi schools and techniques are generated together with Chi development from one Master of Melee Raw IR pass."
+    },
+    "magic_equipment": {
+      "status": "source_generated",
+      "sources": [
+        "core",
+        "archmage"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/magic_equipment_catalog.json",
+      "note": "Core spell cards and gear tables are generated from DUBL 3.69; approved Archmage additions are generated from the Archmage module. Conflicting duplicate spell cards remain incomplete and locally overridable."
+    },
+    "skill_effects": {
+      "status": "source_generated",
+      "sources": [
+        "core",
+        "melee"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/skill_effects_catalog.json",
+      "note": "Rule text/provenance comes from source-generated Development entries; mode/targets/toggle semantics are tracked application annotations, not rulebook authority."
+    },
+    "skills": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/skills_catalog.json",
+      "compiledArtifact": {
+        "type": "skill_catalog_kotlin",
+        "path": "shared/src/commonMain/kotlin/com/dubl/character/android/model/GeneratedSkillCatalog.kt"
+      },
+      "note": "Rulebook-generated mechanics plus tracked persistence/UI bindings. Computers exists in the book outside the base table; unspecified Auto6/Auto12/untrained semantics remain non-executable rather than guessed."
+    },
+    "development_regular": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_regular_catalog.json",
+      "note": "Regular Development mechanics are generated from DUBL 3.69. Bindings contain only stable/structural metadata and explicit compatibility fallbacks for fields absent from the source."
+    },
+    "development_special": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_special_catalog.json",
+      "note": "Special-branch child mechanics are generated from DUBL 3.69; bindings retain stable/structural metadata and explicit fallbacks for source omissions."
+    },
+    "development_ability_roots": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_ability_roots_catalog.json",
+      "note": "Root ability-access nodes are generated from DUBL 3.69 ability source tables. Empty template fields and draft sources remain incomplete and locally overridable."
+    },
+    "development_martial": {
+      "status": "source_generated",
+      "sources": [
+        "melee"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_martial_catalog.json",
+      "note": "Martial Arts styles and techniques are generated from the Master of Melee module Raw IR."
+    },
+    "development_chi": {
+      "status": "source_generated",
+      "sources": [
+        "melee"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_chi_catalog.json",
+      "note": "Chi progression/development entries are generated from the Master of Melee module."
+    },
+    "development_magic": {
+      "status": "source_generated",
+      "sources": [
+        "core"
+      ],
+      "runtimeArtifact": "shared/src/commonMain/resources/development_magic_catalog.json",
+      "note": "Magic Development skills are generated from the core DUBL 3.69 Magic/Magical Skills section."
+    }
+  },
+  "semanticAudit": {
+    "status": "external_evidence_not_yet_fully_encoded",
+    "note": "Structural validation does not mean all known rulebook contradictions are resolved; semantic audit findings become blocking diagnostics during domain promotion."
+  },
+  "policy": {
+    "ambiguity": "Import source content and emit diagnostics; never invent executable semantics.",
+    "conflicts": "Require an explicit resolution with decision and rationale before executable promotion.",
+    "runtime": "Generated/validated ruleset content is consumed by shared code; Android and Desktop must not own rule copies."
+  }
+}

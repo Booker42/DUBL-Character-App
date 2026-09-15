@@ -46,12 +46,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dubl.character.android.data.CharacterSheetExtrasRepository
+import com.dubl.character.android.data.DevelopmentCatalogRepository
+import com.dubl.character.android.data.SkillEffectCatalogRepository
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.DublCharacter
 import com.dubl.character.android.model.ResolvedSkill
 import com.dubl.character.android.model.SkillCalculation
 import com.dubl.character.android.model.SkillCatalog
 import com.dubl.character.android.model.SkillCategory
+import com.dubl.character.android.model.SkillEffectRules
 import com.dubl.character.android.model.UntrainedRule
 import com.dubl.character.android.model.resolveSkill
 import com.dubl.character.android.model.resolvedSkills
@@ -699,8 +702,24 @@ private fun SkillDetailSheet(
     onDismiss: () -> Unit,
 ) {
     var note by remember(skill.id, skill.formulaNote) { mutableStateOf(skill.formulaNote) }
+    var localName by remember(skill.id, skill.name) { mutableStateOf(skill.name) }
+    var localDescription by remember(skill.id, skill.description) { mutableStateOf(skill.description) }
+    var localCategory by remember(skill.id, skill.category) { mutableStateOf(skill.category) }
+    var localUntrained by remember(skill.id, skill.untrained) { mutableStateOf(skill.untrained) }
+    var localAuto6 by remember(skill.id, skill.auto6) { mutableStateOf(skill.auto6) }
+    var localAuto12 by remember(skill.id, skill.auto12) { mutableStateOf(skill.auto12) }
     val calculations = character.skillCalculationOptions(skill)
     val nextCost = SkillCatalog.nextRankCost(skill.rank)
+    val context = LocalContext.current
+    val developmentCatalog = remember(context.applicationContext) {
+        DevelopmentCatalogRepository(context.applicationContext).load()
+    }
+    val effectCatalog = remember(context.applicationContext) {
+        SkillEffectCatalogRepository(context.applicationContext).load()
+    }
+    val configurableEffects = remember(character, skill.id, developmentCatalog, effectCatalog) {
+        SkillEffectRules(character, developmentCatalog, effectCatalog).configuredForSkill(skill)
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -853,10 +872,111 @@ private fun SkillDetailSheet(
                 enabled = note.trim() != skill.formulaNote,
             ) { Text("Сохранить правило") }
 
+            if (configurableEffects.isNotEmpty()) {
+                HorizontalDivider()
+                Text("Автоматизация правил", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "Если приложение неверно трактует эффект, его можно отключить только для этого персонажа.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                configurableEffects.forEach { effect ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = effect.id !in character.disabledSkillEffectIds,
+                            onCheckedChange = { enabled -> controller.setSkillEffectEnabled(effect.id, enabled) },
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(effect.sourceName, fontWeight = FontWeight.SemiBold)
+                            Text(effect.effectText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
             HorizontalDivider()
             Text("Без обучения: ${skill.untrained.label}")
-            skill.definition?.let { definition ->
-                Text("Автоуспех 6: ${definition.auto6} • Автоуспех 12: ${definition.auto12}")
+            Text("Автоуспех 6: ${skill.auto6.ifBlank { "—" }} • Автоуспех 12: ${skill.auto12.ifBlank { "—" }}")
+
+            Text("Локальные правки", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Эти поля перекрывают импорт из рулбука только для этого персонажа. Канон не меняется.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = localName,
+                onValueChange = { localName = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Название") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = localDescription,
+                onValueChange = { localDescription = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Описание") },
+                minLines = 2,
+            )
+            Text("Категория", style = MaterialTheme.typography.labelLarge)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                items(SkillCategory.entries) { category ->
+                    FilterChip(
+                        selected = localCategory == category,
+                        onClick = { localCategory = category },
+                        label = { Text(category.title) },
+                    )
+                }
+            }
+            Text("Без обучения", style = MaterialTheme.typography.labelLarge)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                items(UntrainedRule.entries) { rule ->
+                    FilterChip(
+                        selected = localUntrained == rule,
+                        onClick = { localUntrained = rule },
+                        label = { Text(rule.label) },
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = localAuto6,
+                onValueChange = { localAuto6 = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Auto 6") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = localAuto12,
+                onValueChange = { localAuto12 = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Auto 12") },
+                singleLine = true,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = {
+                        controller.setSkillNameOverride(skill.id, localName)
+                        controller.setSkillDescriptionOverride(skill.id, localDescription)
+                        controller.setSkillCategoryOverride(skill.id, localCategory)
+                        controller.setSkillUntrainedOverride(skill.id, localUntrained)
+                        controller.setSkillAutoOverrides(skill.id, localAuto6, localAuto12)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Сохранить локально") }
+                OutlinedButton(
+                    onClick = {
+                        controller.resetSkillDefinitionOverrides(skill.id)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Сбросить к рулбуку") }
             }
 
             Surface(

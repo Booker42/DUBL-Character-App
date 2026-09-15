@@ -27,6 +27,8 @@ data class SkillEffectDefinition(
     val value: Int,
     val perRank: Boolean,
     val toggleLabel: String,
+    val developmentId: String = "",
+    val sourceRefs: List<String> = emptyList(),
 )
 
 data class SkillEffectCatalog(
@@ -72,17 +74,21 @@ class SkillEffectRules(
     private val developmentCatalog: DevelopmentCatalog,
     private val effectCatalog: SkillEffectCatalog,
 ) {
+    fun configuredForSkill(skill: ResolvedSkill): List<SkillEffectDefinition> = effectCatalog.effects.filter { effect ->
+        effect.rollContext == RollContext.SKILL && effect.matchesSkill(skill) && ownedRank(effect) > 0
+    }
+
     fun forSkill(skill: ResolvedSkill): SkillRollEffectResolution {
-        val relevant = effectCatalog.effects.filter { effect ->
-            effect.rollContext == RollContext.SKILL && effect.matchesSkill(skill) && ownedRank(effect.sourceName) > 0
+        val relevant = configuredForSkill(skill).filter { effect ->
+            effect.id !in character.disabledSkillEffectIds
         }
         val automatic = relevant.mapNotNull { effect ->
             if (effect.mode != SkillEffectMode.AUTO_BONUS) return@mapNotNull null
-            val value = effect.scaledValue(ownedRank(effect.sourceName))
+            val value = effect.scaledValue(ownedRank(effect))
             if (value == 0) null else RollContribution(effect.sourceName, value)
         }
         val options = relevant.mapNotNull { effect ->
-            val rank = ownedRank(effect.sourceName)
+            val rank = ownedRank(effect)
             when (effect.mode) {
                 SkillEffectMode.TOGGLE_BONUS -> SkillRollEffectOption(
                     id = effect.id,
@@ -130,12 +136,17 @@ class SkillEffectRules(
     }
 
     fun forContext(context: RollContext): List<SkillEffectDefinition> = effectCatalog.effects.filter { effect ->
-        effect.rollContext == context && ownedRank(effect.sourceName) > 0
+        effect.id !in character.disabledSkillEffectIds && effect.rollContext == context && ownedRank(effect) > 0
     }
 
-    private fun ownedRank(sourceName: String): Int = developmentCatalog.matchingName(sourceName)
-        .maxOfOrNull { entry -> character.development[entry.id]?.rank ?: 0 }
-        ?: 0
+    private fun ownedRank(effect: SkillEffectDefinition): Int {
+        if (effect.developmentId.isNotBlank()) {
+            return character.development[effect.developmentId]?.rank ?: 0
+        }
+        return developmentCatalog.matchingName(effect.sourceName)
+            .maxOfOrNull { entry -> character.development[entry.id]?.rank ?: 0 }
+            ?: 0
+    }
 
     private fun SkillEffectDefinition.scaledValue(rank: Int): Int = if (perRank) value * rank else value
 

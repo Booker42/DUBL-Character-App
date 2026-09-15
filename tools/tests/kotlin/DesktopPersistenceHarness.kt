@@ -31,7 +31,7 @@ fun main() {
     val store = DesktopCharacterStore(root.resolve("characters.json")) { "fresh-id" }
     store.save(snapshot)
     val raw = Files.readString(root.resolve("characters.json"))
-    check(raw.contains("\"schema\":8"))
+    check(raw.contains("\"schema\":11"))
     check(raw.contains("\"ruleset\":{\"id\":\"dubl\",\"version\":\"3.69\"}"))
     val loaded = store.load()
     check(loaded == snapshot)

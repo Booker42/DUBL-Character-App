@@ -16,3 +16,6 @@ local.properties
 /out/
 **/__pycache__/
 !ci/dubl-debug.keystore
+# Local rulebook source fixtures used by tools/rulebook; never runtime/package inputs.
+/Dубль All Stars 3.69 REWORK(1)(2).docx
+/sources/*.docx

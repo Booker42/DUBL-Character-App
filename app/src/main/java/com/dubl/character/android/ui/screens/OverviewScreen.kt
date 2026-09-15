@@ -89,14 +89,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.dubl.character.android.data.CharacterSheetExtrasRepository
+import com.dubl.character.android.data.ConditionCatalogRepository
 import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.data.SkillEffectCatalogRepository
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
+import com.dubl.character.android.model.ConditionLocalOverride
 import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.CustomCondition
 import com.dubl.character.android.model.CustomResource
 import com.dubl.character.android.model.DevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentEntry
@@ -201,6 +204,9 @@ fun OverviewScreen(controller: CharacterController) {
     val extrasRepository = remember(context.applicationContext) {
         CharacterSheetExtrasRepository(context.applicationContext)
     }
+    val conditionCatalog = remember(context.applicationContext) {
+        ConditionCatalogRepository(context.applicationContext).load()
+    }
     val developmentCatalog = remember(context.applicationContext) {
         DevelopmentCatalogRepository(context.applicationContext).load()
     }
@@ -220,6 +226,8 @@ fun OverviewScreen(controller: CharacterController) {
     var showAdvancedEdit by remember { mutableStateOf(false) }
     var showConditions by remember { mutableStateOf(false) }
     var selectedCondition by remember { mutableStateOf<CharacterConditionId?>(null) }
+    var editCustomConditionId by remember(character.id) { mutableStateOf<String?>(null) }
+    var createCustomCondition by remember(character.id) { mutableStateOf(false) }
     var showSkillGroupManager by remember { mutableStateOf(false) }
     var showDevelopmentGroupManager by remember { mutableStateOf(false) }
     var selectedSkillId by remember(character.id) { mutableStateOf<String?>(null) }
@@ -400,9 +408,12 @@ fun OverviewScreen(controller: CharacterController) {
                 Spacer(Modifier.height(8.dp))
                 ConditionStrip(
                     conditions = effectiveConditions,
+                    overrides = sheetExtras.conditionOverrides,
+                    customConditions = sheetExtras.customConditions.filter { it.active },
                     autoWeakness = character.enduranceCurrent == 0,
                     onManage = { showConditions = true },
                     onConditionClick = { selectedCondition = it },
+                    onCustomClick = { editCustomConditionId = it },
                 )
                 recentChange?.let {
                     Spacer(Modifier.height(8.dp))
@@ -560,10 +571,23 @@ fun OverviewScreen(controller: CharacterController) {
         ConditionPickerSheet(
             active = sheetExtras.activeConditions,
             autoWeakness = character.enduranceCurrent == 0,
+            overrides = sheetExtras.conditionOverrides,
+            customConditions = sheetExtras.customConditions,
             onToggle = ::toggleCondition,
             onInfo = { condition ->
                 showConditions = false
                 selectedCondition = condition
+            },
+            onToggleCustom = { id, active ->
+                saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.map { if (it.id == id) it.copy(active = active) else it }))
+            },
+            onEditCustom = { id ->
+                showConditions = false
+                editCustomConditionId = id
+            },
+            onAddCustom = {
+                showConditions = false
+                createCustomCondition = true
             },
             onDismiss = { showConditions = false },
         )
@@ -571,16 +595,88 @@ fun OverviewScreen(controller: CharacterController) {
 
     selectedCondition?.let { condition ->
         val automatic = condition == CharacterConditionId.WEAKNESS && character.enduranceCurrent == 0
+        val local = sheetExtras.conditionOverrides[condition]
+        val canonicalSummary = conditionCatalog.summary(condition)
         ConditionDetailSheet(
             condition = condition,
+            title = local?.title ?: condition.title,
+            summary = local?.description ?: canonicalSummary,
+            canonicalTitle = condition.title,
+            canonicalSummary = canonicalSummary,
             active = condition in effectiveConditions,
             automatic = automatic,
             onToggle = {
                 if (!automatic) toggleCondition(condition)
                 selectedCondition = null
             },
+            onSaveLocal = { title, description ->
+                val cleanTitle = title.trim().takeIf { it.isNotBlank() && it != condition.title }
+                val cleanDescription = description.trim().takeIf { it != canonicalSummary }
+                val override = ConditionLocalOverride(cleanTitle, cleanDescription)
+                val next = if (override.title == null && override.description == null) {
+                    sheetExtras.conditionOverrides - condition
+                } else {
+                    sheetExtras.conditionOverrides + (condition to override)
+                }
+                saveExtras(sheetExtras.copy(conditionOverrides = next))
+                selectedCondition = null
+            },
+            onResetLocal = {
+                saveExtras(sheetExtras.copy(conditionOverrides = sheetExtras.conditionOverrides - condition))
+                selectedCondition = null
+            },
             onDismiss = { selectedCondition = null },
         )
+    }
+
+
+    if (createCustomCondition) {
+        CustomConditionSheet(
+            condition = null,
+            onSave = { title, description, active ->
+                val clean = title.trim()
+                if (clean.isNotBlank()) {
+                    saveExtras(
+                        sheetExtras.copy(
+                            customConditions = sheetExtras.customConditions + CustomCondition(
+                                id = "custom-condition-${System.nanoTime()}",
+                                title = clean,
+                                description = description.trim(),
+                                active = active,
+                            ),
+                        ),
+                    )
+                }
+                createCustomCondition = false
+            },
+            onDelete = {},
+            onDismiss = { createCustomCondition = false },
+        )
+    }
+
+    editCustomConditionId?.let { id ->
+        val custom = sheetExtras.customConditions.firstOrNull { it.id == id }
+        if (custom == null) {
+            editCustomConditionId = null
+        } else {
+            CustomConditionSheet(
+                condition = custom,
+                onSave = { title, description, active ->
+                    val clean = title.trim()
+                    if (clean.isNotBlank()) {
+                        saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.map {
+                            if (it.id == id) it.copy(title = clean, description = description.trim(), active = active) else it
+                        }))
+                    }
+                    editCustomConditionId = null
+                },
+                onDelete = {
+                    saveExtras(sheetExtras.copy(customConditions = sheetExtras.customConditions.filterNot { it.id == id }))
+                    editCustomConditionId = null
+                },
+                onDismiss = { editCustomConditionId = null },
+            )
+        }
     }
 
     if (showSkillGroupManager) {
@@ -1378,9 +1474,12 @@ private fun healthCriticalLevel(current: Int, maximum: Int): Int {
 @Composable
 private fun ConditionStrip(
     conditions: Set<CharacterConditionId>,
+    overrides: Map<CharacterConditionId, ConditionLocalOverride>,
+    customConditions: List<CustomCondition>,
     autoWeakness: Boolean,
     onManage: () -> Unit,
     onConditionClick: (CharacterConditionId) -> Unit,
+    onCustomClick: (String) -> Unit,
 ) {
     Column {
         Row(
@@ -1397,7 +1496,7 @@ private fun ConditionStrip(
             TextButton(onClick = onManage) { Text("Изменить") }
         }
         val ordered = CharacterConditionId.entries.filter { it in conditions }
-        if (ordered.isEmpty()) {
+        if (ordered.isEmpty() && customConditions.isEmpty()) {
             Text(
                 text = "Нет активных состояний",
                 style = MaterialTheme.typography.bodyMedium,
@@ -1414,9 +1513,25 @@ private fun ConditionStrip(
                             val automatic = condition == CharacterConditionId.WEAKNESS && autoWeakness
                             ConditionChip(
                                 condition = condition,
+                                title = overrides[condition]?.title ?: condition.title,
                                 automatic = automatic,
                                 modifier = Modifier.weight(1f),
                                 onClick = { onConditionClick(condition) },
+                            )
+                        }
+                        if (rowConditions.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+                customConditions.chunked(2).forEach { rowConditions ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        rowConditions.forEach { condition ->
+                            CustomConditionChip(
+                                condition = condition,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onCustomClick(condition.id) },
                             )
                         }
                         if (rowConditions.size == 1) Spacer(Modifier.weight(1f))
@@ -1430,6 +1545,7 @@ private fun ConditionStrip(
 @Composable
 private fun ConditionChip(
     condition: CharacterConditionId,
+    title: String = condition.title,
     automatic: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -1447,7 +1563,7 @@ private fun ConditionChip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = condition.title,
+                text = title,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -2317,13 +2433,41 @@ private fun AttributeCard(
     }
 }
 
+@Composable
+private fun CustomConditionChip(
+    condition: CustomCondition,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(9.dp),
+        color = DublAccentSoft.copy(alpha = 0.28f),
+        border = BorderStroke(1.dp, DublAccent.copy(alpha = 0.28f)),
+    ) {
+        Text(
+            text = condition.title,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ConditionPickerSheet(
     active: Set<CharacterConditionId>,
     autoWeakness: Boolean,
+    overrides: Map<CharacterConditionId, ConditionLocalOverride>,
+    customConditions: List<CustomCondition>,
     onToggle: (CharacterConditionId) -> Unit,
     onInfo: (CharacterConditionId) -> Unit,
+    onToggleCustom: (String, Boolean) -> Unit,
+    onEditCustom: (String) -> Unit,
+    onAddCustom: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -2338,7 +2482,7 @@ private fun ConditionPickerSheet(
         ) {
             Text("Состояния", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Слабость включается автоматически при нулевой Выносливости. Нажмите «?» для описания из правил.",
+                "Слабость включается автоматически при нулевой Выносливости. Локальные правки и свои состояния действуют только для этого персонажа.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -2350,6 +2494,7 @@ private fun ConditionPickerSheet(
                 items(CharacterConditionId.entries, key = { it.name }) { condition ->
                     val auto = condition == CharacterConditionId.WEAKNESS && autoWeakness
                     val checked = condition in active || auto
+                    val local = overrides[condition]
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -2369,29 +2514,68 @@ private fun ConditionPickerSheet(
                                 onCheckedChange = if (auto) null else { _ -> onToggle(condition) },
                                 enabled = !auto,
                             )
-                            Text(
-                                text = condition.title,
+                            Column(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(RoundedCornerShape(7.dp))
                                     .clickable(enabled = !auto) { onToggle(condition) }
-                                    .padding(vertical = 8.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            if (auto) {
+                                    .padding(vertical = 6.dp),
+                            ) {
                                 Text(
-                                    "авто",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = DublStamina,
+                                    text = local?.title ?: condition.title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
                                 )
+                                if (local != null) {
+                                    Text(
+                                        "локальная правка",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = DublGold,
+                                    )
+                                }
+                            }
+                            if (auto) {
+                                Text("авто", style = MaterialTheme.typography.labelSmall, color = DublStamina)
                                 Spacer(Modifier.width(4.dp))
                             }
-                            TextButton(onClick = { onInfo(condition) }) {
-                                Text("?")
+                            TextButton(onClick = { onInfo(condition) }) { Text("?") }
+                        }
+                    }
+                }
+                if (customConditions.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Свои состояния",
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    items(customConditions, key = { it.id }) { condition ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(
+                                    checked = condition.active,
+                                    onCheckedChange = { checked -> onToggleCustom(condition.id, checked) },
+                                )
+                                Text(condition.title, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                                TextButton(onClick = { onEditCustom(condition.id) }) { Text("Изменить") }
                             }
                         }
                     }
+                }
+                item {
+                    OutlinedButton(
+                        onClick = onAddCustom,
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    ) { Text("Добавить своё состояние") }
                 }
             }
         }
@@ -2402,11 +2586,20 @@ private fun ConditionPickerSheet(
 @Composable
 private fun ConditionDetailSheet(
     condition: CharacterConditionId,
+    title: String,
+    summary: String,
+    canonicalTitle: String,
+    canonicalSummary: String,
     active: Boolean,
     automatic: Boolean,
     onToggle: () -> Unit,
+    onSaveLocal: (String, String) -> Unit,
+    onResetLocal: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var localTitle by remember(condition, title) { mutableStateOf(title) }
+    var localSummary by remember(condition, summary) { mutableStateOf(summary) }
+    val hasLocal = title != canonicalTitle || summary != canonicalSummary
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -2418,13 +2611,9 @@ private fun ConditionDetailSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
         ) {
-            Text(condition.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Text(
-                condition.rulesSummary,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(summary, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (automatic) {
                 Spacer(Modifier.height(12.dp))
                 Text(
@@ -2436,18 +2625,95 @@ private fun ConditionDetailSheet(
             Spacer(Modifier.height(18.dp))
             if (!automatic) {
                 if (active) {
-                    OutlinedButton(
-                        onClick = onToggle,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                    ) { Text("Убрать состояние") }
+                    OutlinedButton(onClick = onToggle, modifier = Modifier.fillMaxWidth()) { Text("Убрать состояние") }
                 } else {
-                    Button(
-                        onClick = onToggle,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                    ) { Text("Добавить состояние") }
+                    Button(onClick = onToggle, modifier = Modifier.fillMaxWidth()) { Text("Добавить состояние") }
                 }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text("Локальная правка состояния", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Правка действует только для этого персонажа и не меняет импортированный рулбук.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = localTitle,
+                onValueChange = { localTitle = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Название") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = localSummary,
+                onValueChange = { localSummary = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Описание / локальная трактовка") },
+                minLines = 3,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { onSaveLocal(localTitle, localSummary) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Сохранить локально") }
+                OutlinedButton(
+                    onClick = onResetLocal,
+                    enabled = hasLocal,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Сбросить к рулбуку") }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomConditionSheet(
+    condition: CustomCondition?,
+    onSave: (String, String, Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var title by remember(condition?.id) { mutableStateOf(condition?.title.orEmpty()) }
+    var description by remember(condition?.id) { mutableStateOf(condition?.description.orEmpty()) }
+    var active by remember(condition?.id) { mutableStateOf(condition?.active ?: false) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .containSheetOverscroll()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                if (condition == null) "Добавить своё состояние" else "Изменить своё состояние",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            OutlinedTextField(title, { title = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Название") })
+            OutlinedTextField(
+                description,
+                { description = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Описание / домашнее правило") },
+                minLines = 3,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = active, onCheckedChange = { active = it })
+                Text("Активно")
+            }
+            Button(
+                onClick = { onSave(title, description, active) },
+                enabled = title.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Сохранить") }
+            if (condition != null) {
+                TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) { Text("Удалить") }
             }
         }
     }

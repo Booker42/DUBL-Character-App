@@ -1,0 +1,2637 @@
+{
+  "schemaVersion": 1,
+  "source": "core",
+  "bindings": [
+    {
+      "id": "feat_fe005b143b217b52",
+      "name": "Авангард",
+      "category": "Авангард",
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_3f69c42fe3a960dd",
+      "name": "Разметать",
+      "category": "Авангард",
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_5d529855eb3823a5",
+      "name": "???",
+      "category": "Авангард",
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_09439655443ed30b",
+      "name": "Наступление",
+      "category": "Авангард",
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_883e5b9db927ce07",
+      "name": "Агрессивное наступление",
+      "category": "Авангард",
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_846d6cff41343664",
+      "name": "Название",
+      "category": "Авангард",
+      "sourceOccurrence": 0,
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_247d51073cc98454",
+      "name": "Название",
+      "category": "Авангард",
+      "sourceOccurrence": 1,
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_6cca0978934dc66e",
+      "name": "Название",
+      "category": "Авангард",
+      "sourceOccurrence": 2,
+      "tags": [
+        "Авангард"
+      ],
+      "accessId": "access_11f3a49ee9802ad0"
+    },
+    {
+      "id": "feat_4c85aa747f319702",
+      "name": "Акробатика",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_e76043d374b62744",
+      "name": "Проворство акробата",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_872647ceee8f38bc",
+      "name": "Правильное падение",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_8c378751d5c718d3",
+      "name": "Акробатический талант",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_c01feca8f72f9267",
+      "name": "Подскок",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_7c1e70b92a60c750",
+      "name": "Устойчивое положение",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_ca870f0e40a87ae0",
+      "name": "Невероятное уворачивание",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_4e7d79f21936a142",
+      "name": "Подлое уклонение",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_359840fe43838f10",
+      "name": "Опытный акробат",
+      "category": "Акробатика",
+      "tags": [
+        "Акробатика"
+      ],
+      "accessId": "access_45edee695a349bf7"
+    },
+    {
+      "id": "feat_e000383baa5b3afa",
+      "name": "Сплочение",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_ff626e2585de2dc7",
+      "name": "Громовое предупреждение",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_9813ba6aff7624ad",
+      "name": "Несокрушимый Дух",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_20333bb586348ab8",
+      "name": "Клич Возмездия",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_7de562d7f8525f6e",
+      "name": "Деморализующий крик",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_9c39a48b5a63feb0",
+      "name": "Вдохновенный удар",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_93a350961a4ba331",
+      "name": "Крик разителя",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_9710046dc000748a",
+      "name": "Шок и трепет",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_8437874ad6d99cf1",
+      "name": "Подавление слабых",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_8b6f3261d7c5c8ea",
+      "name": "Стальная глотка",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_127f2d478d76e66d",
+      "name": "Надрывный крик",
+      "category": "Боевые крики",
+      "tags": [
+        "Боевой крик"
+      ],
+      "accessId": "access_17f99cc35c559d82"
+    },
+    {
+      "id": "feat_60f7c4ca067ff0a5",
+      "name": "Берсерк",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_43a03b64a656118f",
+      "name": "Неутомимая ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_c48bad1e2f79cc02",
+      "name": "Мгновенная ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_844174f5261d6d85",
+      "name": "Отчаянная ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_8f96ece73f65bcfa",
+      "name": "Безудержная ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_9c9bfb5f33d0ff77",
+      "name": "Нескончаемая ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_e3202d8c160eb2f4",
+      "name": "Потаенная ярость",
+      "category": "Берсерк",
+      "tags": [
+        "Берсерк"
+      ],
+      "accessId": "access_5b50c9c8ead88fd5"
+    },
+    {
+      "id": "feat_85e6bef68fce8139",
+      "name": "Боевая фокусировка",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_cf016fbcb5694bb9",
+      "name": "Боевая стабильность",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_ef30600d1a509341",
+      "name": "Сфокусированная защита",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_00d27f4a83e142da",
+      "name": "Боевое восстановление",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_8375cdb3022db2f6",
+      "name": "Боевая бдительность",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_f3a95cbf618f3f7a",
+      "name": "Сфокусированный удар",
+      "category": "Боевая фокусировка",
+      "tags": [
+        "Боевая фокусировка"
+      ],
+      "accessId": "access_224a2229ad335a33"
+    },
+    {
+      "id": "feat_eef2c7391e1bfbe0",
+      "name": "Кураж",
+      "category": "Боевой азарт",
+      "tags": [
+        "Боевой азарт"
+      ],
+      "accessId": "access_40c3d6bcbdac132a"
+    },
+    {
+      "id": "feat_72e1af25e3a0cea4",
+      "name": "Сорвиголова",
+      "category": "Боевой азарт",
+      "tags": [
+        "Боевой азарт"
+      ],
+      "accessId": "access_40c3d6bcbdac132a"
+    },
+    {
+      "id": "feat_495b4a88fcac7d3f",
+      "name": "Отчаянное доверие",
+      "category": "Боевой азарт",
+      "tags": [
+        "Боевой азарт"
+      ],
+      "accessId": "access_40c3d6bcbdac132a"
+    },
+    {
+      "id": "feat_d311a68493a4872f",
+      "name": "Молниеносные движения",
+      "category": "Боевой азарт",
+      "tags": [
+        "Боевой азарт"
+      ],
+      "accessId": "access_40c3d6bcbdac132a"
+    },
+    {
+      "id": "feat_9c65548e75013f0f",
+      "name": "Броненосец",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_4e70134ae23c95d0",
+      "name": "Быстрая экипировка",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_73777bba1763b63b",
+      "name": "Железный покой",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_74ece586d9352abd",
+      "name": "Два щита",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_b24f9be358a16b43",
+      "name": "Подгонка по фигуре",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_0c3e0521c4c5e668",
+      "name": "Центр тяжести",
+      "category": "Броненосец",
+      "tags": [
+        "Броненосец"
+      ],
+      "accessId": "access_60f7faada295fcfc"
+    },
+    {
+      "id": "feat_a0ce124c38f9babb",
+      "name": "Второе дыхание",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_331997d79309902d",
+      "name": "Передышка",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_ee6b8ee7b9c444ed",
+      "name": "Стабилизация",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_5845641bc1d17c2b",
+      "name": "Тяга к жизни",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_38b4526ff5a4dedf",
+      "name": "Гарантия жизни",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_7fa4257aad0f3ea5",
+      "name": "Последний шанс",
+      "category": "Второе дыхание",
+      "tags": [
+        "Второе дыхание"
+      ],
+      "accessId": "access_e8245289051beebc"
+    },
+    {
+      "id": "feat_50d020a12998c83b",
+      "name": "Гнев",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_c674564a9eb4b6e3",
+      "name": "Удержание гнева",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_ec0aff06046c7a07",
+      "name": "Накопление гнева",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_84b3a80d34561387",
+      "name": "Нарастающий гнев",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_26281a4ec2b227d1",
+      "name": "Вспышка гнева",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_2d29b4e21c5aa360",
+      "name": "Подконтрольный гнев",
+      "category": "Гнев",
+      "tags": [
+        "Гнев"
+      ],
+      "accessId": "access_bb18db3acee8d8c0"
+    },
+    {
+      "id": "feat_c657786350e001d2",
+      "name": "Громила",
+      "category": "Громила",
+      "tags": [
+        "Громила"
+      ],
+      "accessId": "access_99adfccc91b11167"
+    },
+    {
+      "id": "feat_0bd10c31b772990f",
+      "name": "Кровавый гамбит",
+      "category": "Громила",
+      "tags": [
+        "Громила"
+      ],
+      "accessId": "access_99adfccc91b11167"
+    },
+    {
+      "id": "feat_a231ab1257c3cc30",
+      "name": "Прыткость",
+      "category": "Громила",
+      "tags": [
+        "Громила"
+      ],
+      "accessId": "access_99adfccc91b11167"
+    },
+    {
+      "id": "feat_371b671fb37a1c5f",
+      "name": "Крепыш",
+      "category": "Громила",
+      "tags": [
+        "Громила"
+      ],
+      "accessId": "access_99adfccc91b11167"
+    },
+    {
+      "id": "feat_fa8514b126e00d4d",
+      "name": "Истинная хватка",
+      "category": "Громила",
+      "tags": [
+        "Громила"
+      ],
+      "accessId": "access_99adfccc91b11167"
+    },
+    {
+      "id": "feat_49c5ba9431ae4768",
+      "name": "Дуэль",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_428ff552e965ddaa",
+      "name": "Вызов на дуэль",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_e87634186101633f",
+      "name": "Очевидное превосходство",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_48b024e36a3ddd21",
+      "name": "Поцелуй смерти",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_9d23b672153f2252",
+      "name": "Жало",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_9d9fa39f4efe7e95",
+      "name": "Ты - следующий",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_cd204c9214ce5117",
+      "name": "Нарастающее превосходство",
+      "category": "Дуэлянт",
+      "tags": [
+        "Дуэлянт"
+      ],
+      "accessId": "access_b7ab9ab06b30dd98"
+    },
+    {
+      "id": "feat_b2af3d6d79460623",
+      "name": "Изувер",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_ccc1b9121b75324b",
+      "name": "Упоение болью",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_352940bbbadf77ef",
+      "name": "Упоению кровью",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_b5a820a8ed0a5cda",
+      "name": "Упоение смертью",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_efa686df6f600015",
+      "name": "Жестокая расправа",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_819cf3b062b1c18f",
+      "name": "Подавление слабых",
+      "category": "Изувер",
+      "tags": [
+        "Изувер"
+      ],
+      "accessId": "access_e9d24a11c1717b4b"
+    },
+    {
+      "id": "feat_86f62a72aaf0c495",
+      "name": "Расстановка ловушек",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_ff2b2532be3cc900",
+      "name": "Быстрая установка",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_b802afc2806c5b17",
+      "name": "Скрытная расстановка",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_98e957beddccda22",
+      "name": "Широкий захват",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_cdfdef5260d67af8",
+      "name": "Неожиданная активация",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_f5fbd495f377c688",
+      "name": "Каскад ловушек",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_a8e37ecb25f5209d",
+      "name": "Тяжёлые ловушки",
+      "category": "Капканщик / Мастер ловушек",
+      "tags": [
+        "Мастер ловушек"
+      ],
+      "accessId": "access_d0fdba646d5da299"
+    },
+    {
+      "id": "feat_f42b45eaf3762d1e",
+      "name": "Мастер-лучник",
+      "category": "Мастер-лучник",
+      "tags": [
+        "Мастер-лучник"
+      ],
+      "accessId": "access_1b7b5d63bbfe5999"
+    },
+    {
+      "id": "feat_e31b759598801a91",
+      "name": "Дальняя стрельба",
+      "category": "Мастер-лучник",
+      "tags": [
+        "Мастер-лучник"
+      ],
+      "accessId": "access_1b7b5d63bbfe5999"
+    },
+    {
+      "id": "feat_8338973515df67d3",
+      "name": "Мастер блочных луков",
+      "category": "Мастер-лучник",
+      "tags": [
+        "Мастер-лучник"
+      ],
+      "accessId": "access_1b7b5d63bbfe5999"
+    },
+    {
+      "id": "feat_fd640cfbf8eacd26",
+      "name": "Абсолютная точность",
+      "category": "Мастер-лучник",
+      "tags": [
+        "Мастер-лучник"
+      ],
+      "accessId": "access_1b7b5d63bbfe5999"
+    },
+    {
+      "id": "feat_b7ac269653868a6c",
+      "name": "Мастер-метатель",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_259bc0767ad933b6",
+      "name": "Два по цене одного",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_5128e48484e7288d",
+      "name": "Навесной бросок",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_d006c816fda09f9d",
+      "name": "Рассчитанный бросок",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_db9b807fcd82d51a",
+      "name": "Пришпилить",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_46e2ff001afc53b3",
+      "name": "Ловля снарядов",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_56af9236580961b8",
+      "name": "Бросок-баллиста",
+      "category": "Мастер-метатель",
+      "tags": [
+        "Мастер-метатель"
+      ],
+      "accessId": "access_d0703df3ea56baab"
+    },
+    {
+      "id": "feat_a834e752f2e3132b",
+      "name": "Мастер оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_29f20ae454f0d8ba",
+      "name": "Дробитель костей",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_617d68d2452a5525",
+      "name": "Пронзатель",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_bdd0ea160eb40c9f",
+      "name": "Рассекатель",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_3b52a8ca2fb9ac31",
+      "name": "Поставленный удар",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_b13c4d437b322235",
+      "name": "Мастер тяжёлого оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_05158a62e80115da",
+      "name": "Мастер легкого оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_bda60ae45d55e458",
+      "name": "Мастер двуручного оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_1e917fbfcb30bcbb",
+      "name": "Мастер одноручного оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_dd748c7e0d83140f",
+      "name": "Мастер рубящего оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_c5ca770b130c02b4",
+      "name": "Мастер дробящего оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_6e4368a28a083301",
+      "name": "Мастер колющего оружия",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_963c20ec0c14be88",
+      "name": "Совершенное владение оружием",
+      "category": "Мастер оружия",
+      "tags": [
+        "Мастер оружия"
+      ],
+      "accessId": "access_3080526640119bbc"
+    },
+    {
+      "id": "feat_a06e094956b0c61e",
+      "name": "Призвание ремесленника",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_424f406f5b45ddcd",
+      "name": "Импровизированные инструменты",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_87eb2e3627c352bf",
+      "name": "Экономия материалов",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_7519826d733a38a9",
+      "name": "Мастерская на коленке",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_c6bde9f113a4dedf",
+      "name": "Наставник",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_396c18da9410a823",
+      "name": "Оружейник",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_1fc8a228447e1916",
+      "name": "Закалка и отпуск",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_51ef96ff892ba12c",
+      "name": "Правка клинка",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_be8ff81aff2e4b4d",
+      "name": "Бронник",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_8ad9a2e3fa3ad25b",
+      "name": "Выделка экзотических шкур",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_fbbc019dfe96dbf5",
+      "name": "Облегченная броня",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_71a6d3461154cdde",
+      "name": "Скорняжное дело",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_28ad9701e25f2a0e",
+      "name": "Сложное соединение",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_d91980d08153d6c8",
+      "name": "Качественная пропитка",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_c4f198a722bc93b7",
+      "name": "Быстрый ремонт",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_9ef8c9a50d4f6e28",
+      "name": "Питательный завтрак",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_8eb6bfc7b8b5a074",
+      "name": "Ядовитая кулинария",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_8a7eff97954e63db",
+      "name": "Дальнее хранение",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_575d1fae7950346b",
+      "name": "Высокая концентрация",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_b8591cfd7b812248",
+      "name": "Быстрая инфузия",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_165e749b6f396cb8",
+      "name": "Стабилизация реактивов",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b"
+    },
+    {
+      "id": "feat_3bc071e63be82bea",
+      "name": "Мастер щитов",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_e9f4c4b95c5df11c",
+      "name": "Точное блокирование",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_81c34f5d3e7fb8d9",
+      "name": "Точное парирование",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_9cb9560c36089240",
+      "name": "Щитовое 1",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_6b6b3a102996ca6e",
+      "name": "Щитовое 2",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_0e301e6de206aab4",
+      "name": "Неприступный бастион",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_adc845dc51d012a0",
+      "name": "Чух-чух",
+      "category": "Мастер щитов",
+      "tags": [
+        "Мастер щитов"
+      ],
+      "accessId": "access_72ff998a42c1b5fa"
+    },
+    {
+      "id": "feat_e980eea9d31969a8",
+      "name": "Неистовство",
+      "category": "Неистовство",
+      "tags": [
+        "Неистовство"
+      ],
+      "accessId": "access_471c1aa054fcf62f"
+    },
+    {
+      "id": "feat_04d78e47808ea3eb",
+      "name": "Преследователь",
+      "category": "Неистовство",
+      "tags": [
+        "Неистовство"
+      ],
+      "accessId": "access_471c1aa054fcf62f"
+    },
+    {
+      "id": "feat_7b621212f99495dd",
+      "name": "Прыжок хищника",
+      "category": "Неистовство",
+      "tags": [
+        "Неистовство"
+      ],
+      "accessId": "access_471c1aa054fcf62f"
+    },
+    {
+      "id": "feat_48e7c69389fdcd3c",
+      "name": "Преобразование боли",
+      "category": "Неистовство",
+      "tags": [
+        "Неистовство"
+      ],
+      "accessId": "access_471c1aa054fcf62f"
+    },
+    {
+      "id": "feat_444466165b290ced",
+      "name": "Жажда убийств",
+      "category": "Неистовство",
+      "tags": [
+        "Неистовство"
+      ],
+      "accessId": "access_471c1aa054fcf62f"
+    },
+    {
+      "id": "feat_dee6d91d0a987242",
+      "name": "Охотник за головами",
+      "category": "Охотник за головами",
+      "tags": [
+        "Охотник за головами"
+      ],
+      "accessId": "access_597f3218972b15b7"
+    },
+    {
+      "id": "feat_00967fb67f915b15",
+      "name": "Поиск слабостей",
+      "category": "Охотник за головами",
+      "tags": [
+        "Охотник за головами"
+      ],
+      "accessId": "access_597f3218972b15b7"
+    },
+    {
+      "id": "feat_f9c1caf4ec09ee8d",
+      "name": "Изучение уязвимостей",
+      "category": "Охотник за головами",
+      "tags": [
+        "Охотник за головами"
+      ],
+      "accessId": "access_597f3218972b15b7"
+    },
+    {
+      "id": "feat_d4df49bd218a6103",
+      "name": "Охота",
+      "category": "Охотник за головами",
+      "tags": [
+        "Охотник за головами"
+      ],
+      "accessId": "access_597f3218972b15b7"
+    },
+    {
+      "id": "feat_91d56fec47d2502f",
+      "name": "Пустить кровь",
+      "category": "Охотник за головами",
+      "tags": [
+        "Охотник за головами"
+      ],
+      "accessId": "access_597f3218972b15b7"
+    },
+    {
+      "id": "feat_923d021a2e9e6abf",
+      "name": "Пироманьяк",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_07b1246112e3ad75",
+      "name": "Пламя ярости",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_acd52652bbd1576c",
+      "name": "Поджигатель",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_d25f034a5cf3af31",
+      "name": "Ужас полыхающей смерти",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_b2421ab5cfc14e1b",
+      "name": "Пепел и копоть",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_1beadb2cd06442f9",
+      "name": "Сжигатель миров",
+      "category": "Пироманьяк",
+      "tags": [
+        "Пироманьяк"
+      ],
+      "accessId": "access_a8bdafdea2ef268e"
+    },
+    {
+      "id": "feat_58c9a78e46ea0cb3",
+      "name": "Подлая атака",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_49f28660561b1ae5",
+      "name": "Удар сбивающий с толку",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_4084ca6aab6d811c",
+      "name": "Тихая смерть",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_f2cc6f0c80305336",
+      "name": "Замедление реакции",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_f6cae65c38d93465",
+      "name": "Коварство",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_b41bff6e836781b5",
+      "name": "Засада",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_9b015d25afd296fd",
+      "name": "Натренированный снайпер",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_97d1239b7e0eb28b",
+      "name": "Глубокая рана",
+      "category": "Подлая атака",
+      "tags": [
+        "Подлая атака"
+      ],
+      "accessId": "access_c4bae7903fbe31be"
+    },
+    {
+      "id": "feat_44e8ec54f23aee13",
+      "name": "Борьба за жизнь",
+      "category": "Последний выживший",
+      "tags": [
+        "Последний выживший"
+      ],
+      "accessId": "access_fc1a6c172730bb9d"
+    },
+    {
+      "id": "feat_12c463f7f4fa00a1",
+      "name": "Несломленный",
+      "category": "Последний выживший",
+      "tags": [
+        "Последний выживший"
+      ],
+      "accessId": "access_fc1a6c172730bb9d"
+    },
+    {
+      "id": "feat_c2ada6713f1e3cf2",
+      "name": "На пороге смерти",
+      "category": "Последний выживший",
+      "tags": [
+        "Последний выживший"
+      ],
+      "accessId": "access_fc1a6c172730bb9d"
+    },
+    {
+      "id": "feat_130a086aaa590429",
+      "name": "Быстрое заживление",
+      "category": "Последний выживший",
+      "tags": [
+        "Последний выживший"
+      ],
+      "accessId": "access_fc1a6c172730bb9d"
+    },
+    {
+      "id": "feat_841c5e52936bfc31",
+      "name": "Сверхчеловеческие рефлексы",
+      "category": "Сверхчеловеческие рефлексы",
+      "tags": [
+        "Сверхчеловеческие рефлексы"
+      ],
+      "accessId": "access_7e908586113358b3"
+    },
+    {
+      "id": "feat_15d561fae0c769f7",
+      "name": "Отбивание пуль",
+      "category": "Сверхчеловеческие рефлексы",
+      "tags": [
+        "Сверхчеловеческие рефлексы"
+      ],
+      "accessId": "access_7e908586113358b3"
+    },
+    {
+      "id": "feat_633c5e6eaf0e636b",
+      "name": "Ускоренное восприятие",
+      "category": "Сверхчеловеческие рефлексы",
+      "tags": [
+        "Сверхчеловеческие рефлексы"
+      ],
+      "accessId": "access_7e908586113358b3"
+    },
+    {
+      "id": "feat_3acde4a62c69d01d",
+      "name": "Связи",
+      "category": "Связи",
+      "tags": [
+        "Связи"
+      ],
+      "accessId": "access_b832538f3a803048"
+    },
+    {
+      "id": "feat_e15a39ad2d1a7aaa",
+      "name": "Скаут",
+      "category": "Скаут",
+      "tags": [
+        "Скаут"
+      ],
+      "accessId": "access_bd7119a29fbad30f"
+    },
+    {
+      "id": "feat_3029ebbd8ea09714",
+      "name": "Мастерство засад",
+      "category": "Скаут",
+      "tags": [
+        "Скаут"
+      ],
+      "accessId": "access_bd7119a29fbad30f"
+    },
+    {
+      "id": "feat_d1885db7edd2680f",
+      "name": "Путепроходец",
+      "category": "Скаут",
+      "tags": [
+        "Скаут"
+      ],
+      "accessId": "access_bd7119a29fbad30f"
+    },
+    {
+      "id": "feat_ffcecfc06b94e592",
+      "name": "Дикий странник",
+      "category": "Скаут",
+      "tags": [
+        "Скаут"
+      ],
+      "accessId": "access_bd7119a29fbad30f"
+    },
+    {
+      "id": "feat_a4724bc98b972fd7",
+      "name": "Совершенная точность",
+      "category": "Совершенная точность",
+      "tags": [
+        "Совершенная точность"
+      ],
+      "accessId": "access_3fa2fc858d18365b"
+    },
+    {
+      "id": "feat_c2c2cbfa84405060",
+      "name": "Смертельный выстрел",
+      "category": "Совершенная точность",
+      "tags": [
+        "Совершенная точность"
+      ],
+      "accessId": "access_3fa2fc858d18365b"
+    },
+    {
+      "id": "feat_9012c539238a1e6f",
+      "name": "Орлиный взор",
+      "category": "Совершенная точность",
+      "tags": [
+        "Совершенная точность"
+      ],
+      "accessId": "access_3fa2fc858d18365b",
+      "legacyFallback": {
+        "cost": 0,
+        "mechanicsConflict": "В рулбуке не определены поля: cost. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    },
+    {
+      "id": "feat_482ee0f8c87f4398",
+      "name": "Застрельщик",
+      "category": "Совершенная точность",
+      "tags": [
+        "Совершенная точность"
+      ],
+      "accessId": "access_3fa2fc858d18365b"
+    },
+    {
+      "id": "feat_6a65e51f4aea6c5a",
+      "name": "Смертельная точность",
+      "category": "Совершенная точность",
+      "tags": [
+        "Совершенная точность"
+      ],
+      "accessId": "access_3fa2fc858d18365b"
+    },
+    {
+      "id": "feat_4187a51aa75de184",
+      "name": "Телохранитель",
+      "category": "Телохранитель",
+      "tags": [
+        "Телохранитель"
+      ],
+      "accessId": "access_7a53a3d465dd1c00"
+    },
+    {
+      "id": "feat_d5ebf88eb7adac06",
+      "name": "Живое укрытие",
+      "category": "Телохранитель",
+      "tags": [
+        "Телохранитель"
+      ],
+      "accessId": "access_7a53a3d465dd1c00"
+    },
+    {
+      "id": "feat_42dbac6721383f7e",
+      "name": "Защитный удар",
+      "category": "Телохранитель",
+      "tags": [
+        "Телохранитель"
+      ],
+      "accessId": "access_7a53a3d465dd1c00"
+    },
+    {
+      "id": "feat_556b5908ef65b396",
+      "name": "Постоянная готовность",
+      "category": "Телохранитель",
+      "tags": [
+        "Телохранитель"
+      ],
+      "accessId": "access_7a53a3d465dd1c00"
+    },
+    {
+      "id": "feat_58cf8d0d57421411",
+      "name": "Удача",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_e2631d55515e1934",
+      "name": "Благоговение Фортуны",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_863079b74884d9cd",
+      "name": "Удача Воина",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_0c7de953ad25243b",
+      "name": "Вмешательство удачи",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_a77f41fb4282c3ff",
+      "name": "Невероятное везение",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_68354cc3084013a8",
+      "name": "Нескончаемая удача",
+      "category": "Удача",
+      "tags": [
+        "Удача"
+      ],
+      "accessId": "access_0cda2f98e9ea984c"
+    },
+    {
+      "id": "feat_a7e9bdcd561a533e",
+      "name": "Чемпион",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион",
+        "Стойка"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_55fd28acf50f38b2",
+      "name": "Смертоносные удары",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_2bac7eb5e4b3f4b3",
+      "name": "Полное сокрушение",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_93272c756bf69ad7",
+      "name": "Увечья",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_ec796c364e0b6c90",
+      "name": "Всегда в строю",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_86b0beb374b3fe3c",
+      "name": "Отвага чемпиона",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_9f726e10aeb9a7bd",
+      "name": "Не сбежать",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_6ad2c4fd41382160",
+      "name": "Истинный чемпион",
+      "category": "Чемпион",
+      "tags": [
+        "Чемпион"
+      ],
+      "accessId": "access_0ae1b0eb999784a7"
+    },
+    {
+      "id": "feat_ed4817368e82ceb8",
+      "name": "Шестое чувство",
+      "category": "Шестое чувство",
+      "tags": [
+        "Шестое чувство"
+      ],
+      "accessId": "access_f9a25e27a88a7d61"
+    },
+    {
+      "id": "feat_6add0384614ae863",
+      "name": "Интуитивная защита",
+      "category": "Шестое чувство",
+      "tags": [
+        "Шестое чувство"
+      ],
+      "accessId": "access_f9a25e27a88a7d61"
+    },
+    {
+      "id": "feat_629ab1201dd31841",
+      "name": "Падающий лист",
+      "category": "Шестое чувство",
+      "tags": [
+        "Шестое чувство"
+      ],
+      "accessId": "access_f9a25e27a88a7d61"
+    },
+    {
+      "id": "feat_2c8d9330b0526884",
+      "name": "Чувство опасности",
+      "category": "Шестое чувство",
+      "tags": [
+        "Шестое чувство"
+      ],
+      "accessId": "access_f9a25e27a88a7d61"
+    },
+    {
+      "id": "feat_604cb2eab849f95f",
+      "name": "Чувство направления",
+      "category": "Шестое чувство",
+      "tags": [
+        "Шестое чувство"
+      ],
+      "accessId": "access_f9a25e27a88a7d61"
+    },
+    {
+      "id": "feat_059f2cc3cccea373",
+      "name": "Штурмовик",
+      "category": "Штурмовик",
+      "tags": [
+        "Штурмовик"
+      ],
+      "accessId": "access_a80140e55e6b3033"
+    },
+    {
+      "id": "feat_6eb0fafdd61cdc20",
+      "name": "Расстрел",
+      "category": "Штурмовик",
+      "tags": [
+        "Штурмовик"
+      ],
+      "accessId": "access_a80140e55e6b3033"
+    },
+    {
+      "id": "feat_94dad25d7888869e",
+      "name": "Название",
+      "category": "Штурмовик",
+      "sourceOccurrence": 0,
+      "tags": [
+        "Штурмовик"
+      ],
+      "accessId": "access_a80140e55e6b3033"
+    },
+    {
+      "id": "feat_70e7a1ab4d5749ec",
+      "name": "Название",
+      "category": "Штурмовик",
+      "sourceOccurrence": 1,
+      "tags": [
+        "Штурмовик"
+      ],
+      "accessId": "access_a80140e55e6b3033"
+    },
+    {
+      "id": "feat_a35cd71644363fca",
+      "name": "Название",
+      "category": "Штурмовик",
+      "sourceOccurrence": 2,
+      "accessId": "access_a80140e55e6b3033"
+    },
+    {
+      "id": "feat_1bacaebcd614c5c5",
+      "name": "Ассасин",
+      "category": "Ассассин",
+      "tags": [
+        "Ассасин"
+      ],
+      "perfectRoot": true
+    },
+    {
+      "id": "feat_f6dab14054b3c25e",
+      "name": "Незримая смерть",
+      "category": "Ассассин",
+      "tags": [
+        "Ассасин"
+      ]
+    },
+    {
+      "id": "feat_52a4d6cee2756b48",
+      "name": "Убийство",
+      "category": "Ассассин",
+      "tags": [
+        "Ассасин"
+      ],
+      "unresolved": {
+        "mechanicsConflict": "В рулбуке правило противоречиво: атака одновременно названа критической и «не крит, а сразу полуторный урон».",
+        "conflictNote": "Трактовка не выбрана автоматически. Используйте локальную правку персонажа, чтобы зафиксировать решение вашей группы."
+      }
+    },
+    {
+      "id": "feat_5abb4936ea815213",
+      "name": "Смертельная точность",
+      "category": "Ассассин",
+      "tags": [
+        "Ассасин"
+      ]
+    },
+    {
+      "id": "feat_7c06b44361f99e86",
+      "name": "Одержимость",
+      "category": "Маньяк",
+      "perfectRoot": true
+    },
+    {
+      "id": "feat_f798eee5d98707fa",
+      "name": "Тень за спиной",
+      "category": "Маньяк"
+    },
+    {
+      "id": "feat_77268d0a98b0bbe3",
+      "name": "Изощрённый садизм",
+      "category": "Маньяк"
+    },
+    {
+      "id": "feat_18e8d25ae033d3cc",
+      "name": "Навязчивое присутствие",
+      "category": "Маньяк"
+    },
+    {
+      "id": "feat_4aec953f86c6ab7f",
+      "name": "Не сбежать",
+      "category": "Маньяк"
+    },
+    {
+      "id": "feat_7ad04d9ea0a3d418",
+      "name": "Ритуал убийства",
+      "category": "Маньяк"
+    },
+    {
+      "id": "feat_07a5933de10322e2",
+      "name": "Энтропия",
+      "category": "Энтропия",
+      "perfectRoot": true
+    },
+    {
+      "id": "feat_dae0c005f43cc4c0",
+      "name": "Энтропия растет",
+      "category": "Энтропия"
+    },
+    {
+      "id": "feat_c1cbac9f98bbe854",
+      "name": "Влияние хаоса",
+      "category": "Энтропия"
+    },
+    {
+      "id": "feat_b7eadf64d2b256fd",
+      "name": "Аура хаоса",
+      "category": "Энтропия"
+    },
+    {
+      "id": "feat_a450ed487b601d42",
+      "name": "Энтропийный резонанс",
+      "category": "Энтропия"
+    },
+    {
+      "id": "feat_e04b4d619a503480",
+      "name": "Энтропийное поле",
+      "category": "Энтропия"
+    },
+    {
+      "id": "feat_29ff1cb23df7879d",
+      "name": "Анимагия",
+      "category": "Анимагия"
+    },
+    {
+      "id": "feat_020d4e245d3efed5",
+      "name": "Быстрое превращение",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_f02f1386a008c762",
+      "name": "Дикая речь",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_3033b2c6accce145",
+      "name": "Язык зверей",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_4d4fcd1a77f07bb1",
+      "name": "Долгое превращение",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_fc1f69730433e92b",
+      "name": "Звериная натура",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_556672f71365a80b",
+      "name": "Звериная живучесть",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_b9db81015247663e",
+      "name": "Толстая шкура",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_d3595f2cbe0c8f12",
+      "name": "Множественное превращение",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_28e20759cab8ebc8",
+      "name": "Подконтрольное превращение",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_bc76ef56ff5c6ba6",
+      "name": "Дикая мощь",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_9501c95b22d02ede",
+      "name": "???",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_ab0ad31f46407f46",
+      "name": "Вечный зверь",
+      "category": "Анимагия",
+      "tags": [
+        "Анимагия"
+      ]
+    },
+    {
+      "id": "feat_d1ed574bc6fc7721",
+      "name": "Чарокрад",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_ee839733dc3497c4",
+      "name": "Высасывание магии",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_bdd80c0f95bb9370",
+      "name": "Абсорбирование заклинаний",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_f6e6a3475c23ad54",
+      "name": "Мощное вытягивание",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_09d2c29758e45bac",
+      "name": "Хранитель заклинаний",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_002a151fc18f9720",
+      "name": "Магический грабёж",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_f337696f351f8055",
+      "name": "Могущество чарокрада",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_432089ca4270b16d",
+      "name": "Кража эффектов",
+      "category": "Чарокрад",
+      "tags": [
+        "Чарокрад"
+      ],
+      "accessId": "access_6ee5e1d18064717b"
+    },
+    {
+      "id": "feat_ba5b71a8818a8f21",
+      "name": "Владыка мистического пламени",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_f9d76b881fa16ea2",
+      "name": "Разрушительное магическое пламя",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_fed4d41b141a5679",
+      "name": "Созидательное магическое пламя",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_8079e41c8639fba1",
+      "name": "Бастион маны",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_698cbf5ca1ae9910",
+      "name": "Разрушение заклинаний",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_a43c8ee470b2dda3",
+      "name": "Абсорбирование маны",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038"
+    },
+    {
+      "id": "feat_e6df7c11fb2fbabc",
+      "name": "Волнение магии",
+      "category": "Владыка мистического пламени",
+      "tags": [
+        "Владыка мистического пламени"
+      ],
+      "accessId": "access_7295ddf972d38038",
+      "legacyFallback": {
+        "cost": 0,
+        "mechanicsConflict": "В рулбуке не определены поля: cost. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    },
+    {
+      "id": "feat_7576d0a496b3b046",
+      "name": "Мистический рыцарь",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_8d1afdcdbfd842c9",
+      "name": "Блокирование заклинаний",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_029a6f765a74c2b5",
+      "name": "Парирование заклинаний",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_cfd77403814f4759",
+      "name": "Зачарованный удар",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_9a78166118f5201d",
+      "name": "Длительное хранение",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_6e5f776e24effe94",
+      "name": "Посвященный",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_5368c7691988fd41",
+      "name": "Мистическое оружие",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_baa94ab25615a030",
+      "name": "Мистический оружейник",
+      "category": "Мистический рыцарь",
+      "tags": [
+        "Мистический рыцарь"
+      ],
+      "accessId": "access_c55a5bee28052c88"
+    },
+    {
+      "id": "feat_59b18e651fa5109a",
+      "name": "Трикстер",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_e810090595516067",
+      "name": "Иллюзорный двойник",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_c6da67546770415c",
+      "name": "Верный двойник",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_ebb2870a71751e1e",
+      "name": "Отвод глаз",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_0acacb60df070f2b",
+      "name": "Подмена предмета",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_04393a69151c2356",
+      "name": "Невидимая работа",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_bb95a4d2f3f26135",
+      "name": "Ложное ранение",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_7c744c70e9c97a5e",
+      "name": "Трюк с заклинанием",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_846d1a2b621948ad",
+      "name": "Рассеивающий финт",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_e1aa37565142c881",
+      "name": "Подстава",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_e49c4c9df1a343ce",
+      "name": "Последний фокус",
+      "category": "Трикстер",
+      "tags": [
+        "Трикстер"
+      ],
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_8d9a8d78342f9158",
+      "name": "Король проделок",
+      "category": "Трикстер",
+      "accessId": "access_5a507d1433ae0b0d"
+    },
+    {
+      "id": "feat_ca778ede19771422",
+      "name": "Пиромант",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_6b93201cb7721c97",
+      "name": "Повелитель огня",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_764d06cacf2d2f08",
+      "name": "Дымная магия",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_b111b3c46f498d63",
+      "name": "Пепельная магия",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_f938893fb568afe2",
+      "name": "Распространение пламени",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_4c0d2eeba22e7f67",
+      "name": "Огненная плоть",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_798aa56ff3f6ca06",
+      "name": "Выгорание",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_2687e5a913b07ad8",
+      "name": "Огненная клетка",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_8a7d97e92179a666",
+      "name": "Воплощение пламени",
+      "category": "Пиромант",
+      "tags": [
+        "Пиромант"
+      ],
+      "accessId": "access_f9116a33157b64d4"
+    },
+    {
+      "id": "feat_22eb6769decb881c",
+      "name": "Ледяной маг",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_66c8d74e2b7f1106",
+      "name": "Глубокое обморожение",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_46a2d866b3f99bb4",
+      "name": "Смертельные сосульки",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_032f4da5204e74fd",
+      "name": "Ледяная хватка",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_b01d5e3067fd43d5",
+      "name": "Закалка холодом",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_78bd1afcc7f2f869",
+      "name": "Аура мерзлоты",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_4bfc9758e7f7e54f",
+      "name": "Воплощение зимы",
+      "category": "Ледяной маг",
+      "tags": [
+        "Ледяной маг"
+      ],
+      "accessId": "access_ee0f09d57b95080c"
+    },
+    {
+      "id": "feat_6339d8d3458b7cfb",
+      "name": "Энергетический вампир",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_92f6b3f9b2befe1f",
+      "name": "Касание пиявки",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_a9495070244fa250",
+      "name": "Левитация",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_3581e05f31eb178e",
+      "name": "Энергетические резервы",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_4358b6b50ee00450",
+      "name": "Утомляющая болтовня",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_91c5a37b6e94e3e4",
+      "name": "Надоедливый бубнеж",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_1d9d4f8e6d850cae",
+      "name": "Утомляющее касание",
+      "category": "Энергетический вампир",
+      "tags": [
+        "Энергетический вампир"
+      ],
+      "accessId": "access_169a9294a567006e"
+    },
+    {
+      "id": "feat_6f7441d04e880130",
+      "name": "Киберпанк",
+      "category": "Киберпанк",
+      "tags": [
+        "Киберпанк"
+      ],
+      "accessId": "access_a1ba386fab363965"
+    },
+    {
+      "id": "feat_b364b25cb13664c0",
+      "name": "???",
+      "category": "Киберпанк",
+      "tags": [
+        "Киберпанк"
+      ],
+      "accessId": "access_a1ba386fab363965"
+    },
+    {
+      "id": "feat_4576268c38fcd5f7",
+      "name": "Сверхлимиты",
+      "category": "Киберпанк",
+      "tags": [
+        "Киберпанк"
+      ],
+      "accessId": "access_a1ba386fab363965"
+    },
+    {
+      "id": "feat_7bc39bc9c44dd41e",
+      "name": "Жертва аугментации",
+      "category": "Киберпанк",
+      "tags": [
+        "Киберпанк"
+      ],
+      "accessId": "access_a1ba386fab363965"
+    },
+    {
+      "id": "feat_834a9fdca2efe82c",
+      "name": "Мастер дубильщик",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b",
+      "legacyFallback": {
+        "ranks": 1,
+        "mechanicsConflict": "В рулбуке не определены поля: ranks. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    },
+    {
+      "id": "feat_253522fa4d04dba5",
+      "name": "Зодчий",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b",
+      "legacyFallback": {
+        "ranks": 1,
+        "mechanicsConflict": "В рулбуке не определены поля: ranks. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    },
+    {
+      "id": "feat_5bb9b7c6c6694812",
+      "name": "Шеф-повар",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b",
+      "legacyFallback": {
+        "ranks": 1,
+        "mechanicsConflict": "В рулбуке не определены поля: ranks. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    },
+    {
+      "id": "feat_906f8131263d3eb9",
+      "name": "Зельевар",
+      "category": "Мастер-ремесленник",
+      "accessId": "access_fa467b4e9d83447b",
+      "legacyFallback": {
+        "ranks": 1,
+        "mechanicsConflict": "В рулбуке не определены поля: ranks. Значения сохранены только для совместимости.",
+        "conflictNote": "Локальная правка разрешена; compatibility fallback не считается канонической трактовкой."
+      }
+    }
+  ]
+}

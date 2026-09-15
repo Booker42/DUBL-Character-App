@@ -60,6 +60,7 @@ import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
+import com.dubl.character.android.model.CustomCondition
 import com.dubl.character.android.model.CustomResource
 import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.DevelopmentProgress
@@ -249,10 +250,16 @@ fun CharacterSheetScreen(
 
         item {
             SectionCard("Состояния", action = { OutlinedButton(onClick = { showConditions = true }) { Text("Изменить") } }) {
-                if (effectiveConditions.isEmpty()) EmptyState("Активных состояний нет.")
+                val activeCustom = extras.customConditions.filter { it.active }
+                if (effectiveConditions.isEmpty() && activeCustom.isEmpty()) EmptyState("Активных состояний нет.")
                 effectiveConditions.forEach { condition ->
-                    Text("• ${condition.title}${if (condition == CharacterConditionId.WEAKNESS && condition !in extras.activeConditions) " · автоматически" else ""}")
-                    Text(condition.rulesSummary, color = DublMuted)
+                    val local = extras.conditionOverrides[condition]
+                    Text("• ${local?.title ?: condition.title}${if (condition == CharacterConditionId.WEAKNESS && condition !in extras.activeConditions) " · автоматически" else ""}")
+                    Text(local?.description ?: state.conditionCatalog.summary(condition), color = DublMuted)
+                }
+                activeCustom.forEach { condition ->
+                    Text("• ${condition.title} · своё")
+                    if (condition.description.isNotBlank()) Text(condition.description, color = DublMuted)
                 }
             }
         }
@@ -594,11 +601,173 @@ private fun CustomResourceDialog(state: DesktopAppState, resource: CustomResourc
 @Composable
 private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onChanged: (Set<CharacterConditionId>) -> Unit) {
     val previous = state.extras.activeConditions
+    var editCondition by remember { mutableStateOf<CharacterConditionId?>(null) }
+    var editCustomId by remember { mutableStateOf<String?>(null) }
+    var createCustom by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Состояния") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { CharacterConditionId.entries.forEach { condition -> Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(condition in state.extras.activeConditions, { state.updateExtras { toggleCondition(state.activeCharacter.id, condition) } }); Column { Text(condition.title); Text(condition.rulesSummary, color = DublMuted) } } } } },
+        text = {
+            LazyColumn(modifier = Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(CharacterConditionId.entries, key = { it.name }) { condition ->
+                    val local = state.extras.conditionOverrides[condition]
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            condition in state.extras.activeConditions,
+                            { state.updateExtras { toggleCondition(state.activeCharacter.id, condition) } },
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(local?.title ?: condition.title, fontWeight = FontWeight.Bold)
+                            Text(local?.description ?: state.conditionCatalog.summary(condition), color = DublMuted)
+                            if (local != null) Text("локальная правка", color = DublGold, fontSize = 11.sp)
+                        }
+                        TextButton(onClick = { editCondition = condition }) { Text("Правка") }
+                    }
+                }
+                if (state.extras.customConditions.isNotEmpty()) {
+                    item { Text("Свои состояния", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+                    items(state.extras.customConditions, key = { it.id }) { condition ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = condition.active,
+                                onCheckedChange = { checked -> state.updateExtras { setCustomConditionActive(state.activeCharacter.id, condition.id, checked) } },
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(condition.title, fontWeight = FontWeight.Bold)
+                                if (condition.description.isNotBlank()) Text(condition.description, color = DublMuted)
+                            }
+                            TextButton(onClick = { editCustomId = condition.id }) { Text("Изменить") }
+                        }
+                    }
+                }
+                item {
+                    OutlinedButton(onClick = { createCustom = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Добавить своё состояние")
+                    }
+                }
+            }
+        },
         confirmButton = { TextButton(onClick = { onChanged(previous); onDismiss() }) { Text("Готово") } },
+    )
+
+    editCondition?.let { condition ->
+        val local = state.extras.conditionOverrides[condition]
+        ConditionOverrideDialog(
+            canonicalTitle = condition.title,
+            canonicalDescription = state.conditionCatalog.summary(condition),
+            title = local?.title ?: condition.title,
+            description = local?.description ?: state.conditionCatalog.summary(condition),
+            onSave = { title, description ->
+                state.updateExtras { setConditionOverride(state.activeCharacter.id, condition, title, description) }
+                editCondition = null
+            },
+            onReset = {
+                state.updateExtras { resetConditionOverride(state.activeCharacter.id, condition) }
+                editCondition = null
+            },
+            onDismiss = { editCondition = null },
+        )
+    }
+
+    if (createCustom) {
+        CustomConditionDialog(
+            condition = null,
+            onSave = { title, description, active ->
+                var createdId: String? = null
+                state.updateExtras { createdId = addCustomCondition(state.activeCharacter.id, title, description) }
+                createdId?.let { id -> state.updateExtras { setCustomConditionActive(state.activeCharacter.id, id, active) } }
+                createCustom = false
+            },
+            onDelete = {},
+            onDismiss = { createCustom = false },
+        )
+    }
+
+    editCustomId?.let { id ->
+        state.extras.customConditions.firstOrNull { it.id == id }?.let { condition ->
+            CustomConditionDialog(
+                condition = condition,
+                onSave = { title, description, active ->
+                    state.updateExtras {
+                        updateCustomCondition(state.activeCharacter.id, id, title, description)
+                        setCustomConditionActive(state.activeCharacter.id, id, active)
+                    }
+                    editCustomId = null
+                },
+                onDelete = {
+                    state.updateExtras { removeCustomCondition(state.activeCharacter.id, id) }
+                    editCustomId = null
+                },
+                onDismiss = { editCustomId = null },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConditionOverrideDialog(
+    canonicalTitle: String,
+    canonicalDescription: String,
+    title: String,
+    description: String,
+    onSave: (String, String) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var localTitle by remember(title) { mutableStateOf(title) }
+    var localDescription by remember(description) { mutableStateOf(description) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Локальная правка состояния") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Канон остаётся неизменным. Эта трактовка хранится только у персонажа.", color = DublMuted)
+                OutlinedTextField(localTitle, { localTitle = it }, label = { Text("Название") }, singleLine = true)
+                OutlinedTextField(localDescription, { localDescription = it }, label = { Text("Описание / трактовка") })
+                Text("Рулбук: $canonicalTitle", color = DublMuted, fontSize = 11.sp)
+                if (canonicalDescription.isNotBlank()) Text(canonicalDescription, color = DublMuted, fontSize = 11.sp)
+            }
+        },
+        confirmButton = { TextButton(enabled = localTitle.isNotBlank(), onClick = { onSave(localTitle, localDescription) }) { Text("Сохранить") } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onReset) { Text("К рулбуку") }
+                TextButton(onClick = onDismiss) { Text("Отмена") }
+            }
+        },
+    )
+}
+
+@Composable
+private fun CustomConditionDialog(
+    condition: CustomCondition?,
+    onSave: (String, String, Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var title by remember(condition?.id) { mutableStateOf(condition?.title.orEmpty()) }
+    var description by remember(condition?.id) { mutableStateOf(condition?.description.orEmpty()) }
+    var active by remember(condition?.id) { mutableStateOf(condition?.active ?: false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (condition == null) "Добавить своё состояние" else "Изменить своё состояние") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(title, { title = it }, label = { Text("Название") }, singleLine = true)
+                OutlinedTextField(description, { description = it }, label = { Text("Описание / домашнее правило") })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(active, { active = it })
+                    Text("Активно")
+                }
+            }
+        },
+        confirmButton = { TextButton(enabled = title.isNotBlank(), onClick = { onSave(title, description, active) }) { Text("Сохранить") } },
+        dismissButton = {
+            Row {
+                if (condition != null) TextButton(onClick = onDelete) { Text("Удалить") }
+                TextButton(onClick = onDismiss) { Text("Отмена") }
+            }
+        },
     )
 }
 

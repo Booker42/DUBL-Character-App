@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "rulesetId": "dubl",
+  "rulesetVersion": "3.69",
+  "sourceHashes": {
+    "archmage": "f6a451b66541890a989ab0222c6d0fce4a16323829428e1859afacf19a106655",
+    "core": "697f013240004db1a2dfd8caffa747b75c5428467c305841de6f59ba9a353151",
+    "melee": "b555a298c6fcf7d3029b301f67fec9f1ef609d8e3ef4b80e3a1df227a432f5ad"
+  },
+  "sourceStats": {
+    "blocks": 32233,
+    "paragraphs": 31910,
+    "tables": 323,
+    "headings": 3018
+  },
+  "domainCoverage": {
+    "chi": {
+      "total": 77,
+      "linked": 77,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "conditions": {
+      "total": 25,
+      "linked": 25,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development": {
+      "total": 0,
+      "linked": 0,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_ability_roots": {
+      "total": 41,
+      "linked": 41,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_chi": {
+      "total": 27,
+      "linked": 27,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_magic": {
+      "total": 15,
+      "linked": 15,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_martial": {
+      "total": 122,
+      "linked": 122,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_regular": {
+      "total": 287,
+      "linked": 287,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "development_special": {
+      "total": 304,
+      "linked": 304,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "magic_equipment": {
+      "total": 525,
+      "linked": 525,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "skill_effects": {
+      "total": 283,
+      "linked": 283,
+      "ambiguous": 0,
+      "missing": 0
+    },
+    "skills": {
+      "total": 27,
+      "linked": 27,
+      "ambiguous": 0,
+      "missing": 0
+    }
+  },
+  "diagnosticsByKind": {
+    "ability-root-draft-source": 1,
+    "ability-root-template-incomplete": 13,
+    "development-fields-missing": 8,
+    "draft-marker": 6,
+    "duplicate-heading-repeat": 150,
+    "duplicate-heading-variant": 126,
+    "skill-base-table-fields-missing": 1,
+    "spell-source-conflict": 57
+  },
+  "diagnosticsBySeverity": {
+    "info": 150,
+    "warning": 212
+  }
+}

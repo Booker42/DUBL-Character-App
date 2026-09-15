@@ -151,7 +151,7 @@ private fun DublCharacter.skillBasedPreset(
             bonus = null,
             contributions = contributions,
             formulaText = "2d6 + ${attribute.title} + ${skill.name}",
-            unavailableReason = "Нельзя использовать без обучения",
+            unavailableReason = skill.untrained.unavailableReason(),
         )
     }
     val untrainedPenalty = if (skill.rank == 0) skill.untrained.penalty ?: 0 else 0

@@ -30,9 +30,9 @@ def test_desktop_magic_exposes_android_mana_mutations_and_creation_lock():
     assert 'enabled = !character.creationComplete' in MAGIC
 
 
-def test_desktop_magic_blocks_incomplete_catalog_spells_in_ui_too():
-    assert 'enabled = !spell.incomplete' in MAGIC
-    assert 'if (spell.incomplete) "Черновик"' in MAGIC
+def test_desktop_magic_keeps_incomplete_catalog_spells_addable_for_local_fix():
+    assert 'enabled = !spell.incomplete' not in MAGIC
+    assert 'if (spell.incomplete) "Добавить и исправить"' in MAGIC
 
 
 def test_spell_usability_warning_matches_android_learned_semantics():

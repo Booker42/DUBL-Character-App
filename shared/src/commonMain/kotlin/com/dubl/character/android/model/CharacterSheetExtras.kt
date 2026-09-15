@@ -1,102 +1,45 @@
 package com.dubl.character.android.model
 
-enum class CharacterConditionId(
-    val title: String,
-    val rulesSummary: String,
-) {
-    HELPLESS(
-        "Беспомощный",
-        "В разделе состояний отдельно не расписан: при Силе −6 персонаж падает и считается беспомощным.",
-    ),
-    PARALYZED(
-        "Парализованный",
-        "В разделе состояний отдельно не расписан: при Ловкости −6 персонаж становится парализованным; паралич также может накладываться отдельными эффектами.",
-    ),
-    UNCONSCIOUS(
-        "Без сознания",
-        "При Интеллекте, Восприятии, Воле или Харизме −6 персонаж теряет сознание; отдельные эффекты также могут оставить цель без сознания.",
-    ),
-    BLINDNESS(
-        "Слепота",
-        "Персонаж не видит: теряет бонусы уклонения к Защите, кроме Скорости; получает −4 к умениям от Восприятия и Ловкости, автоматически проваливает действия, требующие зрения, и атакует с двумя помехами.",
-    ),
-    DAZED(
-        "Изумление",
-        "Персонаж не может совершать действия, но не получает штрафа к Защите. Обычно изумление заканчивается через 1 раунд и считается психическим эффектом.",
-    ),
-    DAZZLED(
-        "Ослепление",
-        "Персонаж плохо видит и получает одну помеху на атаки, зрительные проверки Восприятия и проверки Ловкости.",
-    ),
-    DEAFNESS(
-        "Глухота",
-        "Персонаж не слышит, получает −4 к Инициативе и 20% шанс провалить заклинание с вербальным компонентом.",
-    ),
-    ENTANGLED(
-        "Опутанный",
-        "Скорость уменьшается вдвое; нельзя бежать и атаковать с разбега. На проверки от Ловкости и атаки действуют помеха и штраф −3.",
-    ),
-    WEAKNESS(
-        "Слабость",
-        "−2 к Защите, Рефлексам, Инициативе и Бегу; две помехи на физические характеристики; нельзя атаковать с разбега и тратить Выносливость. Потеря 1 Выносливости в этом состоянии приводит к Истощению.",
-    ),
-    EXHAUSTION(
-        "Истощение",
-        "Бег уменьшается вдвое; −3 к Защите, Рефлексам и Инициативе; физические характеристики получают −2 и две помехи. После полноценного отдыха состояние переходит в Усталость.",
-    ),
-    TIRED(
-        "Уставший",
-        "После полноценного отдыха истощённый персонаж становится уставшим. Если уставший персонаж теряет или тратит 1 Выносливость, он снова становится истощённым.",
-    ),
-    INVISIBILITY(
-        "Невидимость",
-        "Невидимый персонаж получает преимущество на атаки против видимых существ, а противники считаются неподготовленными.",
-    ),
-    NAUSEA(
-        "Тошнота",
-        "Персонаж не может совершать никаких действий, кроме передвижения на расстояние базового Бега.",
-    ),
-    PRONE(
-        "Сбит с ног",
-        "Лежащий персонаж получает −2 к Защите и атакам ближнего боя. Чтобы встать, нужно потратить 1 ОД, что провоцирует атаки.",
-    ),
-    SHOCK(
-        "Шок",
-        "−1 к проверкам атаки, умений, характеристик, Рефлексов и Инициативы.",
-    ),
-    FEAR(
-        "Страх",
-        "Персонаж пытается бежать. Если бежать некуда, он сражается со штрафом −2 к атакам, умениям, характеристикам, Рефлексам и Инициативе.",
-    ),
-    PANIC(
-        "Паника",
-        "Персонаж пытается любой ценой убежать от источника страха, роняет всё из рук и преодолевает препятствия на пути к отступлению.",
-    ),
-    SICKNESS(
-        "Болезненность",
-        "Штраф от −1 до −3 к проверкам характеристик, урону ближнего боя, атакам, умениям, Стойкости и Рефлексам.",
-    ),
-    STAGGERED(
-        "Ошеломление",
-        "При уроне во время своего действия или уроне не меньше Стойкости персонаж теряет 1 ОД либо его текущее действие прерывается. Повторный длительный эффект может привести к Оглушению.",
-    ),
-    STUNNED(
-        "Оглушение",
-        "Персонаж роняет всё из рук, получает −2 к Защите и теряет все ОД. Длительность записывается как «Оглушение /X» в раундах.",
-    ),
-    POISONED(
-        "Отравление",
-        "На проверки всех характеристик действует помеха.",
-    ),
-    INSPIRED(
-        "Воодушевление",
-        "+1 моральный бонус ко всем проверкам. Следующий эффект Деморализации нейтрализует Воодушевление; моральные штрафы не действуют.",
-    ),
-    DEMORALIZED(
-        "Деморализация",
-        "−1 моральный штраф ко всем проверкам. Следующий эффект Воодушевления нейтрализует Деморализацию; моральные бонусы не действуют.",
-    ),
+enum class CharacterConditionId(val title: String) {
+    HELPLESS("Беспомощный"),
+    PARALYZED("Парализованный"),
+    UNCONSCIOUS("Без сознания"),
+    BLINDNESS("Слепота"),
+    DAZED("Изумление"),
+    DAZZLED("Ослепление"),
+    DEAFNESS("Глухота"),
+    ENTANGLED("Опутанный"),
+    WEAKNESS("Слабость"),
+    EXHAUSTION("Истощение"),
+    TIRED("Уставший"),
+    INVISIBILITY("Невидимость"),
+    NAUSEA("Тошнота"),
+    PRONE("Сбит с ног"),
+    SHOCK("Шок"),
+    FEAR("Страх"),
+    PANIC("Паника"),
+    SICKNESS("Болезненность"),
+    STAGGERED("Ошеломление"),
+    STUNNED("Оглушение"),
+    POISONED("Отравление"),
+    INSPIRED("Воодушевление"),
+    DEMORALIZED("Деморализация"),
 }
+
+
+
+data class ConditionLocalOverride(
+    val title: String? = null,
+    val description: String? = null,
+)
+
+data class CustomCondition(
+    val id: String,
+    val title: String,
+    val description: String = "",
+    val active: Boolean = false,
+)
+
 
 enum class CharacterSheetResourceId(val title: String) {
     HEALTH("Здоровье"),
@@ -112,4 +55,107 @@ data class CharacterSheetExtras(
     val preferredSkillAttributes: Map<String, AttributeId> = emptyMap(),
     val skillGroups: List<SheetGroup> = emptyList(),
     val developmentGroups: List<SheetGroup> = emptyList(),
+    val conditionOverrides: Map<CharacterConditionId, ConditionLocalOverride> = emptyMap(),
+    val customConditions: List<CustomCondition> = emptyList(),
 )
+
+
+object ConditionLocalDataCodec {
+    private const val RECORD_SEPARATOR = "\u001e"
+    private const val FIELD_SEPARATOR = "\u001f"
+
+    fun encodeOverrides(values: Map<CharacterConditionId, ConditionLocalOverride>): String =
+        values.entries.sortedBy { it.key.name }.joinToString(RECORD_SEPARATOR) { (condition, override) ->
+            listOf(
+                condition.name,
+                override.title.orEmpty(),
+                override.description ?: NULL_TOKEN,
+            ).joinToString(FIELD_SEPARATOR) { encodeToken(it) }
+        }
+
+    fun decodeOverrides(raw: String?): Map<CharacterConditionId, ConditionLocalOverride> {
+        if (raw.isNullOrBlank()) return emptyMap()
+        return raw.split(RECORD_SEPARATOR).mapNotNull { record ->
+            val fields = record.split(FIELD_SEPARATOR)
+            if (fields.size < 3) return@mapNotNull null
+            val conditionName = decodeToken(fields[0])
+            val condition = CharacterConditionId.entries.firstOrNull { it.name == conditionName } ?: return@mapNotNull null
+            val title = decodeToken(fields[1]).takeIf(String::isNotBlank)
+            val descriptionRaw = decodeToken(fields[2])
+            val description = descriptionRaw.takeUnless { it == NULL_TOKEN }
+            condition to ConditionLocalOverride(title = title, description = description)
+        }.toMap()
+    }
+
+    fun encodeCustom(values: List<CustomCondition>): String =
+        values.joinToString(RECORD_SEPARATOR) { condition ->
+            listOf(
+                condition.id,
+                condition.title,
+                condition.description,
+                if (condition.active) "1" else "0",
+            ).joinToString(FIELD_SEPARATOR) { encodeToken(it) }
+        }
+
+    fun decodeCustom(raw: String?): List<CustomCondition> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split(RECORD_SEPARATOR).mapNotNull { record ->
+            val fields = record.split(FIELD_SEPARATOR)
+            if (fields.size < 4) return@mapNotNull null
+            val id = decodeToken(fields[0]).takeIf(String::isNotBlank) ?: return@mapNotNull null
+            val title = decodeToken(fields[1]).takeIf(String::isNotBlank) ?: return@mapNotNull null
+            CustomCondition(
+                id = id,
+                title = title,
+                description = decodeToken(fields[2]),
+                active = decodeToken(fields[3]) == "1",
+            )
+        }.distinctBy { it.id }
+    }
+
+    private fun encodeToken(value: String): String = buildString {
+        value.encodeToByteArray().forEach { signedByte ->
+            val byte = signedByte.toInt() and 0xff
+            when {
+                byte == 0x20 -> append('+')
+                isSafe(byte) -> append(byte.toChar())
+                else -> {
+                    append('%')
+                    append(HEX[byte ushr 4])
+                    append(HEX[byte and 0x0f])
+                }
+            }
+        }
+    }
+
+    private fun decodeToken(value: String): String {
+        val bytes = mutableListOf<Byte>()
+        var index = 0
+        while (index < value.length) {
+            when (val char = value[index]) {
+                '+' -> { bytes += 0x20; index += 1 }
+                '%' -> {
+                    if (index + 2 >= value.length) return value
+                    val high = HEX.indexOf(value[index + 1].uppercaseChar())
+                    val low = HEX.indexOf(value[index + 2].uppercaseChar())
+                    if (high < 0 || low < 0) return value
+                    bytes += ((high shl 4) or low).toByte()
+                    index += 3
+                }
+                else -> {
+                    val encoded = char.toString().encodeToByteArray()
+                    encoded.forEach { bytes += it }
+                    index += 1
+                }
+            }
+        }
+        return bytes.toByteArray().decodeToString()
+    }
+
+    private fun isSafe(byte: Int): Boolean =
+        byte in 'a'.code..'z'.code || byte in 'A'.code..'Z'.code || byte in '0'.code..'9'.code ||
+            byte == '-'.code || byte == '_'.code || byte == '.'.code || byte == '*'.code
+
+    private const val HEX = "0123456789ABCDEF"
+    private const val NULL_TOKEN = "__DUBL_NULL__"
+}

@@ -15,7 +15,13 @@ enum class UntrainedRule(val label: String, val penalty: Int?, val usable: Boole
     YES("Да", 0, true),
     YES_MINUS_2("Да (−2)", -2, true),
     NO("Нет", null, false),
-    UNSPECIFIED("Не указано", 0, true),
+    UNSPECIFIED("Не указано", null, false),
+}
+
+fun UntrainedRule.unavailableReason(): String = when (this) {
+    UntrainedRule.NO -> "Нельзя использовать без обучения"
+    UntrainedRule.UNSPECIFIED -> "Правило нетренированного использования не определено в рулбуке"
+    else -> ""
 }
 
 data class SkillDefinition(
@@ -39,7 +45,10 @@ data class CharacterSkill(
     val attributes: List<AttributeId> = emptyList(),
     val modifier: Int = 0,
     val formulaNote: String = "",
+    val categoryOverride: SkillCategory? = null,
     val untrainedOverride: UntrainedRule? = null,
+    val auto6Override: String? = null,
+    val auto12Override: String? = null,
 )
 
 data class ResolvedSkill(
@@ -52,12 +61,16 @@ data class ResolvedSkill(
     val description: String
         get() = state.description.ifBlank { definition?.description.orEmpty() }
     val category: SkillCategory
-        get() = definition?.category ?: SkillCategory.CUSTOM
+        get() = state.categoryOverride ?: definition?.category ?: SkillCategory.CUSTOM
     val rank: Int get() = state.rank
     val modifier: Int get() = state.modifier
     val formulaNote: String get() = state.formulaNote
     val untrained: UntrainedRule
         get() = state.untrainedOverride ?: definition?.untrained ?: UntrainedRule.YES
+    val auto6: String
+        get() = state.auto6Override ?: definition?.auto6.orEmpty()
+    val auto12: String
+        get() = state.auto12Override ?: definition?.auto12.orEmpty()
     val attributes: List<AttributeId>
         get() = state.attributes.distinct().ifEmpty {
             listOf(definition?.defaultAttribute ?: AttributeId.INTELLIGENCE)
@@ -105,38 +118,8 @@ data class SkillCalculation(
 }
 
 object SkillCatalog {
-    /** Cumulative XP cost for rank 0..10, copied from the desktop rules catalog. */
-    val rankCosts: List<Int> = listOf(0, 10, 30, 60, 100, 150, 210, 280, 360, 450, 550)
-
-    val definitions: List<SkillDefinition> = listOf(
-        skill("athletics", "Атлетика", "Прыжки, лазание, плавание", SkillCategory.PHYSICAL, AttributeId.STRENGTH, UntrainedRule.YES, "Да", "Нет"),
-        skill("barter", "Бартер", "Торговля", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.YES, "Нет", "Нет"),
-        skill("awareness", "Внимательность", "Слух, зрение", SkillCategory.FIELD, AttributeId.PERCEPTION, UntrainedRule.YES, "Да", "Нет"),
-        skill("riding", "Верховая езда", "Держаться в седле", SkillCategory.PHYSICAL, AttributeId.DEXTERITY, UntrainedRule.YES_MINUS_2, "Нет", "Нет"),
-        skill("lockpicking", "Взлом", "Взламывание замков и схожих устройств", SkillCategory.TECHNICAL, AttributeId.DEXTERITY, UntrainedRule.YES, "Да", "Да"),
-        skill("driving", "Вождение", "Управление колесным транспортом", SkillCategory.TECHNICAL, AttributeId.DEXTERITY, UntrainedRule.YES_MINUS_2, "Нет", "Нет"),
-        skill("survival", "Выживание", "Охота, ориентирование в дикой местности", SkillCategory.FIELD, AttributeId.PERCEPTION, UntrainedRule.YES_MINUS_2, "Нет", "Нет"),
-        skill("animal_handling", "Дрессировка", "Обучение животных и управление ими.", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.NO, "Да", "Нет"),
-        skill("intimidation", "Запугивание", "Устрашение", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.YES, "Нет", "Нет"),
-        skill("knowledge_academic", "Знание (Академическое)", "Общие академические сведения.", SkillCategory.KNOWLEDGE, AttributeId.INTELLIGENCE, UntrainedRule.YES, "Нет", "Нет"),
-        skill("knowledge_template", "Знание (Любое)", "Практические знания выбранной специальности.", SkillCategory.KNOWLEDGE, AttributeId.INTELLIGENCE, UntrainedRule.NO, "Нет", "Нет", true),
-        skill("engineering_repair", "Инженерное дело (Ремонт)", "Ремонт механизмов и конструкций.", SkillCategory.TECHNICAL, AttributeId.INTELLIGENCE, UntrainedRule.NO, "Да", "Нет"),
-        skill("performance_vocal", "Исполнение (Вокал)", "Пение", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.YES_MINUS_2, "Нет", "Нет"),
-        skill("performance_template", "Исполнение (Любое)", "Игра на музыкальных инструментах, ораторское искусство, танцы", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.NO, "Нет", "Нет", true),
-        skill("leadership", "Лидерство", "Управление подчиненными, командование", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.YES, "Нет", "Нет"),
-        skill("eloquence", "Красноречие", "Обман, дипломатия", SkillCategory.SOCIAL, AttributeId.CHARISMA, UntrainedRule.YES, "Нет", "Нет"),
-        skill("medicine", "Медицина", "Оказание медицинской помощи", SkillCategory.KNOWLEDGE, AttributeId.INTELLIGENCE, UntrainedRule.YES, "Нет", "Нет"),
-        skill("piloting", "Пилотирование", "Управление летательными аппаратами", SkillCategory.TECHNICAL, AttributeId.DEXTERITY, UntrainedRule.NO, "Нет", "Нет"),
-        skill("search", "Поиск", "Поиск предметов, следов и информации.", SkillCategory.FIELD, AttributeId.PERCEPTION, UntrainedRule.YES, "Да", "Да"),
-        skill("profession_template", "Профессия", "Практические знания выбранной специальности.", SkillCategory.KNOWLEDGE, AttributeId.INTELLIGENCE, UntrainedRule.NO, "Да", "Нет", true),
-        skill("craft_template", "Ремесло", "Создание предметов", SkillCategory.TECHNICAL, AttributeId.INTELLIGENCE, UntrainedRule.NO, "Да", "Да", true),
-        skill("stealth", "Скрытность", "Незаметность, бесшумность", SkillCategory.FIELD, AttributeId.DEXTERITY, UntrainedRule.YES, "Нет", "Нет"),
-        skill("shooting", "Стрельба", "Меткость и точность стрельбы", SkillCategory.COMBAT, AttributeId.PERCEPTION, UntrainedRule.YES, "Нет", "Нет"),
-        skill("melee_weapon", "Холодное оружие", "Опытность владения холодным оружием, точность атак", SkillCategory.COMBAT, AttributeId.DEXTERITY, UntrainedRule.YES, "Нет", "Нет"),
-        skill("throwing", "Метание", "Меткость и точность метания", SkillCategory.COMBAT, AttributeId.DEXTERITY, UntrainedRule.YES, "Нет", "Нет"),
-        skill("unarmed", "Рукопашный бой", "Кулачные бои, борьба", SkillCategory.COMBAT, AttributeId.DEXTERITY, UntrainedRule.YES, "Нет", "Нет"),
-        skill("computers", "Компьютеры", "Системное администрирование, программирование и поиск информации.", SkillCategory.TECHNICAL, AttributeId.INTELLIGENCE, UntrainedRule.UNSPECIFIED, "Не указано в базовой таблице", "Не указано в базовой таблице"),
-    )
+    val rankCosts: List<Int> = GeneratedSkillCatalog.rankCosts
+    val definitions: List<SkillDefinition> = GeneratedSkillCatalog.definitions
 
     val builtIns: List<SkillDefinition> = definitions.filterNot { it.template }
     val templates: List<SkillDefinition> = definitions.filter { it.template }
@@ -151,18 +134,6 @@ object SkillCatalog {
         if (current >= 10) return null
         return rankCosts[current + 1] - rankCosts[current]
     }
-
-    private fun skill(
-        id: String,
-        name: String,
-        description: String,
-        category: SkillCategory,
-        attribute: AttributeId,
-        untrained: UntrainedRule,
-        auto6: String,
-        auto12: String,
-        template: Boolean = false,
-    ) = SkillDefinition(id, name, description, category, attribute, untrained, auto6, auto12, template)
 }
 
 fun DublCharacter.resolvedSkills(includeHidden: Boolean = false): List<ResolvedSkill> {
@@ -236,7 +207,7 @@ private fun DublCharacter.skillCalculationWithSelectedAttribute(
             return SkillCalculation(
                 total = null,
                 contributions = contributions,
-                unavailableReason = "Нельзя использовать без обучения",
+                unavailableReason = skill.untrained.unavailableReason(),
                 selectedAttribute = selectedAttribute,
             )
         }

@@ -255,7 +255,10 @@ object MagicEquipmentRules {
 
     fun learnedSpellXp(character: DublCharacter): Int = character.magic.spells
         .filter { it.learned }
-        .sumOf { it.xpOverride ?: learnXpCost(it.cost) ?: 0 }
+        .sumOf { spell ->
+            if (spell.incomplete && spell.xpOverride == null) 0
+            else spell.xpOverride ?: learnXpCost(spell.cost) ?: 0
+        }
 
     fun manaRankXp(character: DublCharacter): Int = character.magic.manaRank.coerceIn(0, 5) * 100
 

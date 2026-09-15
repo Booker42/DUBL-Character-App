@@ -8,7 +8,13 @@ APP_BUILD = ROOT / 'app/build.gradle.kts'
 ANDROID_DATA = ROOT / 'app/src/main/java/com/dubl/character/android/data'
 
 CATALOGS = {
-    'development_catalog.json': ('entries', 796),
+    'development_regular_catalog.json': ('entries', 287),
+    'development_special_catalog.json': ('entries', 304),
+    'development_ability_roots_catalog.json': ('entries', 41),
+    'development_martial_catalog.json': ('entries', 122),
+    'development_chi_catalog.json': ('entries', 27),
+    'development_magic_catalog.json': ('entries', 15),
+    'development_catalog.json': ('entries', 0),
     'chi_catalog.json': (('schools', 9), ('techniques', 68)),
     'magic_equipment_catalog.json': (('spells', 265), ('gear', 260)),
     'skill_effects_catalog.json': ('effects', 283),
@@ -25,7 +31,7 @@ def test_shared_resources_are_the_single_physical_canonical_catalog_copy():
 
 def test_android_catalog_repositories_delegate_to_shared_parsers():
     expected = {
-        'DevelopmentCatalogRepository.kt': 'parseDevelopmentCatalog(raw)',
+        'DevelopmentCatalogRepository.kt': 'mergeDevelopmentCatalogs',
         'ChiCatalogRepository.kt': 'parseChiCatalog(raw)',
         'MagicEquipmentCatalogRepository.kt': 'parseMagicEquipmentCatalog(raw)',
         'SkillEffectCatalogRepository.kt': 'parseSkillEffectCatalog(raw)',
