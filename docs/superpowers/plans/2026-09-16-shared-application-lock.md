@@ -118,3 +118,20 @@
 - [x] **Step 3: Run focused tests, then the existing fast/source suite in bounded groups.**
 - [x] **Step 4: Run available Gradle compile/test checks; report any network/environment limitation exactly.**
 - [x] **Step 5: Generate a clean incremental patch and complete source snapshot; verify patch application against the untouched baseline.**
+
+### Task 6: Golden coverage expansion
+
+**Files:**
+- Modify: `shared/src/commonTest/kotlin/com/dubl/character/android/application/SharedApplicationGoldenTest.kt`
+- Modify: `tools/tests/test_shared_application_golden.py`
+- Modify: `CHANGELOG.md`, `HANDOFF.md`, and the design spec coverage matrix
+
+**Interfaces:**
+- Keep production `DublApplication` behavior unchanged.
+- Expand deterministic application-level characterization from 5 to 15 scenarios.
+- Cover lifecycle sequences rather than isolated setters, including restart and roster cleanup behavior.
+
+- [x] **Step 1: Make the source coverage contract require the 10 additional named scenarios and confirm RED.**
+- [x] **Step 2: Add the typed Kotlin scenarios using only public `DublApplication` capabilities and deterministic stores/IDs.**
+- [x] **Step 3: Execute all 15 scenarios against real shared application/model/state code with a local Kotlin sanity harness.**
+- [x] **Step 4: Re-run hard-lock/release source guards and the fast non-subprocess parity suite.**

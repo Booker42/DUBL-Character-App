@@ -67,7 +67,8 @@ before packaging. `packaging/linux/build-portable-appimage.sh` and `packaging/li
 
 - Shared Application hard-lock/source regression sweep: 229 passed, 4 skipped across the fast non-compiler test set after platform migration;
 - hard-lock + typed-golden source contracts: 6/6 passed;
-- typed Shared Application golden scenarios now live in `shared/commonTest` and execute through the project Kotlin 2.4.20 `:shared:desktopTest` gate; the earlier standalone harness executed the original four scenarios successfully before being replaced because the sandbox system compiler is Kotlin 1.9 and pathologically slow on this source set;
+- typed Shared Application golden coverage is now 15 application-level scenarios in `shared/commonTest`; a local model/data/state/application-only Kotlin sanity harness executed all 15 successfully (`GOLDEN_COVERAGE_OK scenarios=15`), while the authoritative project-toolchain execution remains `:shared:desktopTest` in CI;
+- current golden expansion verification: 16/16 focused hard-lock/golden/release source tests and 212 passed / 4 skipped in the fast non-subprocess parity suite;
 - Gradle/Compose compile remains unavailable in this sandbox because `services.gradle.org` DNS resolution is blocked; the networked CI compile/AppImage gate remains authoritative.
 - Shared Application patch verification: `git apply --check` and real apply both succeed against the untouched rulebook-compile-hotfix source ZIP; the applied tree matches the generated source snapshot byte-for-byte aside from pre-existing cache directories. Focused lock/golden/release tests on the applied copy: 26/26 passed.
 - Exact offline Linux parity-release test list: **102/102 passed** when run in bounded groups (87 source/parity checks plus Development/Chi 2/2, Magic 2/2, Equipment 4/4, rules-boundary 6/6, and desktop persistence 1/1);

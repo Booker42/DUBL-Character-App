@@ -7,13 +7,19 @@ import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.DevelopmentCostType
+import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.GearItem
 import com.dubl.character.android.model.KnownSpell
 import com.dubl.character.android.model.SheetGroup
+import com.dubl.character.android.model.SkillCatalog
+import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.UntrainedRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 
 class SharedApplicationGoldenTest {
     private class InMemoryExtrasStore : CharacterExtrasStore {
@@ -35,16 +41,46 @@ class SharedApplicationGoldenTest {
         fun next(): String = "golden-${next++}"
     }
 
-    private fun application(): DublApplication {
-        val ids = DeterministicIds()
-        val initial = DublCharacter(id = "character-1", name = "Новый персонаж")
-        return DublApplication(
-            characterStore = InMemoryCharacterStore(AppSnapshot(listOf(initial), initial.id)),
-            extrasStore = InMemoryExtrasStore(),
+    private class GoldenFixture {
+        private val ids = DeterministicIds()
+        private val initial = DublCharacter(id = "character-1", name = "Новый персонаж")
+        val characterStore = InMemoryCharacterStore(AppSnapshot(listOf(initial), initial.id))
+        val extrasStore = InMemoryExtrasStore()
+
+        fun application(): DublApplication = DublApplication(
+            characterStore = characterStore,
+            extrasStore = extrasStore,
             idFactory = ids::next,
             customConditionIdFactory = { "golden-condition" },
         )
     }
+
+    private fun application(): DublApplication = GoldenFixture().application()
+
+    private fun developmentEntry(
+        id: String = "placeholder",
+        name: String = "Гоночная подготовка",
+        maxRank: Int = 3,
+    ): DevelopmentEntry = DevelopmentEntry(
+        id = id,
+        name = name,
+        section = "Дополнение",
+        category = "Гонки",
+        cost = 75,
+        costType = DevelopmentCostType.XP,
+        maxRank = maxRank,
+        requirements = "",
+        benefit = "Тестовый эффект",
+        notes = "",
+        tags = listOf("Опциональный модуль"),
+        accessId = null,
+        abilityOptions = emptyList(),
+        incomplete = false,
+        repeatable = false,
+        perfectRoot = false,
+        mechanicsConflict = "",
+        conflictNote = "",
+    )
 
     @Test
     fun characterProfileAndResourceNormalization() {
@@ -157,4 +193,235 @@ class SharedApplicationGoldenTest {
         assertEquals("later", app.activeExtras.skillGroups.single().id)
         assertTrue(!app.canUndo)
     }
+    @Test
+    fun creationEconomyAndCompletionStayCanonical() {
+        val app = application()
+
+        app.character.changeAttribute(AttributeId.CONSTITUTION, 2)
+        app.character.setEconomy(
+            total = 3_500,
+            creation = 9_999,
+            adjustment = -2_000_000,
+            abilityPointsOverride = -4,
+        )
+
+        assertEquals(3_500, app.active.experience)
+        assertEquals(3_500, app.active.creationExperience)
+        assertEquals(-1_000_000, app.active.xpAdjustment)
+        assertEquals(0, app.active.abilityPoints)
+
+        app.character.setAbilityPointsOverride(null)
+        assertEquals(3, app.active.abilityPoints)
+        app.character.completeCreation()
+        assertTrue(app.active.creationComplete)
+        assertEquals(app.active.healthMaximum, app.active.hpCurrent)
+
+        app.character.setExperience(1_500)
+        assertEquals(1_500, app.active.creationExperience)
+        assertEquals(1, app.active.abilityPoints)
+    }
+
+    @Test
+    fun skillLifecycleCoversOverridesHideRestoreAndDelete() {
+        val app = application()
+        val builtIn = SkillCatalog.builtIns.first()
+
+        app.skills.changeRank(builtIn.id, 20)
+        app.skills.setModifier(builtIn.id, 150)
+        app.skills.setNameOverride(builtIn.id, "  Локальное   имя  ")
+        assertEquals(10, app.active.skills.getValue(builtIn.id).rank)
+        assertEquals(99, app.active.skills.getValue(builtIn.id).modifier)
+        assertEquals("Локальное имя", app.active.skills.getValue(builtIn.id).name)
+
+        app.skills.hide(builtIn.id)
+        assertTrue(builtIn.id in app.active.hiddenSkillIds)
+        app.skills.restore(builtIn.id)
+        assertFalse(builtIn.id in app.active.hiddenSkillIds)
+        app.skills.resetDefinitionOverrides(builtIn.id)
+        assertEquals("", app.active.skills.getValue(builtIn.id).name)
+
+        val dynamicId = app.skills.addCustom(
+            name = "Управление болидом",
+            description = "Гоночная специализация",
+            attributes = listOf(AttributeId.DEXTERITY),
+            untrained = UntrainedRule.NO,
+        )!!
+        app.skills.deleteDynamic(dynamicId)
+        assertNull(app.active.skills[dynamicId])
+    }
+
+    @Test
+    fun specializedSkillLifecyclePreservesTemplateIdentity() {
+        val app = application()
+        val template = SkillCatalog.templates.first()
+
+        val id = app.skills.addSpecialized(template.id, "  Гонки   ")!!
+        val state = app.active.skills.getValue(id)
+        assertEquals(template.id, state.definitionId)
+        assertTrue(state.name.contains("Гонки"))
+        assertEquals(listOf(template.defaultAttribute), state.attributes)
+
+        app.skills.changeRank(id, 2)
+        assertEquals(2, app.active.skills.getValue(id).rank)
+        app.skills.deleteDynamic(id)
+        assertNull(app.active.skills[id])
+    }
+
+    @Test
+    fun customDevelopmentLifecyclePersistsOwnershipAndRemoval() {
+        val app = application()
+
+        val id = app.development.addCustom(developmentEntry(name = "  Гоночная   подготовка  "))!!
+        assertEquals("custom-development-golden-1", id)
+        val created = app.active.customDevelopmentEntries.single()
+        assertEquals(id, created.id)
+        assertEquals("Гоночная подготовка", created.name)
+
+        app.development.setRank(id, 2)
+        assertEquals(2, app.active.development.getValue(id).rank)
+
+        assertTrue(app.development.updateCustom(created.copy(name = "Продвинутая подготовка", maxRank = 5)))
+        assertEquals("Продвинутая подготовка", app.active.customDevelopmentEntries.single().name)
+
+        app.development.removeCustom(id)
+        assertTrue(app.active.customDevelopmentEntries.isEmpty())
+        assertFalse(id in app.active.development)
+    }
+
+    @Test
+    fun chiSpendRestoreAndUndoStayShared() {
+        val app = application()
+        app.development.setChiEnabled(true)
+        app.development.setChiBonusRanks(2)
+        val maximum = app.active.chiMaximum
+
+        app.development.changeChi(-2)
+        assertEquals((maximum - 2).coerceAtLeast(0), app.active.chiCurrent)
+        assertTrue(app.canUndo)
+        assertTrue(app.undoLast())
+        assertEquals(maximum, app.active.chiCurrent)
+
+        app.development.changeChi(-3)
+        app.development.restoreChi()
+        assertEquals(maximum, app.active.chiCurrent)
+    }
+
+    @Test
+    fun magicLifecycleCoversSchoolSpellLearningAndManaUndo() {
+        val app = application()
+        app.magic.setManaRank(2)
+        assertTrue(app.magic.addSchool("Разрушение", 3, "golden"))
+        val maximum = app.active.effectiveManaMaximum
+        assertTrue(maximum > 0)
+        assertEquals(maximum, app.active.manaCurrent)
+
+        app.magic.changeMana(-2)
+        assertEquals((maximum - 2).coerceAtLeast(0), app.active.manaCurrent)
+        assertTrue(app.undoLast())
+        assertEquals(maximum, app.active.manaCurrent)
+
+        val spellId = app.magic.addCustomSpell(
+            KnownSpell(uid = "spell-race", name = "Форсаж", school = "Разрушение", cost = 1, manaText = "1")
+        )
+        app.magic.setSpellLearned(spellId, false)
+        assertFalse(app.active.magic.spells.single { it.uid == spellId }.learned)
+        app.magic.removeSpell(spellId)
+        assertTrue(app.active.magic.spells.none { it.uid == spellId })
+
+        assertTrue(app.magic.updateSchool(0, "Разрушение", 4, "updated"))
+        assertEquals(4, app.active.magic.schools.single().rank)
+        app.magic.removeSchool(0)
+        assertTrue(app.active.magic.schools.isEmpty())
+    }
+
+    @Test
+    fun equipmentLifecycleCoversQuantityCarriedLoadAndRemoval() {
+        val app = application()
+        val id = app.equipment.addCustom(
+            GearItem(uid = "gear-race", name = "Гоночный комплект", quantity = 0, load = 2.5)
+        )
+        assertEquals("gear-race", id)
+        assertEquals(1, app.active.gear.items.single().quantity)
+
+        app.equipment.setItemQuantity(id, 4)
+        app.equipment.setItemCarried(id, false)
+        assertEquals(4, app.active.gear.items.single().quantity)
+        assertFalse(app.active.gear.items.single().carried)
+
+        app.equipment.setLoadAutomatic(false)
+        app.equipment.setManualLoad(-10.0)
+        assertFalse(app.active.gear.loadAutomatic)
+        assertEquals(0.0, app.active.gear.loadManual)
+
+        app.equipment.removeItem(id)
+        assertTrue(app.active.gear.items.isEmpty())
+    }
+
+    @Test
+    fun customResourceLifecycleClampsUpdatesSpendsAndRemoves() {
+        val app = application()
+        val id = app.character.addCustomResource(" Нитро ", maximum = 4, current = 3)!!
+
+        app.character.changeCustomResource(id, -99)
+        assertEquals(0, app.active.customResources.single().current)
+        app.character.updateCustomResource(id, "  Супер   нитро ", current = 99, maximum = 2)
+        assertEquals("Супер нитро", app.active.customResources.single().name)
+        assertEquals(2, app.active.customResources.single().current)
+        assertEquals(2, app.active.customResources.single().maximum)
+        app.character.changeCustomResource(id, 99)
+        assertEquals(2, app.active.customResources.single().current)
+
+        app.character.removeCustomResource(id)
+        assertTrue(app.active.customResources.isEmpty())
+    }
+
+    @Test
+    fun conditionGroupingAndPreferencesSurviveApplicationRestart() {
+        val fixture = GoldenFixture()
+        var app = fixture.application()
+        val skillId = app.skills.addCustom(
+            name = "Трасса",
+            description = "",
+            attributes = listOf(AttributeId.PERCEPTION, AttributeId.SPEED),
+            untrained = UntrainedRule.YES,
+        )!!
+        app.sheet.toggleCondition(CharacterConditionId.INSPIRED)
+        app.sheet.setResourceHidden(CharacterSheetResourceId.MANA, true)
+        app.sheet.setPreferredSkillAttribute(skillId, AttributeId.SPEED)
+        app.sheet.setSkillGroups(listOf(SheetGroup("race", "Гонки", listOf(skillId))))
+        app.sheet.setDevelopmentGroups(listOf(SheetGroup("dev", "Развитие", listOf("entry-a"))))
+
+        val snapshotBeforeRestart = app.snapshot
+        app = fixture.application()
+
+        assertEquals(snapshotBeforeRestart, app.snapshot)
+        assertTrue(CharacterConditionId.INSPIRED in app.activeExtras.activeConditions)
+        assertTrue(CharacterSheetResourceId.MANA in app.activeExtras.hiddenResourceIds)
+        assertEquals(AttributeId.SPEED, app.activeExtras.preferredSkillAttributes[skillId])
+        assertEquals("race", app.activeExtras.skillGroups.single().id)
+        assertEquals("dev", app.activeExtras.developmentGroups.single().id)
+    }
+
+    @Test
+    fun characterRosterDeletionRemovesExtrasAndKeepsValidActiveCharacter() {
+        val fixture = GoldenFixture()
+        val app = fixture.application()
+        val firstId = app.active.id
+
+        app.character.createCharacter()
+        val secondId = app.active.id
+        app.sheet.toggleCondition(CharacterConditionId.TIRED)
+        assertTrue(CharacterConditionId.TIRED in fixture.extrasStore.load(secondId).activeConditions)
+
+        app.character.createCharacter()
+        val thirdId = app.active.id
+        app.character.selectCharacter(secondId)
+        app.character.deleteActive()
+
+        assertEquals(setOf(firstId, thirdId), app.snapshot.characters.map { it.id }.toSet())
+        assertFalse(app.snapshot.characters.any { it.id == secondId })
+        assertTrue(app.snapshot.characters.any { it.id == app.snapshot.activeCharacterId })
+        assertEquals(CharacterSheetExtras(), fixture.extrasStore.load(secondId))
+    }
+
 }

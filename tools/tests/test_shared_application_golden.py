@@ -20,6 +20,16 @@ def test_typed_golden_scenarios_live_in_shared_common_test():
         "chiMagicAndEquipmentMutateCanonicalCharacterState",
         "sheetExtrasAreTypedStateAndIsolatedPerCharacter",
         "sharedUndoRevertsSemanticMutationWithoutTouchingLaterNonUndoableState",
+        "creationEconomyAndCompletionStayCanonical",
+        "skillLifecycleCoversOverridesHideRestoreAndDelete",
+        "specializedSkillLifecyclePreservesTemplateIdentity",
+        "customDevelopmentLifecyclePersistsOwnershipAndRemoval",
+        "chiSpendRestoreAndUndoStayShared",
+        "magicLifecycleCoversSchoolSpellLearningAndManaUndo",
+        "equipmentLifecycleCoversQuantityCarriedLoadAndRemoval",
+        "customResourceLifecycleClampsUpdatesSpendsAndRemoves",
+        "conditionGroupingAndPreferencesSurviveApplicationRestart",
+        "characterRosterDeletionRemovesExtrasAndKeepsValidActiveCharacter",
     ):
         assert f"fun {name}()" in text
 
