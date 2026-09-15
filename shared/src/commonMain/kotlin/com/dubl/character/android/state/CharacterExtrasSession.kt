@@ -33,6 +33,7 @@ internal class CharacterExtrasSession(
 
     fun setSkillGroups(characterId: String, groups: List<SheetGroup>) = update(characterId) { it.copy(skillGroups = groups) }
     fun setDevelopmentGroups(characterId: String, groups: List<SheetGroup>) = update(characterId) { it.copy(developmentGroups = groups) }
+    fun setNotes(characterId: String, notes: String) = update(characterId) { it.copy(notes = notes.trimEnd()) }
 
     fun setConditionOverride(
         characterId: String,

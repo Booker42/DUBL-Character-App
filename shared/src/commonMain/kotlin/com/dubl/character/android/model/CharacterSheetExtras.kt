@@ -57,6 +57,7 @@ data class CharacterSheetExtras(
     val developmentGroups: List<SheetGroup> = emptyList(),
     val conditionOverrides: Map<CharacterConditionId, ConditionLocalOverride> = emptyMap(),
     val customConditions: List<CustomCondition> = emptyList(),
+    val notes: String = "",
 )
 
 

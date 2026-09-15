@@ -68,6 +68,7 @@ class DesktopCharacterExtrasStore(
             append(",\"developmentGroups\":").append(quoted(SheetGroupingRules.encode(extras.developmentGroups)))
             append(",\"conditionOverrides\":").append(quoted(ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides)))
             append(",\"customConditions\":").append(quoted(ConditionLocalDataCodec.encodeCustom(extras.customConditions)))
+            append(",\"notes\":").append(quoted(extras.notes))
             append('}')
         }
         append("}}")
@@ -89,6 +90,7 @@ class DesktopCharacterExtrasStore(
                 developmentGroups = SheetGroupingRules.decode(objectValue.strings["developmentGroups"]),
                 conditionOverrides = ConditionLocalDataCodec.decodeOverrides(objectValue.strings["conditionOverrides"]),
                 customConditions = ConditionLocalDataCodec.decodeCustom(objectValue.strings["customConditions"]),
+                notes = objectValue.strings["notes"].orEmpty(),
             )
         }
     }

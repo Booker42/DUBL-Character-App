@@ -48,6 +48,7 @@ fun main() {
         preferredSkillAttributes = mapOf("athletics" to AttributeId.DEXTERITY),
         skillGroups = listOf(SheetGroup("s", "Боевые", listOf("athletics"))),
         developmentGroups = listOf(SheetGroup("d", "Ветки", listOf("feat"))),
+        notes = "Проверить ремни на повозке.\nКупить уголь.",
     )
     val extrasStore = DesktopCharacterExtrasStore(root.resolve("extras"))
     extrasStore.save(first.id, extras)

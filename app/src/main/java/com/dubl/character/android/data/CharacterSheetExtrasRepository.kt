@@ -27,6 +27,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
         val developmentGroups = SheetGroupingRules.decode(prefs.getString("${prefix}development_groups", null))
         val conditionOverrides = ConditionLocalDataCodec.decodeOverrides(prefs.getString("${prefix}condition_overrides", null))
         val customConditions = ConditionLocalDataCodec.decodeCustom(prefs.getString("${prefix}custom_conditions", null))
+        val notes = prefs.getString("${prefix}notes", "").orEmpty()
         val preferredSkillAttributes = prefs
             .getStringSet("${prefix}preferred_skill_attributes", emptySet())
             .orEmpty()
@@ -49,6 +50,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             developmentGroups = developmentGroups,
             conditionOverrides = conditionOverrides,
             customConditions = customConditions,
+            notes = notes,
         )
     }
 
@@ -62,6 +64,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .putString("${prefix}development_groups", SheetGroupingRules.encode(extras.developmentGroups))
             .putString("${prefix}condition_overrides", ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides))
             .putString("${prefix}custom_conditions", ConditionLocalDataCodec.encodeCustom(extras.customConditions))
+            .putString("${prefix}notes", extras.notes)
             .putStringSet(
                 "${prefix}preferred_skill_attributes",
                 extras.preferredSkillAttributes.map { (skillId, attribute) ->
@@ -83,6 +86,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .remove("${prefix}development_groups")
             .remove("${prefix}condition_overrides")
             .remove("${prefix}custom_conditions")
+            .remove("${prefix}notes")
             .remove("${prefix}preferred_skill_attributes")
             .remove("${prefix}favorite_skill_ids")
             .remove("${prefix}favorites")

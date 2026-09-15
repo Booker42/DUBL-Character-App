@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -40,10 +39,13 @@ import com.dubl.character.android.ui.theme.DublAccentSoft
 import com.dubl.character.android.ui.theme.DublFocus
 import com.dubl.character.android.ui.theme.DublMuted
 import com.dubl.character.android.ui.theme.DublSurfaceInset
+import com.dubl.character.android.ui.theme.DublSurfaceRaised
 import com.dubl.character.android.ui.theme.DublTheme
 import com.dubl.character.desktop.screens.CharacterSheetScreen
 import com.dubl.character.desktop.screens.CharactersScreen
 import com.dubl.character.desktop.screens.DevelopmentScreen
+import com.dubl.character.desktop.screens.DesktopIcon
+import com.dubl.character.desktop.screens.DesktopIconKind
 import com.dubl.character.desktop.screens.EquipmentScreen
 import com.dubl.character.desktop.screens.MagicScreen
 import com.dubl.character.desktop.screens.SkillsScreen
@@ -77,7 +79,7 @@ private fun DesktopApp() {
             }
         } else {
             Row(Modifier.fillMaxSize()) {
-                DesktopRail(state, selected, { selected = it }, Modifier.width(210.dp).fillMaxHeight())
+                DesktopRail(state, selected, { selected = it }, Modifier.width(220.dp).fillMaxHeight())
                 DesktopContent(state, selected, layout, { selected = it }, Modifier.weight(1f))
             }
         }
@@ -92,33 +94,55 @@ private fun DesktopRail(
     modifier: Modifier = Modifier,
 ) {
     var switcherOpen by remember { mutableStateOf(false) }
-    Column(modifier.background(DublSurfaceInset).padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        Text("DUBL", style = MaterialTheme.typography.headlineMedium, color = DublFocus, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
+    Column(
+        modifier = modifier.background(DublSurfaceInset).padding(horizontal = 14.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            "DUBL",
+            style = MaterialTheme.typography.headlineMedium,
+            color = DublFocus,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
         Surface(
             modifier = Modifier.fillMaxWidth().clickable { switcherOpen = true },
-            color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            color = DublSurfaceRaised,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.52f)),
         ) {
-            Column(Modifier.padding(10.dp)) {
-                Text(state.activeCharacter.name, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(state.activeCharacter.name, fontWeight = FontWeight.SemiBold, maxLines = 2)
                 Text("${state.activeCharacter.experience} XP · сменить ▼", color = DublMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
         DropdownMenu(expanded = switcherOpen, onDismissRequest = { switcherOpen = false }) {
             state.snapshot.characters.forEach { character ->
-                DropdownMenuItem(text = { Text(if (character.id == state.snapshot.activeCharacterId) "✓ ${character.name}" else character.name) }, onClick = {
-                    state.selectCharacter(character.id)
-                    switcherOpen = false
-                    onSelected(DesktopSection.SHEET)
-                })
+                DropdownMenuItem(
+                    text = { Text(if (character.id == state.snapshot.activeCharacterId) "✓ ${character.name}" else character.name) },
+                    onClick = {
+                        state.selectCharacter(character.id)
+                        switcherOpen = false
+                        onSelected(DesktopSection.SHEET)
+                    },
+                )
             }
-            DropdownMenuItem(text = { Text("Управление персонажами…") }, onClick = { switcherOpen = false; onSelected(DesktopSection.CHARACTERS) })
+            DropdownMenuItem(
+                text = { Text("Управление персонажами…") },
+                onClick = { switcherOpen = false; onSelected(DesktopSection.CHARACTERS) },
+            )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f))
-        DesktopSection.entries.forEach { section -> NavigationItem(section, section == selected, { onSelected(section) }, Modifier.fillMaxWidth()) }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))
+        DesktopSection.entries.filter { it != DesktopSection.CHARACTERS }.forEach { section ->
+            NavigationItem(section, section == selected, { onSelected(section) }, Modifier.fillMaxWidth())
+        }
         Spacer(Modifier.weight(1f))
-        Text("Desktop 0.2 · Compose parity", color = DublMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(8.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+        NavigationItem(DesktopSection.CHARACTERS,
+            DesktopSection.CHARACTERS == selected,
+            { onSelected(DesktopSection.CHARACTERS) },
+            Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -138,13 +162,38 @@ private fun CompactNavigation(selected: DesktopSection, onSelected: (DesktopSect
 private fun NavigationItem(section: DesktopSection, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(11.dp),
+        shape = RoundedCornerShape(10.dp),
         color = if (active) DublAccentSoft else Color.Transparent,
-        border = if (active) BorderStroke(1.dp, DublFocus.copy(alpha = 0.35f)) else null,
+        border = if (active) BorderStroke(1.dp, DublFocus.copy(alpha = 0.32f)) else null,
     ) {
-        Text(section.label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal, color = if (active) MaterialTheme.colorScheme.onSurface else DublMuted)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DesktopIcon(
+                kind = section.iconKind,
+                tint = if (active) DublFocus else DublMuted,
+                size = 18.dp,
+            )
+            Text(
+                section.label,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (active) MaterialTheme.colorScheme.onSurface else DublMuted,
+            )
+        }
     }
 }
+
+private val DesktopSection.iconKind: DesktopIconKind
+    get() = when (this) {
+        DesktopSection.SHEET -> DesktopIconKind.SHEET
+        DesktopSection.SKILLS -> DesktopIconKind.SKILLS
+        DesktopSection.DEVELOPMENT -> DesktopIconKind.DEVELOPMENT
+        DesktopSection.MAGIC -> DesktopIconKind.MAGIC
+        DesktopSection.EQUIPMENT -> DesktopIconKind.EQUIPMENT
+        DesktopSection.CHARACTERS -> DesktopIconKind.CHARACTERS
+    }
 
 @Composable
 private fun DesktopContent(
@@ -154,11 +203,17 @@ private fun DesktopContent(
     onNavigate: (DesktopSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
         val pageModifier = Modifier
-            .widthIn(max = if (layout == DublLayoutClass.WIDE) 1520.dp else 1160.dp)
             .fillMaxSize()
-            .padding(if (layout == DublLayoutClass.COMPACT) 14.dp else 22.dp)
+            .padding(
+                horizontal = when (layout) {
+                    DublLayoutClass.COMPACT -> 16.dp
+                    DublLayoutClass.NORMAL -> 24.dp
+                    DublLayoutClass.WIDE -> 28.dp
+                },
+                vertical = if (layout == DublLayoutClass.COMPACT) 14.dp else 22.dp,
+            )
         when (section) {
             DesktopSection.SHEET -> CharacterSheetScreen(
                 state = state,

@@ -2,9 +2,14 @@ package com.dubl.character.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -115,6 +117,7 @@ fun CharacterSheetScreen(
     var showIdentity by remember(character.id) { mutableStateOf(false) }
     var showEconomy by remember(character.id) { mutableStateOf(false) }
     var showConditions by remember(character.id) { mutableStateOf(false) }
+    var showNotes by remember(character.id) { mutableStateOf(false) }
     var showVisibility by remember(character.id) { mutableStateOf(false) }
     var showHealthControl by remember(character.id) { mutableStateOf(false) }
     var customResource by remember(character.id) { mutableStateOf<CustomResource?>(null) }
@@ -161,198 +164,78 @@ fun CharacterSheetScreen(
         if (character.enduranceCurrent == 0) add(CharacterConditionId.WEAKNESS)
     }
 
-    LazyColumn(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val compactSheet = maxWidth < 880.dp
+        val wideSheet = maxWidth >= 1320.dp
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (recent != null) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(recent!!.text)
-                        if (recent!!.undo != null) TextButton(onClick = ::undoRecent) { Text("Отменить") }
-                    }
-                }
-            }
-        }
-        item {
-            SectionCard(
-                title = character.name,
-                action = { OutlinedButton(onClick = { showIdentity = true }) { Text("Редактировать") } },
-            ) {
-                Text(character.concept.ifBlank { "Без концепта" }, color = DublMuted)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("XP ${character.experience}", color = DublGold, fontWeight = FontWeight.Bold)
-                    Text("Осталось ${economy.remainingXp}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DublFocus)
-                    Text("ОС ${economy.abilityPointsRemaining}/${economy.abilityPointsBudget}", color = DublFocus)
-                    TextButton(onClick = { showEconomy = true }) { Text("Экономика") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Размер ${character.size}")
-                    Text("Ног ${character.legs}")
-                    Text(if (character.creationComplete) "Создание завершено" else "Режим создания", color = DublMuted)
-                }
-                extras.portraitUri?.let { portraitPath ->
-                    PortraitImage(portraitPath)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        val file = pickPortraitFile()
-                        if (file != null) state.importPortrait(file)?.let { imported -> state.setPortrait(imported) }
-                    }) { Text(if (extras.portraitUri == null) "Добавить портрет" else "Сменить портрет") }
-                    extras.portraitUri?.let {
-                        Text(it.substringAfterLast('/'), color = DublMuted)
-                        TextButton(onClick = { state.setPortrait(null) }) { Text("Убрать") }
-                    }
-                }
-            }
-        }
-
-        item {
-            SectionCard("Ресурсы", action = { TextButton(onClick = { showVisibility = true }) { Text("Видимость") } }) {
-                if (CharacterSheetResourceId.HEALTH !in extras.hiddenResourceIds) ResourceRow("Здоровье", character.hpCurrent, character.healthMaximum, DublHealth, { changeResource(CharacterSheetResourceId.HEALTH, -1) }, { changeResource(CharacterSheetResourceId.HEALTH, 1) }, { showHealthControl = true }, "Контроль")
-                if (CharacterSheetResourceId.ENDURANCE !in extras.hiddenResourceIds) ResourceRow("Выносливость", character.enduranceCurrent, character.enduranceMaximum, DublStamina, { changeResource(CharacterSheetResourceId.ENDURANCE, -1) }, { changeResource(CharacterSheetResourceId.ENDURANCE, 1) }, { maximumResource = CharacterSheetResourceId.ENDURANCE })
-                if ((character.manaEnabled || character.effectiveManaMaximum > 0) && CharacterSheetResourceId.MANA !in extras.hiddenResourceIds) ResourceRow("Мана", character.manaCurrent, character.effectiveManaMaximum, DublMana, { changeResource(CharacterSheetResourceId.MANA, -1) }, { changeResource(CharacterSheetResourceId.MANA, 1) }, { maximumResource = CharacterSheetResourceId.MANA })
-                if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) ResourceRow("ЦИ", character.chiCurrent, character.chiMaximum, DublFocus, { changeResource(CharacterSheetResourceId.CHI, -1) }, { changeResource(CharacterSheetResourceId.CHI, 1) }, { state.restoreChi() }, "Полностью")
-                character.customResources.forEach { resource ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(resource.name, fontWeight = FontWeight.SemiBold)
-                            Text("${resource.current} / ${resource.maximum}", color = DublCustomResource)
-                        }
-                        OutlinedButton(onClick = { state.changeCustomResource(resource.uid, -1) }) { Text("−") }
-                        Button(onClick = { state.changeCustomResource(resource.uid, 1) }) { Text("+") }
-                        TextButton(onClick = { customResource = resource }) { Text("Изменить") }
-                    }
-                }
-                Button(onClick = { createResource = true }) { Text("+ Свой ресурс") }
-            }
-        }
-
-        item {
-            SectionCard("Состояния", action = { OutlinedButton(onClick = { showConditions = true }) { Text("Изменить") } }) {
-                val activeCustom = extras.customConditions.filter { it.active }
-                if (effectiveConditions.isEmpty() && activeCustom.isEmpty()) EmptyState("Активных состояний нет.")
-                effectiveConditions.forEach { condition ->
-                    val local = extras.conditionOverrides[condition]
-                    Text("• ${local?.title ?: condition.title}${if (condition == CharacterConditionId.WEAKNESS && condition !in extras.activeConditions) " · автоматически" else ""}")
-                    Text(local?.description ?: state.conditionCatalog.summary(condition), color = DublMuted)
-                }
-                activeCustom.forEach { condition ->
-                    Text("• ${condition.title} · своё")
-                    if (condition.description.isNotBlank()) Text(condition.description, color = DublMuted)
-                }
-            }
-        }
-
-        item {
-            SectionCard("Характеристики") {
-                AttributeId.entries.chunked(2).forEach { pair ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        pair.forEach { id ->
-                            val raw = character.attributes.getValue(id).base
-                            val effective = character.attribute(id)
-                            Surface(
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            ) {
-                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(id.title, color = DublMuted)
-                                    Text(effective.toString(), color = DublFocus, fontWeight = FontWeight.Bold)
-                                    if (raw != effective) Text("База $raw", color = DublMuted)
-                                    Text("↑ ${CharacterEconomy.nextAttributeCost(raw)?.let { "$it XP" } ?: "макс."} · ↓ ${CharacterEconomy.previousAttributeRefund(raw)?.let { "$it XP" } ?: "мин."}", color = DublMuted)
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        OutlinedButton(onClick = { state.changeAttribute(id, -1); recent = RecentSheetChange("${id.title} −1", SheetUndo.Attribute(id, -1)) }, modifier = Modifier.weight(1f)) { Text("−") }
-                                        Button(onClick = { state.changeAttribute(id, 1); recent = RecentSheetChange("${id.title} +1", SheetUndo.Attribute(id, 1)) }, modifier = Modifier.weight(1f)) { Text("+") }
-                                        TextButton(onClick = { rollRequest = ContextRollRequest(RollContext.ATTRIBUTE, id) }) { Text("Бросок") }
-                                    }
-                                }
-                            }
-                        }
-                        if (pair.size == 1) androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-
-        item {
-            SectionCard("Показатели") {
-                KeyValue("Защита", character.defense.toString())
-                KeyValue("Рефлексы", signed(character.reflexes))
-                KeyValue("Инициатива", signed(character.initiative))
-                KeyValue("Стойкость", signed(character.fortitude))
-                KeyValue("Бег", "${formatNumber(character.runFull)} м")
-                KeyValue("Нагрузка", "${formatNumber(character.equipmentLoadPenalty.toDouble())} штраф")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(RollContext.FORTITUDE, RollContext.REFLEXES, RollContext.INITIATIVE, RollContext.DODGE, RollContext.ATTACK, RollContext.PARRY).forEach { context ->
-                        OutlinedButton(onClick = { rollRequest = ContextRollRequest(context) }) { Text(context.title) }
-                    }
-                }
-            }
-        }
-
-        item {
-            val trained = character.resolvedSkills().filter { it.rank > 0 }
-            val defaults = defaultSkillGroups(trained)
-            val groups = SheetGroupingRules.normalize(extras.skillGroups, defaults, trained.map { it.id }, "skills:ungrouped")
-            LaunchedEffect(groups, extras.skillGroups) {
-                if (groups != extras.skillGroups) state.setSkillGroups(groups)
-            }
-            val byId = trained.associateBy { it.id }
-            SectionCard("Умения · ${trained.size}", action = { TextButton(onClick = { grouping = GroupingKind.SKILLS }) { Text("Группы") } }) {
-                if (trained.isEmpty()) EmptyState("Изученные умения появятся здесь.")
-                groups.forEach { group ->
-                    GroupHeader(group, group.itemIds.size) { state.setSkillGroups(SheetGroupingRules.toggleCollapsed(groups, group.id)) }
-                    if (!group.collapsed) group.itemIds.mapNotNull(byId::get).forEach { skill ->
-                        val selected = skill.stockAttribute
-                        val calc = character.skillCalculationForRoll(skill, selected)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("${skill.name} · ${skill.rank} · ${selected.shortTitle} ${calc.total?.let(::signed) ?: "—"}", modifier = Modifier.weight(1f))
-                            TextButton(onClick = { sheetRollAttributeChoice = skill }) { Text("Бросок") }
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(recent!!.text)
+                            if (recent!!.undo != null) TextButton(onClick = ::undoRecent) { Text("Отменить") }
                         }
                     }
                 }
             }
-        }
 
-        item {
-            val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
-            val sections = rules.ownedSheetSections()
-            val items = sections.flatMap { it.items }.distinctBy { it.entry.id }
-            val parentById = items.associate { it.entry.id to it.parentId }
-            val defaults = defaultDevelopmentGroups(character, state)
-            val groups = SheetGroupingRules.normalize(extras.developmentGroups, defaults, items.map { it.entry.id }, "development:ungrouped")
-            LaunchedEffect(groups, extras.developmentGroups) {
-                if (groups != extras.developmentGroups) state.setDevelopmentGroups(groups)
+            item {
+                CharacterHero(
+                    state = state,
+                    character = character,
+                    extras = extras,
+                    economy = economy,
+                    effectiveConditions = effectiveConditions,
+                    compact = compactSheet,
+                    onEditIdentity = { showIdentity = true },
+                    onEconomy = { showEconomy = true },
+                    onConditions = { showConditions = true },
+                )
             }
-            val byId = items.associateBy { it.entry.id }
-            SectionCard("Взятые навыки · ${items.size}", action = { TextButton(onClick = { grouping = GroupingKind.DEVELOPMENT }) { Text("Группы") } }) {
-                if (items.isEmpty()) EmptyState("Взятых навыков и боевых искусств пока нет.")
-                groups.forEach { group ->
-                    GroupHeader(group, group.itemIds.size) { state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(groups, group.id)) }
-                    if (!group.collapsed) SheetGroupingRules.hierarchicalOrder(group.itemIds, parentById).mapNotNull(byId::get).forEach { item ->
-                        val depth = SheetGroupingRules.localDepth(item.entry.id, group.itemIds, parentById)
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${"↳ ".repeat(depth.coerceAtMost(3))}${item.entry.name} · ранг ${item.rank}", modifier = Modifier.weight(1f))
-                            TextButton(onClick = { sheetDevelopmentEntry = item.entry }) { Text("Подробнее") }
-                        }
-                    }
-                }
-            }
-        }
 
-        item {
-            SectionCard("На листе") {
-                Text("Заклинаний: ${character.magic.spells.size} · Предметов: ${character.gear.items.size}", color = DublMuted)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onNavigateSkills) { Text("Умения") }
-                    OutlinedButton(onClick = onNavigateDevelopment) { Text("Навыки") }
-                    OutlinedButton(onClick = onNavigateMagic) { Text("Магия") }
-                    OutlinedButton(onClick = onNavigateEquipment) { Text("Снаряжение") }
-                }
+            item {
+                CharacterDashboard(
+                    state = state,
+                    character = character,
+                    extras = extras,
+                    compact = compactSheet,
+                    wide = wideSheet,
+                    onResourceDelta = ::changeResource,
+                    onResourceVisibility = { showVisibility = true },
+                    onHealthControl = { showHealthControl = true },
+                    onEditMaximum = { maximumResource = it },
+                    onEditCustomResource = { customResource = it },
+                    onCreateCustomResource = { createResource = true },
+                    onAttributeDelta = { id, delta ->
+                        state.changeAttribute(id, delta)
+                        recent = RecentSheetChange("${id.title} ${signed(delta)}", SheetUndo.Attribute(id, delta))
+                    },
+                    onRoll = { context, attribute -> rollRequest = ContextRollRequest(context, attribute) },
+                    onSkillRoll = { sheetRollAttributeChoice = it },
+                    onNavigateSkills = onNavigateSkills,
+                    onGrouping = { grouping = it },
+                )
+            }
+
+            item {
+                SheetSummaries(
+                    state = state,
+                    character = character,
+                    extras = extras,
+                    compact = compactSheet,
+                    onGrouping = { grouping = it },
+                    onDevelopmentDetails = { sheetDevelopmentEntry = it },
+                    onNavigateDevelopment = onNavigateDevelopment,
+                    onEditNotes = { showNotes = true },
+                )
             }
         }
     }
@@ -361,6 +244,7 @@ fun CharacterSheetScreen(
     if (showEconomy) EconomyDialog(state, onDismiss = { showEconomy = false })
     if (showConditions) ConditionsDialog(state, onDismiss = { showConditions = false }) { previous -> recent = RecentSheetChange("Состояния изменены", SheetUndo.Conditions(previous)) }
     if (showVisibility) ResourceVisibilityDialog(state, onDismiss = { showVisibility = false })
+    if (showNotes) NotesDialog(state, onDismiss = { showNotes = false })
     if (showHealthControl) HealthControlDialog(
         current = state.activeCharacter.hpCurrent,
         maximum = state.activeCharacter.healthMaximum,
@@ -437,6 +321,603 @@ fun CharacterSheetScreen(
     grouping?.let { kind -> GroupingManagerDialog(state, kind, onDismiss = { grouping = null }) }
 }
 
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CharacterHero(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    economy: com.dubl.character.android.model.CharacterEconomyBreakdown,
+    effectiveConditions: Set<CharacterConditionId>,
+    compact: Boolean,
+    onEditIdentity: () -> Unit,
+    onEconomy: () -> Unit,
+    onConditions: () -> Unit,
+) {
+    val activeCustom = extras.customConditions.filter { it.active }
+    DesktopHeroPanel(Modifier.fillMaxWidth()) {
+        if (compact) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                HeroPortrait(state, extras)
+                HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                HeroPortrait(state, extras)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                    HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                    HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroPortrait(state: DesktopAppState, extras: CharacterSheetExtras) {
+    Column(Modifier.width(156.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        extras.portraitUri?.let { portraitPath ->
+            PortraitImage(portraitPath, Modifier.fillMaxWidth().height(156.dp))
+        } ?: Surface(
+            modifier = Modifier.fillMaxWidth().height(156.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.48f)),
+        ) {
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                DesktopIcon(DesktopIconKind.PORTRAIT, tint = DublMuted, size = 48.dp)
+                Spacer(Modifier.height(8.dp))
+                Text("Портрет", color = DublMuted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = {
+                val file = pickPortraitFile()
+                if (file != null) state.importPortrait(file)?.let { imported -> state.setPortrait(imported) }
+            }) { Text(if (extras.portraitUri == null) "Добавить" else "Сменить") }
+            if (extras.portraitUri != null) TextButton(onClick = { state.setPortrait(null) }) { Text("Убрать") }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroIdentity(
+    character: DublCharacter,
+    economy: com.dubl.character.android.model.CharacterEconomyBreakdown,
+    onEditIdentity: () -> Unit,
+    onEconomy: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(character.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(character.concept.ifBlank { "Без концепта" }, color = DublMuted, style = MaterialTheme.typography.bodyLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("XP ${character.experience}", color = DublGold, fontWeight = FontWeight.Bold)
+                Text("Осталось ${economy.remainingXp}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DublFocus)
+                Text("ОС ${economy.abilityPointsRemaining}/${economy.abilityPointsBudget}", color = DublGold)
+                Text("Размер ${character.size} · Ног ${character.legs}", color = DublMuted)
+                Text(if (character.creationComplete) "Создание завершено" else "Режим создания", color = DublMuted)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesktopSmallAction("Редактировать", onEditIdentity)
+            TextButton(onClick = onEconomy) { Text("Экономика") }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroConditions(
+    extras: CharacterSheetExtras,
+    effectiveConditions: Set<CharacterConditionId>,
+    activeCustom: List<CustomCondition>,
+    onConditions: () -> Unit,
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        if (effectiveConditions.isEmpty() && activeCustom.isEmpty()) {
+            DesktopConditionChip(label = "Нет активных состояний", onClick = onConditions)
+        }
+        effectiveConditions.forEach { condition ->
+            val local = extras.conditionOverrides[condition]
+            DesktopConditionChip(
+                label = local?.title ?: condition.title,
+                automatic = condition == CharacterConditionId.WEAKNESS && condition !in extras.activeConditions,
+                onClick = onConditions,
+            )
+        }
+        activeCustom.forEach { condition ->
+            DesktopConditionChip(label = condition.title, onClick = onConditions)
+        }
+        if (effectiveConditions.isNotEmpty() || activeCustom.isNotEmpty()) {
+            DesktopConditionChip(label = "+ Состояние", onClick = onConditions)
+        }
+    }
+}
+
+@Composable
+private fun CharacterDashboard(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    wide: Boolean,
+    onResourceDelta: (CharacterSheetResourceId, Int) -> Unit,
+    onResourceVisibility: () -> Unit,
+    onHealthControl: () -> Unit,
+    onEditMaximum: (CharacterSheetResourceId) -> Unit,
+    onEditCustomResource: (CustomResource) -> Unit,
+    onCreateCustomResource: () -> Unit,
+    onAttributeDelta: (AttributeId, Int) -> Unit,
+    onRoll: (RollContext, AttributeId?) -> Unit,
+    onSkillRoll: (ResolvedSkill) -> Unit,
+    onNavigateSkills: () -> Unit,
+    onGrouping: (GroupingKind) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ResourcesPanel(
+            state, character, extras, compact, onResourceDelta, onResourceVisibility, onHealthControl,
+            onEditMaximum, onEditCustomResource, onCreateCustomResource,
+        )
+        DenseStatsSkillsRow(
+            state = state,
+            character = character,
+            extras = extras,
+            compact = compact,
+            wide = wide,
+            onAttributeDelta = onAttributeDelta,
+            onRoll = onRoll,
+            onSkillRoll = onSkillRoll,
+            onNavigateSkills = onNavigateSkills,
+            onGrouping = onGrouping,
+        )
+    }
+}
+
+@Composable
+private fun ResourcesPanel(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    onResourceDelta: (CharacterSheetResourceId, Int) -> Unit,
+    onResourceVisibility: () -> Unit,
+    onHealthControl: () -> Unit,
+    onEditMaximum: (CharacterSheetResourceId) -> Unit,
+    onEditCustomResource: (CustomResource) -> Unit,
+    onCreateCustomResource: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DesktopPanel(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DesktopSectionHeader(
+                "Ресурсы",
+                icon = DesktopIconKind.HEALTH,
+                action = { TextButton(onClick = onResourceVisibility) { Text("Видимость") } },
+            )
+
+            val tiles = mutableListOf<@Composable (Modifier) -> Unit>()
+            if (CharacterSheetResourceId.HEALTH !in extras.hiddenResourceIds) tiles += { tileModifier ->
+                DesktopResourceTile(
+                    DesktopIconKind.HEALTH, "Здоровье", character.hpCurrent, character.healthMaximum, DublHealth,
+                    { onResourceDelta(CharacterSheetResourceId.HEALTH, -1) },
+                    { onResourceDelta(CharacterSheetResourceId.HEALTH, 1) },
+                    tileModifier,
+                    onSecondary = onHealthControl,
+                )
+            }
+            if (CharacterSheetResourceId.ENDURANCE !in extras.hiddenResourceIds) tiles += { tileModifier ->
+                DesktopResourceTile(
+                    DesktopIconKind.ENDURANCE, "Выносливость", character.enduranceCurrent, character.enduranceMaximum, DublStamina,
+                    { onResourceDelta(CharacterSheetResourceId.ENDURANCE, -1) },
+                    { onResourceDelta(CharacterSheetResourceId.ENDURANCE, 1) },
+                    tileModifier,
+                    onSecondary = { onEditMaximum(CharacterSheetResourceId.ENDURANCE) },
+                )
+            }
+            if ((character.manaEnabled || character.effectiveManaMaximum > 0) && CharacterSheetResourceId.MANA !in extras.hiddenResourceIds) tiles += { tileModifier ->
+                DesktopResourceTile(
+                    DesktopIconKind.MANA, "Мана", character.manaCurrent, character.effectiveManaMaximum, DublMana,
+                    { onResourceDelta(CharacterSheetResourceId.MANA, -1) },
+                    { onResourceDelta(CharacterSheetResourceId.MANA, 1) },
+                    tileModifier,
+                    onSecondary = { onEditMaximum(CharacterSheetResourceId.MANA) },
+                )
+            }
+            if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) tiles += { tileModifier ->
+                DesktopResourceTile(
+                    DesktopIconKind.CHI, "ЦИ", character.chiCurrent, character.chiMaximum, DublFocus,
+                    { onResourceDelta(CharacterSheetResourceId.CHI, -1) },
+                    { onResourceDelta(CharacterSheetResourceId.CHI, 1) },
+                    tileModifier,
+                    onSecondary = { state.restoreChi() },
+                )
+            }
+
+            if (compact) {
+                tiles.forEach { tile -> tile(Modifier.fillMaxWidth()) }
+            } else {
+                tiles.chunked(4).forEach { rowTiles ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.Top) {
+                        rowTiles.forEach { tile -> Box(Modifier.weight(1f)) { tile(Modifier.fillMaxWidth()) } }
+                        repeat(4 - rowTiles.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+
+            if (character.customResources.isNotEmpty()) {
+                character.customResources.chunked(if (compact) 1 else 4).forEach { resources ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.Top) {
+                        resources.forEach { resource ->
+                            Box(Modifier.weight(1f)) {
+                                DesktopResourceTile(
+                                    DesktopIconKind.GENERIC_SKILL,
+                                    resource.name,
+                                    resource.current,
+                                    resource.maximum,
+                                    DublCustomResource,
+                                    { state.changeCustomResource(resource.uid, -1) },
+                                    { state.changeCustomResource(resource.uid, 1) },
+                                    Modifier.fillMaxWidth(),
+                                    onSecondary = { onEditCustomResource(resource) },
+                                )
+                            }
+                        }
+                        if (!compact) repeat(4 - resources.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+            TextButton(onClick = onCreateCustomResource) { Text("+ Свой ресурс") }
+        }
+    }
+}
+
+@Composable
+private fun DenseStatsSkillsRow(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    wide: Boolean,
+    onAttributeDelta: (AttributeId, Int) -> Unit,
+    onRoll: (RollContext, AttributeId?) -> Unit,
+    onSkillRoll: (ResolvedSkill) -> Unit,
+    onNavigateSkills: () -> Unit,
+    onGrouping: (GroupingKind) -> Unit,
+) {
+    val skillRoll: (ResolvedSkill) -> Unit = onSkillRoll
+    if (compact) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            CompactCharacteristicsPanel(character, onAttributeDelta, onRoll, Modifier.fillMaxWidth())
+            CompactMetricsPanel(character, onRoll, Modifier.fillMaxWidth())
+            SheetSkillsPanel(state, character, extras, skillRoll, onNavigateSkills, onGrouping, Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            CompactCharacteristicsPanel(
+                character, onAttributeDelta, onRoll,
+                Modifier.weight(if (wide) 0.28f else 0.30f),
+            )
+            CompactMetricsPanel(
+                character, onRoll,
+                Modifier.weight(if (wide) 0.21f else 0.24f),
+            )
+            SheetSkillsPanel(
+                state, character, extras, skillRoll, onNavigateSkills, onGrouping,
+                Modifier.weight(if (wide) 0.51f else 0.46f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactCharacteristicsPanel(
+    character: DublCharacter,
+    onAttributeDelta: (AttributeId, Int) -> Unit,
+    onRoll: (RollContext, AttributeId?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val order = listOf(
+        AttributeId.STRENGTH,
+        AttributeId.CONSTITUTION,
+        AttributeId.DEXTERITY,
+        AttributeId.SPEED,
+        AttributeId.INTELLIGENCE,
+        AttributeId.PERCEPTION,
+        AttributeId.WILL,
+        AttributeId.CHARISMA,
+    )
+    DesktopPanel(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesktopSectionHeader("Характеристики", icon = DesktopIconKind.STRENGTH)
+            order.forEach { id ->
+                DesktopDenseAttributeRow(
+                    icon = attributeIcon(id),
+                    title = id.title,
+                    value = character.attribute(id).toString(),
+                    onRoll = { onRoll(RollContext.ATTRIBUTE, id) },
+                    onMinus = { onAttributeDelta(id, -1) },
+                    onPlus = { onAttributeDelta(id, 1) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+private fun attributeIcon(id: AttributeId): DesktopIconKind = when (id) {
+    AttributeId.STRENGTH -> DesktopIconKind.STRENGTH
+    AttributeId.CONSTITUTION -> DesktopIconKind.CONSTITUTION
+    AttributeId.DEXTERITY -> DesktopIconKind.DEXTERITY
+    AttributeId.SPEED -> DesktopIconKind.SPEED
+    AttributeId.INTELLIGENCE -> DesktopIconKind.INTELLIGENCE
+    AttributeId.PERCEPTION -> DesktopIconKind.PERCEPTION
+    AttributeId.WILL -> DesktopIconKind.WILL
+    AttributeId.CHARISMA -> DesktopIconKind.CHARISMA
+}
+
+@Composable
+private fun CompactMetricsPanel(
+    character: DublCharacter,
+    onRoll: (RollContext, AttributeId?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    data class Metric(val icon: DesktopIconKind, val title: String, val value: String, val context: RollContext? = null)
+    val metrics = listOf(
+        Metric(DesktopIconKind.DEFENSE, "Защита", character.defense.toString()),
+        Metric(DesktopIconKind.REFLEXES, "Рефлексы", character.reflexes.toString(), RollContext.REFLEXES),
+        Metric(DesktopIconKind.INITIATIVE, "Инициатива", character.initiative.toString(), RollContext.INITIATIVE),
+        Metric(DesktopIconKind.FORTITUDE, "Стойкость", character.fortitude.toString(), RollContext.FORTITUDE),
+        Metric(DesktopIconKind.RUN, "Бег", formatNumber(character.runFull)),
+        Metric(DesktopIconKind.SIZE, "Размер", character.size.toString()),
+    )
+    DesktopPanel(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            DesktopSectionHeader("Показатели", icon = DesktopIconKind.INITIATIVE)
+            metrics.forEach { metric ->
+                DesktopDenseMetricRow(
+                    icon = metric.icon,
+                    title = metric.title,
+                    value = metric.value,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = metric.context?.let { context -> { onRoll(context, null) } },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetSkillsPanel(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    onSkillRoll: (ResolvedSkill) -> Unit,
+    onOpenAll: () -> Unit,
+    onGrouping: (GroupingKind) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val trained = character.resolvedSkills().filter { it.rank > 0 }
+    val defaults = defaultSkillGroups(trained)
+    val groups = SheetGroupingRules.normalize(extras.skillGroups, defaults, trained.map { it.id }, "skills:ungrouped")
+    LaunchedEffect(groups, extras.skillGroups) {
+        if (groups != extras.skillGroups) state.setSkillGroups(groups)
+    }
+    val byId = trained.associateBy { it.id }
+    val ordered = groups.flatMap { group -> group.itemIds.mapNotNull(byId::get) }.distinctBy { it.id }
+
+    DesktopPanel(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            DesktopSectionHeader(
+                "Умения",
+                icon = DesktopIconKind.SKILLS,
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { onGrouping(GroupingKind.SKILLS) }) { Text("Группы") }
+                        TextButton(onClick = onOpenAll) { Text("Открыть все →") }
+                    }
+                },
+            )
+            if (ordered.isEmpty()) {
+                EmptyState("Изученные умения появятся здесь.")
+            } else {
+                ordered.chunked(2).forEach { pair ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
+                        pair.forEach { skill ->
+                            val selected = skill.stockAttribute
+                            val calc = character.skillCalculationForRoll(skill, selected)
+                            DesktopSkillRow(
+                                icon = skillIcon(skill.category),
+                                title = skill.name,
+                                bonus = calc.total?.let(::signed) ?: "—",
+                                onRoll = { onSkillRoll(skill) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        repeat(2 - pair.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+private fun skillIcon(category: SkillCategory): DesktopIconKind = when (category) {
+    SkillCategory.COMBAT -> DesktopIconKind.DEFENSE
+    SkillCategory.PHYSICAL -> DesktopIconKind.RUN
+    SkillCategory.FIELD -> DesktopIconKind.PERCEPTION
+    SkillCategory.SOCIAL -> DesktopIconKind.CHARISMA
+    SkillCategory.KNOWLEDGE -> DesktopIconKind.INTELLIGENCE
+    SkillCategory.TECHNICAL -> DesktopIconKind.EQUIPMENT
+    SkillCategory.CUSTOM -> DesktopIconKind.GENERIC_SKILL
+}
+
+@Composable
+private fun SheetSummaries(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    onGrouping: (GroupingKind) -> Unit,
+    onDevelopmentDetails: (DevelopmentEntry) -> Unit,
+    onNavigateDevelopment: () -> Unit,
+    onEditNotes: () -> Unit,
+) {
+    // Keep sheet grouping normalized through the shared extras API even though the summary is deliberately compact.
+    val trained = character.resolvedSkills().filter { it.rank > 0 }
+    val skillGroups = SheetGroupingRules.normalize(extras.skillGroups, defaultSkillGroups(trained), trained.map { it.id }, "skills:ungrouped")
+    LaunchedEffect(skillGroups, extras.skillGroups) {
+        if (skillGroups != extras.skillGroups) state.setSkillGroups(skillGroups)
+    }
+
+    val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
+    val developmentItems = rules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
+    val developmentDefaults = defaultDevelopmentGroups(character, state)
+    val developmentGroups = SheetGroupingRules.normalize(extras.developmentGroups, developmentDefaults, developmentItems.map { it.entry.id }, "development:ungrouped")
+    LaunchedEffect(developmentGroups, extras.developmentGroups) {
+        if (developmentGroups != extras.developmentGroups) state.setDevelopmentGroups(developmentGroups)
+    }
+    val byId = developmentItems.associateBy { it.entry.id }
+    val orderedDevelopment = developmentGroups.flatMap { group -> group.itemIds.mapNotNull(byId::get) }.distinctBy { it.entry.id }
+
+    val developmentPanel: @Composable () -> Unit = {
+        DesktopPanel(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DesktopSectionHeader(
+                    "Навыки и развитие",
+                    subtitle = "Профессиональные навыки, особенности и пути развития",
+                    icon = DesktopIconKind.DEVELOPMENT,
+                    action = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { onGrouping(GroupingKind.DEVELOPMENT) }) { Text("Группы") }
+                            TextButton(onClick = onNavigateDevelopment) { Text("Открыть все →") }
+                        }
+                    },
+                )
+                if (orderedDevelopment.isEmpty()) {
+                    EmptyState("Взятых навыков и боевых искусств пока нет.")
+                } else {
+                    orderedDevelopment.take(8).chunked(2).forEach { pair ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            pair.forEach { item ->
+                                Surface(
+                                    modifier = Modifier.weight(1f).clickable { onDevelopmentDetails(item.entry) },
+                                    shape = RoundedCornerShape(9.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .22f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .45f)),
+                                ) {
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        DesktopIcon(DesktopIconKind.DEVELOPMENT, tint = DublMuted, size = 16.dp)
+                                        Text(item.entry.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(rankLabel(item.rank), color = DublFocus, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            repeat(2 - pair.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val notesPanel: @Composable () -> Unit = {
+        NotesPanel(extras.notes, onEditNotes, Modifier.fillMaxWidth())
+    }
+
+    if (compact) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            developmentPanel()
+            notesPanel()
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Box(Modifier.weight(.57f)) { developmentPanel() }
+            Box(Modifier.weight(.43f)) { notesPanel() }
+        }
+    }
+}
+
+
+private fun rankLabel(rank: Int): String = when (rank) {
+    1 -> "I"
+    2 -> "II"
+    3 -> "III"
+    4 -> "IV"
+    5 -> "V"
+    else -> rank.toString()
+}
+
+@Composable
+private fun NotesPanel(
+    notes: String,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    DesktopPanel(modifier) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            DesktopSectionHeader(
+                "Заметки",
+                icon = DesktopIconKind.NOTES,
+                action = { DesktopSmallAction("Изменить", onEdit) },
+            )
+            Surface(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 78.dp),
+                shape = RoundedCornerShape(9.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .18f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .42f)),
+            ) {
+                Row(Modifier.fillMaxWidth().padding(11.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
+                    DesktopIcon(DesktopIconKind.NOTES, tint = DublMuted, size = 17.dp)
+                    Text(
+                        notes.ifBlank { "Заметок пока нет." },
+                        color = if (notes.isBlank()) DublMuted else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesDialog(state: DesktopAppState, onDismiss: () -> Unit) {
+    var notes by remember(state.activeCharacter.id) { mutableStateOf(state.extras.notes) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Заметки") },
+        text = {
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it.take(12000) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp),
+                label = { Text("Заметки персонажа") },
+                minLines = 7,
+                maxLines = 14,
+            )
+        },
+        confirmButton = {
+            Button(onClick = { state.setNotes(notes); onDismiss() }) { Text("Сохранить") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
+}
+
 @Composable
 private fun HealthControlDialog(
     current: Int,
@@ -481,16 +962,6 @@ private fun HealthControlDialog(
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
     )
-}
-
-@Composable
-private fun ResourceRow(title: String, current: Int, maximum: Int, tint: Color, minus: () -> Unit, plus: () -> Unit, third: () -> Unit, thirdLabel: String = "Макс.") {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, fontWeight = FontWeight.SemiBold); Text("$current / $maximum", color = tint, fontWeight = FontWeight.Bold) }
-        OutlinedButton(onClick = minus) { Text("−") }
-        Button(onClick = plus) { Text("+") }
-        TextButton(onClick = third) { Text(thirdLabel) }
-    }
 }
 
 @Composable
@@ -1126,7 +1597,7 @@ private fun defaultDevelopmentGroups(character: DublCharacter, state: DesktopApp
 
 
 @Composable
-private fun PortraitImage(path: String) {
+private fun PortraitImage(path: String, modifier: Modifier = Modifier.fillMaxWidth().height(176.dp)) {
     val bitmap by produceState<ImageBitmap?>(initialValue = null, path) {
         value = runCatching {
             File(path).inputStream().buffered().use(::loadImageBitmap)
@@ -1137,7 +1608,7 @@ private fun PortraitImage(path: String) {
             bitmap = image,
             contentDescription = "Портрет персонажа",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().height(176.dp),
+            modifier = modifier,
         )
     }
 }

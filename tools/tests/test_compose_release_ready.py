@@ -60,6 +60,7 @@ def test_release_workflow_runs_all_compose_parity_guards():
         'test_desktop_persistence.py',
         'test_compose_state_observation.py',
         'test_compose_android_062_sheet_roll_parity.py',
+        'test_desktop_ui_structural_redesign.py',
         'test_shared_application_lock.py',
         'test_shared_application_golden.py',
     ):
