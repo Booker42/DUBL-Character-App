@@ -2,6 +2,7 @@
 
 ## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
 
+- Began the semantic DUBL 3.69 audit with Character Core / Derived Stats / Skills / Rolls: fixed equipment-load penalties on attacks and Dexterity checks, aligned Fortitude/Initiative quick presets with all shared passive components, removed a stale Android Fortitude formula copy, added shared two-skill synergy/assistance rules, preserved rulebook-required negative Health, made target comparison honor universal `1–1` critical failure, and added a discrepancy ledger.
 - Added a hard Shared Application Lock: `DublApplication` is now the only public state-changing boundary used by Android and Compose Desktop, split into character, skills, development/Chi, magic, equipment, and sheet capabilities.
 - Internalized raw `CharacterSession` / `CharacterExtrasSession` mutation surfaces and removed platform escape hatches such as `updateActive`, generic Desktop `mutate`, direct extras writes, and arbitrary spell/gear transform lambdas from public adapters.
 - Expanded typed deterministic Shared Application golden coverage to 15 end-to-end application scenarios: character creation/economy/resources, built-in/custom/specialized skill lifecycle, custom development ownership, Chi spend/restore/Undo, Magic schools/spells/mana Undo, equipment quantity/carried/load lifecycle, conditions/grouping/preferences across restart, roster deletion/extras cleanup, per-character extras isolation, and shared semantic Undo.

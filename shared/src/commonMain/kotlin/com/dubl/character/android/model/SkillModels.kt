@@ -194,6 +194,12 @@ private fun DublCharacter.skillCalculationWithSelectedAttribute(
     var total = attribute(selectedAttribute)
     contributions += SkillContribution(selectedAttribute.title, total)
 
+    val loadPenalty = rollLoadPenalty(selectedAttribute)
+    if (loadPenalty != 0) {
+        total += loadPenalty
+        contributions += SkillContribution("Нагрузка", loadPenalty)
+    }
+
     total += skill.rank
     contributions += SkillContribution("Ранг", skill.rank)
 

@@ -696,11 +696,12 @@ fun OverviewScreen(controller: CharacterController) {
     }
 
     if (showFortitudeRoll) {
+        val fortitudePreset = character.rollPreset(RollContext.FORTITUDE)
         CheckRollSheet(
             title = "Проверка Стойкости",
             bonusTitle = "Стойкость",
-            checkBonus = character.fortitude,
-            formulaText = "2d6 + Стойкость · Стойкость = Телосложение + Воля = ${character.constitution} + ${character.will}",
+            checkBonus = fortitudePreset.bonus ?: character.fortitude,
+            formulaText = fortitudePreset.formulaText,
             rememberKey = "fortitude-${character.id}",
             onDismiss = { showFortitudeRoll = false },
         )
@@ -738,7 +739,7 @@ fun OverviewScreen(controller: CharacterController) {
                 maximum = character.healthMaximum,
                 onChange = { requestedDelta ->
                     val before = character.hpCurrent
-                    val after = (before + requestedDelta).coerceIn(0, character.healthMaximum)
+                    val after = (before + requestedDelta).coerceAtMost(character.healthMaximum)
                     val applied = after - before
                     if (applied != 0) {
                         controller.changeHp(applied)
@@ -3639,7 +3640,7 @@ private fun CheckRollSheet(
                             color = DublGold,
                         )
                         targetValue?.let { target ->
-                            val comparison = compareRollToTarget(roll.total, target)
+                            val comparison = compareRollToTarget(roll, target)
                             Text(
                                 text = when (comparison.outcome) {
                                     RollTargetOutcome.SUCCESS -> "Выше цели на ${comparison.margin}"
@@ -4323,7 +4324,7 @@ private fun HealthControlSheet(
                         if (amount > 0) onChange(-amount)
                         onDismiss()
                     },
-                    enabled = amount > 0 && current > 0,
+                    enabled = amount > 0,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = DublAccent),
                     shape = RoundedCornerShape(10.dp),

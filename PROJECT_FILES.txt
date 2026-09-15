@@ -54,6 +54,7 @@ docs/DESKTOP_0_2_PARITY.md
 docs/DESKTOP_CHARACTER_SHEET_REPORT.md
 docs/GITHUB_WORKFLOW.md
 docs/KMP_FOUNDATION_REPORT.md
+docs/rulebook-audit/2026-09-16-core-skills-rolls.md
 docs/superpowers/plans/2026-09-14-android-0.6.2-grouping-roll-flow.md
 docs/superpowers/plans/2026-09-14-kmp-foundation.md
 docs/superpowers/plans/2026-09-15-desktop-0.2-android-parity.md
@@ -102,6 +103,7 @@ shared/src/commonMain/kotlin/com/dubl/character/android/model/MagicEquipmentMode
 shared/src/commonMain/kotlin/com/dubl/character/android/model/RollRules.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/RulesetModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SheetGrouping.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/model/SkillCheckRules.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SkillEffectModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/SkillModels.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/state/CharacterExtrasSession.kt
@@ -131,6 +133,7 @@ shared/src/commonTest/kotlin/com/dubl/character/android/model/DevelopmentEffects
 shared/src/commonTest/kotlin/com/dubl/character/android/model/DevelopmentRulesTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/MagicEquipmentRulesTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/RollRulesTest.kt
+shared/src/commonTest/kotlin/com/dubl/character/android/model/RulebookCoreSkillsRollsTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/SheetGroupingRulesTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/SkillEffectRulesTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/SkillRulesTest.kt
@@ -152,6 +155,7 @@ tools/tests/kotlin/DesktopPersistenceHarness.kt
 tools/tests/kotlin/MagicParityHarness.kt
 tools/tests/kotlin/PersistenceHarness.kt
 tools/tests/kotlin/SheetGroupingHarness.kt
+tools/tests/kotlin/SkillCheckRulesHarness.kt
 tools/tests/kotlin/Ui061RegressionHarness.kt
 tools/tests/test_android_0_6_1_ui.py
 tools/tests/test_android_0_6_content.py
@@ -183,6 +187,7 @@ tools/tests/test_import_android_0_5_skill_effects.py
 tools/tests/test_kmp_boundaries.py
 tools/tests/test_kmp_ui_foundation.py
 tools/tests/test_magic_backend_parity.py
+tools/tests/test_rulebook_core_skills_rolls_contract.py
 tools/tests/test_ruleset_parity_contract.py
 tools/tests/test_shared_application_golden.py
 tools/tests/test_shared_application_lock.py

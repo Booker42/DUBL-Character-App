@@ -185,3 +185,15 @@ fun compareRollToTarget(total: Int, target: Int): RollTargetComparison {
         },
     )
 }
+
+
+fun compareRollToTarget(roll: RollResult, target: Int): RollTargetComparison {
+    val comparison = compareRollToTarget(total = roll.total, target = target)
+    return if (roll.specialResult == RollSpecialResult.CRITICAL_FAILURE ||
+        roll.specialResult == RollSpecialResult.CONFIRMED_CRITICAL_FAILURE
+    ) {
+        comparison.copy(outcome = RollTargetOutcome.FAILURE)
+    } else {
+        comparison
+    }
+}

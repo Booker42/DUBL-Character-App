@@ -46,8 +46,9 @@ fun main() {
 
     session.changeHp(-3)
     expect(session.active.hpCurrent == session.active.healthMaximum - 3, "HP delta must apply")
+    val hpBeforeLethalDamage = session.active.hpCurrent
     session.changeHp(-10000)
-    expect(session.active.hpCurrent == 0, "HP must normalize at zero")
+    expect(session.active.hpCurrent == hpBeforeLethalDamage - 10000, "negative HP must remain representable for DUBL death/survival rules")
 
     session.changeEndurance(-100)
     expect(session.active.enduranceCurrent == 0, "endurance must normalize at zero")

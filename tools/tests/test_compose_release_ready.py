@@ -56,6 +56,7 @@ def test_release_workflow_runs_all_compose_parity_guards():
         'test_equipment_backend_parity.py',
         'test_ruleset_parity_contract.py',
         'test_rules_boundary_contract.py',
+        'test_rulebook_core_skills_rolls_contract.py',
         'test_desktop_persistence.py',
         'test_compose_state_observation.py',
         'test_compose_android_062_sheet_roll_parity.py',

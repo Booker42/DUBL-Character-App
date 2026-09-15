@@ -48,6 +48,7 @@ jobs:
             tools/tests/test_equipment_backend_parity.py \
             tools/tests/test_ruleset_parity_contract.py \
             tools/tests/test_rules_boundary_contract.py \
+            tools/tests/test_rulebook_core_skills_rolls_contract.py \
             tools/tests/test_desktop_persistence.py \
             tools/tests/test_compose_state_observation.py \
             tools/tests/test_compose_android_062_sheet_roll_parity.py \

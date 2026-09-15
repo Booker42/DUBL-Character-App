@@ -279,7 +279,7 @@ data class DublCharacter(
         val maxMana = clamped.effectiveManaMaximum
         val maxChi = clamped.chiMaximum
         return clamped.copy(
-            hpCurrent = clamped.hpCurrent.coerceIn(0, clamped.healthMaximum),
+            hpCurrent = clamped.hpCurrent.coerceAtMost(clamped.healthMaximum),
             enduranceCurrent = clamped.enduranceCurrent.coerceIn(0, clamped.enduranceMaximum),
             manaCurrent = clamped.manaCurrent.coerceIn(0, maxMana),
             manaEnabled = clamped.manaEnabled || clamped.magic.manaRank > 0 || clamped.manaMaximumOverride != null,
@@ -288,6 +288,16 @@ data class DublCharacter(
         )
     }
 }
+
+/**
+ * Rulebook 3.69 equipment burden applies to every attack check and to every
+ * Dexterity check. Returning the same penalty for both conditions prevents a
+ * Dexterity-based attack from being penalized twice.
+ */
+fun DublCharacter.rollLoadPenalty(
+    attribute: AttributeId? = null,
+    attack: Boolean = false,
+): Int = if (attack || attribute == AttributeId.DEXTERITY) equipmentLoadPenalty else 0
 
 data class AppSnapshot(
     val characters: List<DublCharacter>,

@@ -66,6 +66,7 @@ fun DublCharacter.rollPreset(
                 RollContribution("Телосложение", constitution),
                 RollContribution("Воля", will),
                 RollContribution("Стойкий", developmentRank(DevelopmentEffectIds.STALWART)),
+                RollContribution("Неподвижная гора", stillMountainBonus),
             ).filter { it.value != 0 },
         )
         RollContext.REFLEXES -> fixedPreset(
@@ -83,6 +84,7 @@ fun DublCharacter.rollPreset(
                 RollContribution("Скорость", speed),
                 RollContribution("Восприятие", perception),
                 RollContribution("Улучшенная инициатива", developmentRank(DevelopmentEffectIds.IMPROVED_INITIATIVE)),
+                RollContribution("Владыка бури", stormLordBonus),
             ).filter { it.value != 0 },
         )
         RollContext.DODGE -> fixedPreset(
@@ -110,13 +112,18 @@ fun DublCharacter.rollPreset(
     }
 }
 
-private fun DublCharacter.attributePreset(attribute: AttributeId): CharacterRollPreset = CharacterRollPreset(
-    context = RollContext.ATTRIBUTE,
-    title = attribute.title,
-    bonus = attribute(attribute),
-    contributions = listOf(RollContribution(attribute.title, attribute(attribute))),
-    formulaText = "2d6 + ${attribute.title}",
-)
+private fun DublCharacter.attributePreset(attribute: AttributeId): CharacterRollPreset {
+    val contributions = mutableListOf(RollContribution(attribute.title, attribute(attribute)))
+    val loadPenalty = rollLoadPenalty(attribute)
+    if (loadPenalty != 0) contributions += RollContribution("Нагрузка", loadPenalty)
+    return CharacterRollPreset(
+        context = RollContext.ATTRIBUTE,
+        title = attribute.title,
+        bonus = contributions.sumOf { it.value },
+        contributions = contributions,
+        formulaText = "2d6 + " + contributions.joinToString(" + ") { it.label },
+    )
+}
 
 private fun DublCharacter.skillPreset(skillId: String, attribute: AttributeId?): CharacterRollPreset {
     val skill = resolveSkill(skillId) ?: return unavailablePreset(RollContext.SKILL, "Умение не найдено")
@@ -135,12 +142,17 @@ private fun DublCharacter.skillBasedPreset(
     context: RollContext,
     skillId: String,
     attribute: AttributeId,
+    attack: Boolean = false,
 ): CharacterRollPreset {
     val skill = resolveSkill(skillId) ?: return unavailablePreset(context, "Умение не найдено")
     val contributions = mutableListOf(
         RollContribution(attribute.title, attribute(attribute)),
         RollContribution("Ранг", skill.rank),
     )
+    val loadPenalty = rollLoadPenalty(attribute, attack = attack)
+    if (loadPenalty != 0) {
+        contributions += RollContribution("Нагрузка", loadPenalty)
+    }
     if (skill.modifier != 0) {
         contributions += RollContribution("Поправка умения", skill.modifier)
     }
@@ -177,7 +189,7 @@ private fun DublCharacter.attackLikePreset(
         "throwing", "unarmed", "melee_weapon" -> AttributeId.DEXTERITY
         else -> AttributeId.DEXTERITY
     }
-    return skillBasedPreset(context, skillId, attribute ?: defaultAttribute)
+    return skillBasedPreset(context, skillId, attribute ?: defaultAttribute, attack = true)
 }
 
 private fun fixedPreset(

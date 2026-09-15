@@ -158,7 +158,7 @@ fun SkillRollDialog(
                     Text("Кости: ${roll.dice.joinToString()} · выбрано: $chosen")
                     Text("ИТОГ: ${roll.total}")
                     targetText.toIntOrNull()?.let { target ->
-                        val comparison = compareRollToTarget(roll.total, target)
+                        val comparison = compareRollToTarget(roll, target)
                         Text("СЛ $target: ${comparison.outcome} (${signed(comparison.margin)})")
                     }
                     roll.specialResult?.let { Text(it.title) }
@@ -265,7 +265,7 @@ fun ContextRollDialog(
                 result?.let { roll ->
                     Text("Кости: ${roll.dice.joinToString()} · итог ${roll.total}")
                     targetText.toIntOrNull()?.let { target ->
-                        val comparison = compareRollToTarget(roll.total, target)
+                        val comparison = compareRollToTarget(roll, target)
                         Text("${comparison.outcome} (${signed(comparison.margin)})")
                     }
                     roll.specialResult?.let { Text(it.title) }

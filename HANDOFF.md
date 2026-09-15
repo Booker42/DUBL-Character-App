@@ -29,6 +29,12 @@ Typed Kotlin golden scenarios use deterministic IDs plus in-memory stores and as
 This is deliberately not a generic ruleset/module engine. The boundary is compatible with future ruleset/module composition, but current work remains DUBL 3.69 core behavior first.
 
 
+## Semantic rulebook audit
+
+The first semantic audit slice is now tracked in `docs/rulebook-audit/2026-09-16-core-skills-rolls.md`. Character Core / Derived Stats / Skills / Rolls were compared directly against the real DUBL 3.69 core DOCX. Confirmed corrections are made in shared rules only: roll load penalties, complete Fortitude/Initiative presets, two-skill synergy/assistance, negative current Health, and target-aware `1–1` critical-failure resolution. Ambiguous or context-dependent mechanics are explicitly deferred rather than guessed. This audit is separate from golden behavior parity.
+
+Verification for this slice: 41/41 focused core/parity/release checks passed; the 60-file non-subprocess source/parity/import sweep passed 226 tests with 4 expected skips; the pure `SkillCheckRules` and roll-target harnesses executed successfully. Full `:shared:desktopTest :desktopApp:compileKotlin` remains a networked CI gate in this sandbox because `services.gradle.org` cannot resolve.
+
 ## Rulebook-first import status
 
 The next architecture phase has started. Do not add another direct DOCX parser to Android/Desktop or silently copy a rule from the app back into the ruleset.

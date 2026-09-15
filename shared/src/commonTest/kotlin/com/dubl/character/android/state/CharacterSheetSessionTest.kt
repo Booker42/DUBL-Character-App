@@ -54,10 +54,11 @@ class CharacterSheetSessionTest {
         assertEquals(10, session.active.attributes.getValue(AttributeId.CONSTITUTION).base)
         assertEquals(session.active.healthMaximum, session.active.hpCurrent)
 
+        val hpBeforeLethalDamage = session.active.hpCurrent
         session.changeHp(-10000)
         session.changeEndurance(-10000)
 
-        assertEquals(0, session.active.hpCurrent)
+        assertEquals(hpBeforeLethalDamage - 10000, session.active.hpCurrent)
         assertEquals(0, session.active.enduranceCurrent)
         assertTrue(session.active.healthMaximum >= 0)
     }

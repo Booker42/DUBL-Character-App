@@ -461,7 +461,7 @@ private fun HealthControlDialog(
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        enabled = amount > 0 && current > 0,
+                        enabled = amount > 0,
                         onClick = { onChange(-amount); onDismiss() },
                         modifier = Modifier.weight(1f),
                     ) { Text("Получить урон") }

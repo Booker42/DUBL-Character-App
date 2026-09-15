@@ -118,4 +118,21 @@ class RollRulesTest {
         assertEquals(RollTargetOutcome.FAILURE, failure.outcome)
     }
 
+    @Test
+    fun criticalFailureCannotBeReportedAsTargetSuccessEvenWithLargeBonus() {
+        val roll = rollCheck(
+            mode = RollMode.NORMAL,
+            effectCount = 0,
+            checkBonus = 20,
+            checkBonusLabel = "Бонус",
+            situationalBonus = 0,
+            rollDie = dice(1, 1),
+        )
+
+        val comparison = compareRollToTarget(roll, target = 10)
+
+        assertEquals(12, comparison.margin)
+        assertEquals(RollTargetOutcome.FAILURE, comparison.outcome)
+    }
+
 }

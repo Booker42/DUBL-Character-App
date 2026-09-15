@@ -71,6 +71,7 @@ class CharacterSessionTest {
         val session = session()
         session.setExperience(7000)
         session.changeAttribute(AttributeId.CONSTITUTION, 50)
+        val hpBeforeLethalDamage = session.active.hpCurrent
         session.changeHp(-9999)
         session.setChiEnabled(true)
         session.setChiBonusRanks(4)
@@ -78,7 +79,7 @@ class CharacterSessionTest {
 
         assertEquals(7000, session.active.creationExperience)
         assertEquals(10, session.active.attributes.getValue(AttributeId.CONSTITUTION).base)
-        assertEquals(0, session.active.hpCurrent)
+        assertEquals(hpBeforeLethalDamage - 9999, session.active.hpCurrent)
         assertEquals(session.active.chiMaximum, session.active.chiCurrent)
     }
 }
