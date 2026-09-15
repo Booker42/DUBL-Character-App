@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEV = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/DevelopmentScreen.kt'
+SHEET = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/CharacterSheetScreen.kt'
 WORKFLOW = ROOT / '.github/workflows/linux-appimage.yml'
 
 
@@ -55,3 +56,9 @@ def test_owned_entries_surface_manual_or_failed_requirements_like_android():
     assert 'availability.checks.any { it.status != RequirementStatus.OK }' in text
     assert 'RequirementStatus.MANUAL' in text
     assert 'Требуется ручная проверка' in text
+
+
+def test_character_sheet_development_details_wires_navigation_callback():
+    text = read(SHEET)
+    assert 'DevelopmentDetailsDialog(' in text
+    assert 'onOpenEntry = { targetId -> state.developmentCatalog.byId(targetId)?.let { sheetDevelopmentEntry = it } }' in text

@@ -390,7 +390,14 @@ fun CharacterSheetScreen(
         initialAttribute = request.attribute,
         onDismiss = { rollRequest = null },
     ) }
-    sheetDevelopmentEntry?.let { entry -> DevelopmentDetailsDialog(state, entry, onDismiss = { sheetDevelopmentEntry = null }) }
+    sheetDevelopmentEntry?.let { entry ->
+        DevelopmentDetailsDialog(
+            state = state,
+            entry = entry,
+            onOpenEntry = { targetId -> state.developmentCatalog.byId(targetId)?.let { sheetDevelopmentEntry = it } },
+            onDismiss = { sheetDevelopmentEntry = null },
+        )
+    }
     sheetRollAttributeChoice?.let { skill ->
         SkillAttributeChoiceDialog(
             character = state.activeCharacter,
