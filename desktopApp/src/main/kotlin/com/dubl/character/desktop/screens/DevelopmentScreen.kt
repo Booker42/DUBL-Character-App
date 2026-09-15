@@ -25,13 +25,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.ChiRules
+import com.dubl.character.android.model.DevelopmentEffectIds
 import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.DevelopmentProgress
 import com.dubl.character.android.model.DevelopmentRules
 import com.dubl.character.android.model.OwnedDevelopment
 import com.dubl.character.android.model.MagicEquipmentRules
 import com.dubl.character.android.model.developmentNormalize
+import com.dubl.character.android.model.developmentRank
 import com.dubl.character.android.model.RequirementStatus
 import com.dubl.character.android.ui.theme.DublFocus
 import com.dubl.character.android.ui.theme.DublGold
@@ -52,6 +55,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     val progress = DevelopmentProgress(character.development)
     val rules = DevelopmentRules(character, state.developmentCatalog, progress)
     val chiRules = ChiRules(character, state.developmentCatalog)
+    val economy = CharacterEconomy.breakdown(character, state.developmentCatalog)
 
     fun branchName(entry: DevelopmentEntry): String = when {
         entry.isAbility -> entry.name
@@ -125,9 +129,14 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     FilterChip(selected = availableOnly, onClick = { availableOnly = !availableOnly }, label = { Text("Доступно сейчас") })
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Text("XP: ${rules.xpSpentOnDevelopment()}", color = DublGold)
-                    Text("ОС: ${rules.abilityPointsSpent()} / ${rules.abilityPointsBudget()} (${rules.abilityPointsAvailable()} свободно)", color = DublFocus)
+                    Text("XP: ${economy.spentXp} потрачено · ${economy.remainingXp} осталось из ${economy.totalExperience}", color = DublGold)
+                    Text("ОС: ${economy.abilityPointsSpent} / ${economy.abilityPointsBudget} (${economy.abilityPointsRemaining} свободно)", color = DublFocus)
                 }
+                Text(
+                    "Характеристики ${economy.attributeXp} · Умения ${economy.skillXp} · Навыки ${economy.developmentXp} · ЦИ ${economy.chiXp} · Магия ${economy.manaXp + economy.magicSchoolXp + economy.spellXp}" +
+                        if (economy.adjustmentXp != 0) " · Поправка ${economy.adjustmentXp}" else "",
+                    color = DublMuted,
+                )
                 if (tab == DevelopmentTab.SPECIAL) {
                     Text("Сначала открывается доступ ветки за ОС, затем её дочерние навыки покупаются за XP.", color = DublMuted)
                 }
@@ -199,7 +208,14 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
         }
     }
 
-    selected?.let { entry -> DevelopmentDetailsDialog(state, entry, onDismiss = { selected = null }) }
+    selected?.let { entry ->
+        DevelopmentDetailsDialog(
+            state = state,
+            entry = entry,
+            onOpenEntry = { targetId -> state.developmentCatalog.byId(targetId)?.let { selected = it } },
+            onDismiss = { selected = null },
+        )
+    }
 }
 
 @Composable
@@ -219,12 +235,18 @@ private fun DevelopmentEntryCard(
 ) {
     val owned = state.activeCharacter.development[entry.id] ?: OwnedDevelopment()
     val availability = rules.availability(entry, owned.optionIndex)
-    val failed = availability.checks.any { it.status == RequirementStatus.FAIL }
+    val hasRequirementIssue = availability.checks.any { it.status != RequirementStatus.OK }
+    val manualRequirement = availability.checks.any { it.status == RequirementStatus.MANUAL }
     SectionCard(title = entry.name, action = { OutlinedButton(onClick = onDetails) { Text("Подробнее") } }) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("${entry.category.ifBlank { entry.section }} · ${if (entry.isAbility) "${availability.abilityCost} ОС" else "${entry.cost} XP"}", color = DublMuted)
             Text("Ранг ${owned.rank}/${entry.maxRank}", color = DublFocus, fontWeight = FontWeight.Bold)
-            if (failed) Text("требования не выполнены", color = MaterialTheme.colorScheme.error)
+            if (hasRequirementIssue) {
+                Text(
+                    if (manualRequirement) "Требуется ручная проверка" else "Требования не выполнены",
+                    color = if (manualRequirement) DublGold else MaterialTheme.colorScheme.error,
+                )
+            }
         }
         if (entry.benefit.isNotBlank()) Text(entry.benefit, color = DublMuted)
         if (entry.accessId != null) Text("Ветка: ${state.developmentCatalog.byId(entry.accessId)?.name ?: entry.accessId}", color = DublMuted)
@@ -233,12 +255,18 @@ private fun DevelopmentEntryCard(
 
 
 @Composable
-internal fun DevelopmentDetailsDialog(state: DesktopAppState, entry: DevelopmentEntry, onDismiss: () -> Unit) {
+internal fun DevelopmentDetailsDialog(
+    state: DesktopAppState,
+    entry: DevelopmentEntry,
+    onOpenEntry: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val character = state.activeCharacter
     val owned = character.development[entry.id] ?: OwnedDevelopment()
     val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
     var optionIndex by remember(entry.id, owned.optionIndex) { mutableStateOf(owned.optionIndex) }
     val availability = rules.availability(entry, optionIndex)
+    val children = state.developmentCatalog.childrenOf(entry.id)
     var pendingRequirementOverride by remember(entry.id) { mutableStateOf(false) }
     var pendingAbilityPurchase by remember(entry.id) { mutableStateOf(false) }
 
@@ -254,11 +282,34 @@ internal fun DevelopmentDetailsDialog(state: DesktopAppState, entry: Development
                 if (entry.abilityOptions.isNotEmpty()) {
                     Text("Источник ОС / вариант", fontWeight = FontWeight.SemiBold)
                     entry.abilityOptions.forEachIndexed { index, option ->
-                        OutlinedButton(onClick = { optionIndex = index }) { Text("${if (index == optionIndex) "✓ " else ""}${option.source}: ${option.value} ОС") }
+                        OutlinedButton(
+                            enabled = owned.rank == 0,
+                            onClick = { optionIndex = index },
+                        ) { Text("${if (index == optionIndex) "✓ " else ""}${option.source}: ${option.value} ОС") }
                     }
                 }
                 if (entry.requirements.isNotBlank()) Text("Требования: ${entry.requirements}")
-                availability.checks.forEach { check -> Text("${check.status}: ${check.text}", color = if (check.status == RequirementStatus.OK) DublMuted else MaterialTheme.colorScheme.error) }
+                availability.checks.forEach { check ->
+                    val tint = when (check.status) {
+                        RequirementStatus.OK -> DublMuted
+                        RequirementStatus.MANUAL -> DublGold
+                        RequirementStatus.FAIL -> MaterialTheme.colorScheme.error
+                    }
+                    check.targetEntryId?.let { targetId ->
+                        TextButton(onClick = { onOpenEntry(targetId) }) {
+                            Text("${check.status}: ${check.text} →", color = tint)
+                        }
+                    } ?: Text("${check.status}: ${check.text}", color = tint)
+                }
+                if (children.isNotEmpty()) {
+                    Text("Открывает ${children.size}", fontWeight = FontWeight.SemiBold)
+                    children.take(8).forEach { child ->
+                        TextButton(onClick = { onOpenEntry(child.id) }) {
+                            Text(child.name)
+                        }
+                    }
+                    if (children.size > 8) Text("И ещё ${children.size - 8} записей в ветке", color = DublMuted)
+                }
                 if (entry.benefit.isNotBlank()) Text(entry.benefit)
                 if (entry.notes.isNotBlank()) Text(entry.notes, color = DublMuted)
                 if (entry.mechanicsConflict.isNotBlank()) Text(entry.mechanicsConflict, color = MaterialTheme.colorScheme.error)
@@ -335,24 +386,55 @@ internal fun DevelopmentDetailsDialog(state: DesktopAppState, entry: Development
 @Composable
 private fun ChiResourceCard(state: DesktopAppState) {
     val character = state.activeCharacter
+    val automaticAccess = character.developmentRank(DevelopmentEffectIds.INTERNAL_CHI) > 0
+    val progressionBonus = character.developmentRank(DevelopmentEffectIds.MASTER_CHI) * 2 +
+        character.developmentRank(DevelopmentEffectIds.AWAKENED_CHI) * 3
+    val baseMaximum = maxOf(3, character.will + 1)
+
     SectionCard("Ресурс ЦИ") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(if (character.chiActive) "${character.chiCurrent} / ${character.chiMaximum}" else "ЦИ выключено", color = DublFocus, fontWeight = FontWeight.Bold)
-                Text("Доп. ранги: ${character.chiBonusRanks}", color = DublMuted)
+                Text("Доп. ранги: ${character.chiBonusRanks} / 10 · 50 XP за ранг", color = DublMuted)
             }
-            Switch(checked = character.chiEnabled, onCheckedChange = { state.mutate { setChiEnabled(it) } })
+            Switch(
+                checked = character.chiActive,
+                onCheckedChange = { enabled -> state.mutate { setChiEnabled(enabled) } },
+                enabled = !automaticAccess,
+            )
             if (character.chiActive) {
-                OutlinedButton(onClick = { state.mutate { changeChi(-1) } }) { Text("−") }
-                Button(onClick = { state.mutate { changeChi(1) } }) { Text("+") }
-                TextButton(onClick = { state.mutate { restoreChi() } }) { Text("Восстановить") }
+                OutlinedButton(
+                    enabled = character.chiCurrent > 0,
+                    onClick = { state.mutate { changeChi(-1) } },
+                ) { Text("−1") }
+                Button(
+                    enabled = character.chiCurrent < character.chiMaximum,
+                    onClick = { state.mutate { changeChi(1) } },
+                ) { Text("+1") }
+                TextButton(
+                    enabled = character.chiCurrent < character.chiMaximum,
+                    onClick = { state.mutate { restoreChi() } },
+                ) { Text("Восстановить") }
             }
         }
-        if (character.chiActive) {
+        if (automaticAccess) {
+            Text("Ресурс открыт способностью «Внутренняя ЦИ» и остаётся активным, пока способность изучена.", color = DublFocus)
+        }
+        if (!character.chiActive) {
+            Text("Включение ресурса само по себе не расходует XP и не выдаёт способности автоматически.", color = DublMuted)
+        } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Бонусные ранги")
                 RankStepper(character.chiBonusRanks, max = 10) { state.mutate { setChiBonusRanks(it) } }
             }
+            Text(
+                "Максимум: база $baseMaximum + купленный запас ${character.chiBonusRanks} + развитие $progressionBonus = ${character.chiMaximum}.",
+                color = DublMuted,
+            )
+            Text(
+                "Запас полностью восстанавливается после 15 минут медитации/лёгкой активности или после 8 часов отдыха.",
+                color = DublMuted,
+            )
         }
     }
 }

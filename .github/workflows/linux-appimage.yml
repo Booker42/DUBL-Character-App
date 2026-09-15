@@ -41,6 +41,8 @@ jobs:
             tools/tests/test_compose_collection_parity.py \
             tools/tests/test_compose_destructive_and_validation_parity.py \
             tools/tests/test_compose_development_purchase_parity.py \
+            tools/tests/test_compose_development_chi_parity.py \
+            tools/tests/test_compose_development_chi_backend_parity.py \
             tools/tests/test_compose_magic_parity.py \
             tools/tests/test_compose_state_observation.py \
             tools/tests/test_compose_android_062_sheet_roll_parity.py \
