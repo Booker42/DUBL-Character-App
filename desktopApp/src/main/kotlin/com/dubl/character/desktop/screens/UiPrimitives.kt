@@ -35,20 +35,20 @@ import androidx.compose.ui.unit.dp
 
 // Desktop-only palette.  The shared Android palette intentionally stays unchanged;
 // these values target the darker, higher-contrast desktop reference UI.
-internal val DesktopBackground = Color(0xFF0B1016)
-internal val DesktopSurface = Color(0xFF111820)
-internal val DesktopSurfaceRaised = Color(0xFF151D26)
-internal val DesktopSurfaceInset = Color(0xFF0D141B)
-internal val DesktopBorder = Color(0xFF283440)
-internal val DesktopText = Color(0xFFF1F4F7)
-internal val DesktopMuted = Color(0xFF8C97A5)
-internal val DesktopAccent = Color(0xFFE65062)
-internal val DesktopAccentSoft = Color(0xFF3B232C)
-internal val DesktopGold = Color(0xFFF0BD59)
-internal val DesktopHealth = Color(0xFFE65062)
-internal val DesktopStamina = Color(0xFFE3B55C)
-internal val DesktopMana = Color(0xFF5F9EF5)
-internal val DesktopCustomResource = Color(0xFF69B49F)
+internal val DesktopBackground = Color(0xFF080D13)
+internal val DesktopSurface = Color(0xFF101821)
+internal val DesktopSurfaceRaised = Color(0xFF151F2A)
+internal val DesktopSurfaceInset = Color(0xFF0B1219)
+internal val DesktopBorder = Color(0xFF263544)
+internal val DesktopText = Color(0xFFF6F7F9)
+internal val DesktopMuted = Color(0xFF9AA4B2)
+internal val DesktopAccent = Color(0xFFF05B70)
+internal val DesktopAccentSoft = Color(0xFF3F222C)
+internal val DesktopGold = Color(0xFFF4C460)
+internal val DesktopHealth = Color(0xFFF05B70)
+internal val DesktopStamina = Color(0xFFE8BA60)
+internal val DesktopMana = Color(0xFF66A7FF)
+internal val DesktopCustomResource = Color(0xFF70C3AE)
 
 @Composable
 internal fun DesktopPanel(
@@ -80,7 +80,7 @@ internal fun DesktopSectionHeader(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) DesktopIcon(icon, tint = DesktopMuted, size = 20.dp)
+                if (icon != null) DesktopIcon(icon, tint = DesktopMuted, size = 22.dp)
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             if (!subtitle.isNullOrBlank()) {
@@ -114,14 +114,24 @@ internal fun DesktopSmallAction(
     enabled: Boolean = true,
     emphasized: Boolean = false,
 ) {
-    if (emphasized) {
-        Button(onClick = onClick, enabled = enabled, modifier = modifier) {
-            Text(label, maxLines = 1)
-        }
-    } else {
-        OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-            Text(label, maxLines = 1)
-        }
+    Surface(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(9.dp),
+        color = if (emphasized) DesktopAccent else DesktopSurfaceInset,
+        border = BorderStroke(1.dp, if (emphasized) DesktopAccent else DesktopBorder.copy(alpha = .88f)),
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            maxLines = 1,
+            color = when {
+                !enabled -> DesktopMuted
+                emphasized -> Color.White
+                else -> DesktopText
+            },
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -419,8 +429,8 @@ internal fun DesktopDenseAttributeRow(
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier, RoundedCornerShape(8.dp), DesktopSurfaceInset.copy(alpha=.72f), border=BorderStroke(1.dp,DesktopBorder.copy(alpha=.68f))) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=9.dp, vertical=4.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-            DesktopIcon(icon, tint=DesktopAccent, size=18.dp)
+        Row(Modifier.fillMaxWidth().padding(horizontal=9.dp, vertical=3.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+            DesktopIcon(icon, tint=DesktopAccent, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
             Text(value, fontWeight=FontWeight.Bold, style=MaterialTheme.typography.titleMedium)
             DesktopIconButton(DesktopIconKind.DICE, onRoll)
@@ -440,12 +450,12 @@ internal fun DesktopDenseMetricRow(
 ) {
     val interactive = if (onClick != null) modifier.clickable(onClick=onClick) else modifier
     Surface(interactive, RoundedCornerShape(8.dp), DesktopSurfaceInset.copy(alpha=.72f), border=BorderStroke(1.dp,DesktopBorder.copy(alpha=.68f))) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=10.dp, vertical=7.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal=10.dp, vertical=5.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             val iconTint = when (icon) {
                 DesktopIconKind.FORTITUDE, DesktopIconKind.RUN -> DesktopAccent
                 else -> DesktopMuted
             }
-            DesktopIcon(icon, tint=iconTint, size=18.dp)
+            DesktopIcon(icon, tint=iconTint, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
             Text(value, fontWeight=FontWeight.Bold, style=MaterialTheme.typography.titleMedium)
             if (onClick != null) DesktopIcon(DesktopIconKind.DETAIL, tint=DesktopMuted, size=12.dp)
@@ -462,8 +472,8 @@ internal fun DesktopSkillRow(
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier, RoundedCornerShape(8.dp), DesktopSurfaceInset.copy(alpha=.72f), border=BorderStroke(1.dp,DesktopBorder.copy(alpha=.68f))) {
-        Row(Modifier.fillMaxWidth().padding(horizontal=11.dp, vertical=7.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(9.dp)) {
-            DesktopIcon(icon, tint=DesktopMuted, size=18.dp)
+        Row(Modifier.fillMaxWidth().padding(horizontal=11.dp, vertical=6.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            DesktopIcon(icon, tint=DesktopMuted, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
             Text(bonus, color=DesktopAccent, fontWeight=FontWeight.Bold)
             DesktopIconButton(DesktopIconKind.DICE, onRoll)
@@ -484,21 +494,26 @@ internal fun DesktopResourceTile(
     onSecondary: (() -> Unit)? = null,
 ) {
     val fraction = if (maximum <= 0) 0f else (current.toFloat()/maximum.toFloat()).coerceIn(0f,1f)
-    Column(modifier, verticalArrangement=Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(7.dp)) {
-            DesktopIcon(icon, tint=tint, size=20.dp)
-            Text(title, fontWeight=FontWeight.SemiBold, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
-            if (onSecondary != null) TextButton(onClick=onSecondary) { Text("⋯", color = DesktopMuted) }
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            DesktopTinyButton("−", onMinus)
-            Column(Modifier.weight(1f), verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFF222B35))) {
-                    if (fraction > 0f) Box(Modifier.fillMaxWidth(fraction).height(5.dp).background(tint.copy(alpha=.90f)))
-                }
-                Text("$current / $maximum", style=MaterialTheme.typography.bodySmall, fontWeight=FontWeight.SemiBold)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesktopIcon(icon, tint = tint, size = 18.dp)
+            Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("$current / $maximum", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DesktopText)
+            if (onSecondary != null) {
+                Text(
+                    "⋯",
+                    color = DesktopMuted,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable(onClick = onSecondary).padding(horizontal = 3.dp, vertical = 1.dp),
+                )
             }
-            DesktopTinyButton("+", onPlus)
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesktopTinyButton("−", onMinus, Modifier.size(26.dp))
+            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFF222D39))) {
+                if (fraction > 0f) Box(Modifier.fillMaxWidth(fraction).height(5.dp).background(tint.copy(alpha=.94f)))
+            }
+            DesktopTinyButton("+", onPlus, Modifier.size(26.dp))
         }
     }
 }

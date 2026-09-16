@@ -190,9 +190,16 @@ fun CharacterSheetScreen(
                     economy = economy,
                     effectiveConditions = effectiveConditions,
                     compact = compactSheet,
+                    wide = wideSheet,
                     onEditIdentity = { showIdentity = true },
                     onEconomy = { showEconomy = true },
                     onConditions = { showConditions = true },
+                    onResourceDelta = ::changeResource,
+                    onResourceVisibility = { showVisibility = true },
+                    onHealthControl = { showHealthControl = true },
+                    onEditMaximum = { maximumResource = it },
+                    onEditCustomResource = { customResource = it },
+                    onCreateCustomResource = { createResource = true },
                 )
             }
 
@@ -203,12 +210,6 @@ fun CharacterSheetScreen(
                     extras = extras,
                     compact = compactSheet,
                     wide = wideSheet,
-                    onResourceDelta = ::changeResource,
-                    onResourceVisibility = { showVisibility = true },
-                    onHealthControl = { showHealthControl = true },
-                    onEditMaximum = { maximumResource = it },
-                    onEditCustomResource = { customResource = it },
-                    onCreateCustomResource = { createResource = true },
                     onAttributeDelta = { id, delta ->
                         state.changeAttribute(id, delta)
                         recent = RecentSheetChange("${id.title} ${signed(delta)}", SheetUndo.Attribute(id, delta))
@@ -326,28 +327,67 @@ private fun CharacterHero(
     economy: com.dubl.character.android.model.CharacterEconomyBreakdown,
     effectiveConditions: Set<CharacterConditionId>,
     compact: Boolean,
+    wide: Boolean,
     onEditIdentity: () -> Unit,
     onEconomy: () -> Unit,
     onConditions: () -> Unit,
+    onResourceDelta: (CharacterSheetResourceId, Int) -> Unit,
+    onResourceVisibility: () -> Unit,
+    onHealthControl: () -> Unit,
+    onEditMaximum: (CharacterSheetResourceId) -> Unit,
+    onEditCustomResource: (CustomResource) -> Unit,
+    onCreateCustomResource: () -> Unit,
 ) {
     val activeCustom = extras.customConditions.filter { it.active }
     DesktopHeroPanel(Modifier.fillMaxWidth()) {
-        if (compact) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                HeroPortrait(state, extras)
-                HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
-            }
-        } else {
-            Row(
-                Modifier.fillMaxWidth().padding(18.dp),
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                HeroPortrait(state, extras)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+        when {
+            compact -> {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    HeroPortrait(state, extras)
                     HeroIdentity(character, economy, onEditIdentity, onEconomy)
                     HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                    HeroResources(
+                        state, character, extras, true,
+                        onResourceDelta, onResourceVisibility, onHealthControl,
+                        onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                    )
+                }
+            }
+            wide -> {
+                Row(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    HeroPortrait(state, extras)
+                    Column(Modifier.weight(.42f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                        HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                    }
+                    HeroResources(
+                        state, character, extras, false,
+                        onResourceDelta, onResourceVisibility, onHealthControl,
+                        onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                        modifier = Modifier.weight(.58f),
+                    )
+                }
+            }
+            else -> {
+                Row(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    HeroPortrait(state, extras)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                        HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                        HeroResources(
+                            state, character, extras, false,
+                            onResourceDelta, onResourceVisibility, onHealthControl,
+                            onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                        )
+                    }
                 }
             }
         }
@@ -357,7 +397,7 @@ private fun CharacterHero(
 @Composable
 private fun HeroPortrait(state: DesktopAppState, extras: CharacterSheetExtras) {
     Surface(
-        modifier = Modifier.width(156.dp).height(156.dp),
+        modifier = Modifier.width(132.dp).height(132.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.72f)),
@@ -366,7 +406,7 @@ private fun HeroPortrait(state: DesktopAppState, extras: CharacterSheetExtras) {
             extras.portraitUri?.let { portraitPath ->
                 PortraitImage(portraitPath, Modifier.fillMaxSize())
             } ?: Column(
-                Modifier.fillMaxSize().padding(bottom = 34.dp),
+                Modifier.fillMaxSize().padding(bottom = 30.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -379,16 +419,26 @@ private fun HeroPortrait(state: DesktopAppState, extras: CharacterSheetExtras) {
                 color = DesktopSurfaceInset.copy(alpha = 0.92f),
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 5.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(onClick = {
-                        val file = pickPortraitFile()
-                        if (file != null) state.importPortrait(file)?.let { imported -> state.setPortrait(imported) }
-                    }) { Text(if (extras.portraitUri == null) "Добавить" else "Сменить", color = DesktopAccent) }
+                    Text(
+                        if (extras.portraitUri == null) "Добавить" else "Сменить",
+                        color = DesktopAccent,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.clickable {
+                            val file = pickPortraitFile()
+                            if (file != null) state.importPortrait(file)?.let { imported -> state.setPortrait(imported) }
+                        }.padding(horizontal = 5.dp, vertical = 2.dp),
+                    )
                     if (extras.portraitUri != null) {
-                        TextButton(onClick = { state.setPortrait(null) }) { Text("Убрать", color = DesktopMuted) }
+                        Text(
+                            "Убрать",
+                            color = DesktopMuted,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.clickable { state.setPortrait(null) }.padding(horizontal = 5.dp, vertical = 2.dp),
+                        )
                     }
                 }
             }
@@ -405,10 +455,10 @@ private fun HeroIdentity(
     onEconomy: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(character.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(character.concept.ifBlank { "Без концепта" }, color = DesktopMuted, style = MaterialTheme.typography.bodyLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("XP ${character.experience}", color = DesktopGold, fontWeight = FontWeight.Bold)
                 Text("Осталось ${economy.remainingXp}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DesktopAccent)
                 Text("ОС ${economy.abilityPointsRemaining}/${economy.abilityPointsBudget}", color = DesktopGold)
@@ -416,9 +466,14 @@ private fun HeroIdentity(
                 Text(if (character.creationComplete) "Создание завершено" else "Режим создания", color = DesktopMuted)
             }
         }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
             DesktopSmallAction("Редактировать", onEditIdentity)
-            TextButton(onClick = onEconomy) { Text("Экономика") }
+            Text(
+                "Экономика",
+                color = DesktopAccent,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.clickable(onClick = onEconomy).padding(horizontal = 7.dp, vertical = 3.dp),
+            )
         }
     }
 }
@@ -453,46 +508,7 @@ private fun HeroConditions(
 }
 
 @Composable
-private fun CharacterDashboard(
-    state: DesktopAppState,
-    character: DublCharacter,
-    extras: CharacterSheetExtras,
-    compact: Boolean,
-    wide: Boolean,
-    onResourceDelta: (CharacterSheetResourceId, Int) -> Unit,
-    onResourceVisibility: () -> Unit,
-    onHealthControl: () -> Unit,
-    onEditMaximum: (CharacterSheetResourceId) -> Unit,
-    onEditCustomResource: (CustomResource) -> Unit,
-    onCreateCustomResource: () -> Unit,
-    onAttributeDelta: (AttributeId, Int) -> Unit,
-    onRoll: (RollContext, AttributeId?) -> Unit,
-    onSkillRoll: (ResolvedSkill) -> Unit,
-    onNavigateSkills: () -> Unit,
-    onGrouping: (GroupingKind) -> Unit,
-) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ResourcesPanel(
-            state, character, extras, compact, onResourceDelta, onResourceVisibility, onHealthControl,
-            onEditMaximum, onEditCustomResource, onCreateCustomResource,
-        )
-        DenseStatsSkillsRow(
-            state = state,
-            character = character,
-            extras = extras,
-            compact = compact,
-            wide = wide,
-            onAttributeDelta = onAttributeDelta,
-            onRoll = onRoll,
-            onSkillRoll = onSkillRoll,
-            onNavigateSkills = onNavigateSkills,
-            onGrouping = onGrouping,
-        )
-    }
-}
-
-@Composable
-private fun ResourcesPanel(
+private fun HeroResources(
     state: DesktopAppState,
     character: DublCharacter,
     extras: CharacterSheetExtras,
@@ -505,85 +521,131 @@ private fun ResourcesPanel(
     onCreateCustomResource: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DesktopSectionHeader(
-                "Ресурсы",
-                icon = DesktopIconKind.HEALTH,
-                action = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onCreateCustomResource) { Text("+ ресурс", color = DesktopAccent) }
-                        TextButton(onClick = onResourceVisibility) { Text("Видимость", color = DesktopAccent) }
-                    }
-                },
+    var expanded by remember(character.id) { mutableStateOf(false) }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                DesktopIcon(DesktopIconKind.HEALTH, tint = DesktopHealth, size = 20.dp)
+                Text("Ресурсы", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "+ ресурс",
+                color = DesktopAccent,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.clickable(onClick = onCreateCustomResource).padding(horizontal = 7.dp, vertical = 4.dp),
             )
+            Text(
+                "Видимость",
+                color = DesktopAccent,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.clickable(onClick = onResourceVisibility).padding(horizontal = 7.dp, vertical = 4.dp),
+            )
+        }
 
-            val tiles = mutableListOf<@Composable (Modifier) -> Unit>()
-            if (CharacterSheetResourceId.HEALTH !in extras.hiddenResourceIds) tiles += { tileModifier ->
+        val tiles = mutableListOf<@Composable (Modifier) -> Unit>()
+        if (CharacterSheetResourceId.HEALTH !in extras.hiddenResourceIds) tiles += { tileModifier ->
+            DesktopResourceTile(
+                DesktopIconKind.HEALTH, "Здоровье", character.hpCurrent, character.healthMaximum, DesktopHealth,
+                { onResourceDelta(CharacterSheetResourceId.HEALTH, -1) },
+                { onResourceDelta(CharacterSheetResourceId.HEALTH, 1) },
+                tileModifier,
+                onSecondary = onHealthControl,
+            )
+        }
+        if (CharacterSheetResourceId.ENDURANCE !in extras.hiddenResourceIds) tiles += { tileModifier ->
+            DesktopResourceTile(
+                DesktopIconKind.ENDURANCE, "Выносливость", character.enduranceCurrent, character.enduranceMaximum, DesktopStamina,
+                { onResourceDelta(CharacterSheetResourceId.ENDURANCE, -1) },
+                { onResourceDelta(CharacterSheetResourceId.ENDURANCE, 1) },
+                tileModifier,
+                onSecondary = { onEditMaximum(CharacterSheetResourceId.ENDURANCE) },
+            )
+        }
+        if ((character.manaEnabled || character.effectiveManaMaximum > 0) && CharacterSheetResourceId.MANA !in extras.hiddenResourceIds) tiles += { tileModifier ->
+            DesktopResourceTile(
+                DesktopIconKind.MANA, "Мана", character.manaCurrent, character.effectiveManaMaximum, DesktopMana,
+                { onResourceDelta(CharacterSheetResourceId.MANA, -1) },
+                { onResourceDelta(CharacterSheetResourceId.MANA, 1) },
+                tileModifier,
+                onSecondary = { onEditMaximum(CharacterSheetResourceId.MANA) },
+            )
+        }
+        if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) tiles += { tileModifier ->
+            DesktopResourceTile(
+                DesktopIconKind.CHI, "ЦИ", character.chiCurrent, character.chiMaximum, DesktopAccent,
+                { onResourceDelta(CharacterSheetResourceId.CHI, -1) },
+                { onResourceDelta(CharacterSheetResourceId.CHI, 1) },
+                tileModifier,
+                onSecondary = { state.restoreChi() },
+            )
+        }
+        character.customResources.forEach { resource ->
+            tiles += { tileModifier ->
                 DesktopResourceTile(
-                    DesktopIconKind.HEALTH, "Здоровье", character.hpCurrent, character.healthMaximum, DesktopHealth,
-                    { onResourceDelta(CharacterSheetResourceId.HEALTH, -1) },
-                    { onResourceDelta(CharacterSheetResourceId.HEALTH, 1) },
+                    DesktopIconKind.GENERIC_SKILL,
+                    resource.name,
+                    resource.current,
+                    resource.maximum,
+                    DesktopCustomResource,
+                    { state.changeCustomResource(resource.uid, -1) },
+                    { state.changeCustomResource(resource.uid, 1) },
                     tileModifier,
-                    onSecondary = onHealthControl,
+                    onSecondary = { onEditCustomResource(resource) },
                 )
-            }
-            if (CharacterSheetResourceId.ENDURANCE !in extras.hiddenResourceIds) tiles += { tileModifier ->
-                DesktopResourceTile(
-                    DesktopIconKind.ENDURANCE, "Выносливость", character.enduranceCurrent, character.enduranceMaximum, DesktopStamina,
-                    { onResourceDelta(CharacterSheetResourceId.ENDURANCE, -1) },
-                    { onResourceDelta(CharacterSheetResourceId.ENDURANCE, 1) },
-                    tileModifier,
-                    onSecondary = { onEditMaximum(CharacterSheetResourceId.ENDURANCE) },
-                )
-            }
-            if ((character.manaEnabled || character.effectiveManaMaximum > 0) && CharacterSheetResourceId.MANA !in extras.hiddenResourceIds) tiles += { tileModifier ->
-                DesktopResourceTile(
-                    DesktopIconKind.MANA, "Мана", character.manaCurrent, character.effectiveManaMaximum, DesktopMana,
-                    { onResourceDelta(CharacterSheetResourceId.MANA, -1) },
-                    { onResourceDelta(CharacterSheetResourceId.MANA, 1) },
-                    tileModifier,
-                    onSecondary = { onEditMaximum(CharacterSheetResourceId.MANA) },
-                )
-            }
-            if (character.chiActive && CharacterSheetResourceId.CHI !in extras.hiddenResourceIds) tiles += { tileModifier ->
-                DesktopResourceTile(
-                    DesktopIconKind.CHI, "ЦИ", character.chiCurrent, character.chiMaximum, DesktopAccent,
-                    { onResourceDelta(CharacterSheetResourceId.CHI, -1) },
-                    { onResourceDelta(CharacterSheetResourceId.CHI, 1) },
-                    tileModifier,
-                    onSecondary = { state.restoreChi() },
-                )
-            }
-            character.customResources.forEach { resource ->
-                tiles += { tileModifier ->
-                    DesktopResourceTile(
-                        DesktopIconKind.GENERIC_SKILL,
-                        resource.name,
-                        resource.current,
-                        resource.maximum,
-                        DesktopCustomResource,
-                        { state.changeCustomResource(resource.uid, -1) },
-                        { state.changeCustomResource(resource.uid, 1) },
-                        tileModifier,
-                        onSecondary = { onEditCustomResource(resource) },
-                    )
-                }
-            }
-
-            if (compact) {
-                tiles.forEach { tile -> tile(Modifier.fillMaxWidth()) }
-            } else {
-                val columns = if (tiles.size >= 5) 5 else 4
-                tiles.chunked(columns).forEach { rowTiles ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.Top) {
-                        rowTiles.forEach { tile -> Box(Modifier.weight(1f)) { tile(Modifier.fillMaxWidth()) } }
-                        repeat(columns - rowTiles.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
             }
         }
+
+        if (tiles.isEmpty()) {
+            Text("Нет видимых ресурсов", color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
+            return@Column
+        }
+
+        val maxVisible = if (compact) 4 else 6
+        val overflow = (tiles.size - maxVisible).coerceAtLeast(0)
+        val shown = if (expanded) tiles else tiles.take(maxVisible)
+        val columns = if (compact) 2 else if (shown.size <= 4) shown.size.coerceAtLeast(1) else 3
+        shown.chunked(columns).forEach { rowTiles ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                rowTiles.forEach { tile -> Box(Modifier.weight(1f)) { tile(Modifier.fillMaxWidth()) } }
+                repeat(columns - rowTiles.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        if (overflow > 0 || expanded) {
+            Text(
+                if (expanded) "Свернуть" else "Ещё $overflow",
+                color = DesktopAccent,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.align(Alignment.End).clickable { expanded = !expanded }.padding(horizontal = 6.dp, vertical = 3.dp),
+            )
+        }
     }
+}
+
+@Composable
+private fun CharacterDashboard(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    wide: Boolean,
+    onAttributeDelta: (AttributeId, Int) -> Unit,
+    onRoll: (RollContext, AttributeId?) -> Unit,
+    onSkillRoll: (ResolvedSkill) -> Unit,
+    onNavigateSkills: () -> Unit,
+    onGrouping: (GroupingKind) -> Unit,
+) {
+    DenseStatsSkillsRow(
+        state = state,
+        character = character,
+        extras = extras,
+        compact = compact,
+        wide = wide,
+        onAttributeDelta = onAttributeDelta,
+        onRoll = onRoll,
+        onSkillRoll = onSkillRoll,
+        onNavigateSkills = onNavigateSkills,
+        onGrouping = onGrouping,
+    )
 }
 
 @Composable
@@ -608,21 +670,21 @@ private fun DenseStatsSkillsRow(
         }
     } else {
         Row(
-            Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+            Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.Top,
         ) {
             CompactCharacteristicsPanel(
                 character, onAttributeDelta, onRoll,
-                Modifier.weight(if (wide) 0.27f else 0.29f).fillMaxHeight(),
+                Modifier.weight(if (wide) 0.27f else 0.29f),
             )
             CompactMetricsPanel(
                 character, onRoll,
-                Modifier.weight(if (wide) 0.20f else 0.23f).fillMaxHeight(),
+                Modifier.weight(if (wide) 0.20f else 0.23f),
             )
             SheetSkillsPanel(
                 state, character, extras, skillRoll, onNavigateSkills, onGrouping,
-                Modifier.weight(if (wide) 0.53f else 0.48f).fillMaxHeight(),
+                Modifier.weight(if (wide) 0.53f else 0.48f),
             )
         }
     }
@@ -646,7 +708,7 @@ private fun CompactCharacteristicsPanel(
         AttributeId.CHARISMA,
     )
     DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxHeight().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             DesktopSectionHeader("Характеристики", icon = DesktopIconKind.STRENGTH)
             order.forEach { id ->
                 DesktopDenseAttributeRow(
@@ -690,7 +752,7 @@ private fun CompactMetricsPanel(
         Metric(DesktopIconKind.SIZE, "Размер", character.size.toString()),
     )
     DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxHeight().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             DesktopSectionHeader("Показатели", icon = DesktopIconKind.INITIATIVE)
             metrics.forEach { metric ->
                 DesktopDenseMetricRow(
@@ -725,7 +787,7 @@ private fun SheetSkillsPanel(
     val ordered = groups.flatMap { group -> group.itemIds.mapNotNull(byId::get) }.distinctBy { it.id }
 
     DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxHeight().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             DesktopSectionHeader(
                 "Умения",
                 icon = DesktopIconKind.SKILLS,

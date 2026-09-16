@@ -89,7 +89,7 @@ def test_character_sheet_matches_dense_three_column_mock_and_notes():
     assert 'state.setNotes(' in sheet
 
 
-def test_live_screenshot_regression_uses_desktop_palette_and_equal_height_dashboard():
+def test_live_screenshot_regression_uses_compact_hero_resources_and_content_height_dashboard():
     main = read(MAIN)
     sheet = read(SHEET)
     primitives = read(PRIMITIVES)
@@ -102,8 +102,15 @@ def test_live_screenshot_regression_uses_desktop_palette_and_equal_height_dashbo
     ):
         assert token in primitives, token
     assert 'DesktopVisualTheme' in main
-    assert 'Modifier.fillMaxWidth().height(IntrinsicSize.Max)' in sheet
-    assert 'Modifier.weight(if (wide) 0.53f else 0.48f).fillMaxHeight()' in sheet
+    assert 'private fun HeroResources' in sheet
+    assert 'maxVisible = if (compact) 4 else 6' in sheet
+    assert 'if (shown.size <= 4) shown.size.coerceAtLeast(1) else 3' in sheet
+    assert 'Ещё $overflow' in sheet
+    assert 'private fun ResourcesPanel' not in sheet
+    dense = sheet.split('private fun DenseStatsSkillsRow', 1)[1].split('private fun CompactCharacteristicsPanel', 1)[0]
+    assert 'height(IntrinsicSize.Max)' not in dense
+    assert '.fillMaxHeight()' not in dense
+    assert 'Modifier.weight(if (wide) 0.53f else 0.48f)' in dense
     assert 'character.customResources.forEach { resource ->' in sheet
     assert 'TextButton(onClick = onCreateCustomResource) { Text("+ Свой ресурс") }' not in sheet
 
