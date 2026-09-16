@@ -2,6 +2,7 @@ package com.dubl.character.android.application
 
 import com.dubl.character.android.data.CharacterExtrasStore
 import com.dubl.character.android.data.InMemoryCharacterStore
+import com.dubl.character.android.data.CharacterTransferRejectReason
 import com.dubl.character.android.model.AppSnapshot
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
@@ -20,6 +21,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertIs
 
 class SharedApplicationGoldenTest {
     private class InMemoryExtrasStore : CharacterExtrasStore {
@@ -422,6 +424,55 @@ class SharedApplicationGoldenTest {
         assertFalse(app.snapshot.characters.any { it.id == secondId })
         assertTrue(app.snapshot.characters.any { it.id == app.snapshot.activeCharacterId })
         assertEquals(CharacterSheetExtras(), fixture.extrasStore.load(secondId))
+    }
+
+
+    @Test
+    fun characterTransferCreatesFreshActiveCopyAndPreservesPortableExtras() {
+        val fixture = GoldenFixture()
+        val app = fixture.application()
+        val sourceId = app.active.id
+        app.character.setName("Радана")
+        app.sheet.setPortrait("content://portrait/source")
+        app.sheet.toggleCondition(CharacterConditionId.TIRED)
+        app.sheet.setResourceHidden(CharacterSheetResourceId.MANA, true)
+        app.sheet.setSkillGroups(listOf(SheetGroup("craft", "Ремесло", listOf("smithing"))))
+        app.sheet.setNotes("Дорожная кузница")
+
+        val raw = app.transfer.exportActive()
+        val firstImport = assertIs<CharacterTransferImportResult.Imported>(app.transfer.importCharacter(raw))
+
+        assertEquals("golden-1", firstImport.characterId)
+        assertEquals("Радана", firstImport.name)
+        assertEquals(2, app.snapshot.characters.size)
+        assertEquals(firstImport.characterId, app.snapshot.activeCharacterId)
+        assertTrue(firstImport.characterId != sourceId)
+        assertEquals("Радана", app.active.name)
+        assertTrue(CharacterConditionId.TIRED in app.activeExtras.activeConditions)
+        assertTrue(CharacterSheetResourceId.MANA in app.activeExtras.hiddenResourceIds)
+        assertEquals("craft", app.activeExtras.skillGroups.single().id)
+        assertEquals("Дорожная кузница", app.activeExtras.notes)
+        assertNull(app.activeExtras.portraitUri)
+
+        val secondImport = assertIs<CharacterTransferImportResult.Imported>(app.transfer.importCharacter(raw))
+        assertEquals("golden-2", secondImport.characterId)
+        assertEquals(3, app.snapshot.characters.size)
+        assertEquals(secondImport.characterId, app.snapshot.activeCharacterId)
+    }
+
+    @Test
+    fun rejectedCharacterTransferDoesNotMutateApplicationState() {
+        val app = application()
+        val before = app.snapshot
+        val beforeExtras = app.activeExtras
+
+        val result = assertIs<CharacterTransferImportResult.Rejected>(
+            app.transfer.importCharacter("not a dubl file"),
+        )
+
+        assertEquals(CharacterTransferRejectReason.INVALID_FILE, result.reason)
+        assertEquals(before, app.snapshot)
+        assertEquals(beforeExtras, app.activeExtras)
     }
 
 }

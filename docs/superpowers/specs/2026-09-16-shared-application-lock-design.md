@@ -32,7 +32,7 @@ This slice does not redesign either UI, re-audit DUBL 3.69, repair known ruleboo
 
 Golden scenarios are typed Kotlin programs against `DublApplication`. They use deterministic ID factories and in-memory stores and assert canonical snapshot/extras state after a sequence of user-level operations. They establish behavior parity and regression protection, not rulebook authority. If a later rulebook audit corrects behavior, the shared implementation and corresponding golden expectation change together.
 
-The golden suite now contains 15 application-level scenarios covering:
+The golden suite now contains 17 application-level scenarios covering:
 
 1. profile/resource normalization;
 2. skills plus preferred roll attribute;
@@ -48,7 +48,9 @@ The golden suite now contains 15 application-level scenarios covering:
 12. equipment quantity/carried/manual-load/removal lifecycle;
 13. custom resource clamp/update/spend/removal lifecycle;
 14. conditions, grouping, hidden resources and preferences across application restart;
-15. roster deletion with extras cleanup and valid active-character selection.
+15. roster deletion with extras cleanup and valid active-character selection;
+16. portable character transfer with fresh local identity and extras preservation;
+17. rejected character transfer with no application-state mutation.
 
 ## Future compatibility
 

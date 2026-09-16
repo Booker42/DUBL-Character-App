@@ -71,9 +71,12 @@ before packaging. `packaging/linux/build-portable-appimage.sh` and `packaging/li
 
 ## Verification already completed in this sandbox
 
+- Cross-platform character transfer verification: `tools/tests/test_character_transfer.py` 5/5 passed, including an executable local Kotlin round-trip/rejection/future-schema harness; the current fast non-subprocess source/parity sweep is 234 passed / 4 skipped, and the focused Shared Application lock/golden/Desktop persistence/sheet group is 12/12 passed.
+- Shared common model/data/state/application sources compile successfully with the available local Kotlin compiler; the only warning is the pre-existing deprecated legacy Magic power adapter.
+- Project Gradle verification was attempted with `./gradlew :shared:desktopTest :desktopApp:compileKotlin --offline` and remains unavailable because the wrapper/bootstrap cannot resolve `services.gradle.org` in this sandbox (`curl: (6) Could not resolve host: services.gradle.org`); networked CI remains the authoritative project-toolchain compile gate.
 - Shared Application hard-lock/source regression sweep: 229 passed, 4 skipped across the fast non-compiler test set after platform migration;
 - hard-lock + typed-golden source contracts: 6/6 passed;
-- typed Shared Application golden coverage is now 15 application-level scenarios in `shared/commonTest`; a local model/data/state/application-only Kotlin sanity harness executed all 15 successfully (`GOLDEN_COVERAGE_OK scenarios=15`), while the authoritative project-toolchain execution remains `:shared:desktopTest` in CI;
+- typed Shared Application golden coverage is now 17 application-level scenarios in `shared/commonTest`; the original local golden harness executed the first 15 successfully, and `CharacterTransferHarness` separately executes the new transfer round-trip/rejection/forward-schema behavior; the authoritative project-toolchain execution remains `:shared:desktopTest` in CI;
 - current golden expansion verification: 16/16 focused hard-lock/golden/release source tests and 212 passed / 4 skipped in the fast non-subprocess parity suite;
 - Gradle/Compose compile remains unavailable in this sandbox because `services.gradle.org` DNS resolution is blocked; the networked CI compile/AppImage gate remains authoritative.
 - Shared Application patch verification: `git apply --check` and real apply both succeed against the untouched rulebook-compile-hotfix source ZIP; the applied tree matches the generated source snapshot byte-for-byte aside from pre-existing cache directories. Focused lock/golden/release tests on the applied copy: 26/26 passed.

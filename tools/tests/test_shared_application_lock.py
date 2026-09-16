@@ -13,6 +13,7 @@ DESKTOP_SCREENS = ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/
 CAPABILITY_FILES = {
     'DublApplication.kt': 'class DublApplication',
     'CharacterApplication.kt': 'class CharacterApplication',
+    'CharacterTransferApplication.kt': 'class CharacterTransferApplication',
     'SkillsApplication.kt': 'class SkillsApplication',
     'DevelopmentApplication.kt': 'class DevelopmentApplication',
     'MagicApplication.kt': 'class MagicApplication',
@@ -31,7 +32,7 @@ def test_shared_application_aggregate_and_capabilities_exist():
         assert path.exists(), filename
         assert declaration in read(path), filename
     root = read(APPLICATION / 'DublApplication.kt')
-    for capability in ('character', 'skills', 'development', 'magic', 'equipment', 'sheet'):
+    for capability in ('character', 'skills', 'development', 'magic', 'equipment', 'sheet', 'transfer'):
         assert f'val {capability}' in root
     assert 'val snapshot' in root
     assert 'val active' in root

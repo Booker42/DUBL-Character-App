@@ -641,6 +641,19 @@ internal class CharacterSession(
         )
     }
 
+    internal fun newIdForTransfer(): String = idFactory()
+
+    internal fun importTransferredCharacter(character: DublCharacter): String {
+        val imported = character.copy(id = idFactory())
+        persist(
+            AppSnapshot(
+                characters = snapshot.characters + imported,
+                activeCharacterId = imported.id,
+            )
+        )
+        return imported.id
+    }
+
     fun selectCharacter(id: String) {
         if (snapshot.characters.any { it.id == id }) {
             persist(snapshot.copy(activeCharacterId = id))

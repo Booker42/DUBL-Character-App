@@ -24,13 +24,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.dubl.character.desktop.DesktopAppState
+import com.dubl.character.android.application.CharacterTransferImportResult
+import com.dubl.character.android.data.CharacterTransferRejectReason
 import com.dubl.character.android.ui.theme.DublFocus
 import com.dubl.character.android.ui.theme.DublMuted
+import com.dubl.character.desktop.DesktopAppState
+import java.awt.FileDialog
+import java.awt.Frame
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
 
 @Composable
 fun CharactersScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     var confirmDelete by remember { mutableStateOf(false) }
+    var transferStatus by remember { mutableStateOf<String?>(null) }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -45,7 +54,42 @@ fun CharactersScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     Text("Персонажи", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("${state.snapshot.characters.size} персонаж(а/ей)", color = DublMuted)
                 }
-                Button(onClick = { state.createCharacter() }) { Text("+ Новый персонаж") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = {
+                        val file = pickTransferFile()
+                        if (file != null) {
+                            val raw = runCatching { Files.readString(file, StandardCharsets.UTF_8) }.getOrNull()
+                            transferStatus = if (raw == null) {
+                                "Не удалось прочитать файл персонажа."
+                            } else {
+                                importStatus(state.importCharacter(raw))
+                            }
+                        }
+                    }) { Text("Импорт") }
+                    OutlinedButton(onClick = {
+                        val file = saveTransferFile(state.activeCharacter.name)
+                        if (file != null) {
+                            transferStatus = if (runCatching {
+                                    Files.writeString(file, state.exportActiveCharacter(), StandardCharsets.UTF_8)
+                                }.isSuccess
+                            ) {
+                                "Персонаж экспортирован."
+                            } else {
+                                "Не удалось сохранить файл персонажа."
+                            }
+                        }
+                    }) { Text("Экспорт") }
+                    Button(onClick = { state.createCharacter() }) { Text("+ Новый персонаж") }
+                }
+            }
+        }
+        transferStatus?.let { status ->
+            item {
+                Text(
+                    status,
+                    color = DublMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
         items(state.snapshot.characters, key = { it.id }) { character ->
@@ -85,3 +129,38 @@ fun CharactersScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
         )
     }
 }
+
+private fun pickTransferFile(): Path? {
+    val dialog = FileDialog(null as Frame?, "Импорт персонажа DUBL", FileDialog.LOAD)
+    dialog.isVisible = true
+    val file = dialog.file ?: return null
+    return Path.of(dialog.directory, file)
+}
+
+private fun saveTransferFile(characterName: String): Path? {
+    val dialog = FileDialog(null as Frame?, "Экспорт персонажа DUBL", FileDialog.SAVE)
+    dialog.file = "${safeTransferFileName(characterName)}.dubl"
+    dialog.isVisible = true
+    val file = dialog.file ?: return null
+    val chosen = Path.of(dialog.directory, file)
+    return if (chosen.fileName.toString().endsWith(".dubl", ignoreCase = true)) {
+        chosen
+    } else {
+        chosen.resolveSibling("${chosen.fileName}.dubl")
+    }
+}
+
+private fun importStatus(result: CharacterTransferImportResult): String = when (result) {
+    is CharacterTransferImportResult.Imported -> "Импортирован персонаж: ${result.name}."
+    is CharacterTransferImportResult.Rejected -> when (result.reason) {
+        CharacterTransferRejectReason.INVALID_FILE -> "Это не поддерживаемый файл персонажа DUBL."
+        CharacterTransferRejectReason.UNSUPPORTED_FORMAT_VERSION -> "Версия файла персонажа пока не поддерживается."
+        CharacterTransferRejectReason.UNSUPPORTED_RULESET -> "Этот файл создан для другого рулбука или версии правил."
+    }
+}
+
+private fun safeTransferFileName(name: String): String = name
+    .trim()
+    .ifBlank { "character" }
+    .replace(Regex("[\\\\/:*?\"<>|]+"), "_")
+    .take(80)

@@ -30,6 +30,7 @@ class DublApplication(
     val magic = MagicApplication(characterSession, undoManager)
     val equipment = EquipmentApplication(characterSession)
     val sheet = SheetApplication(extrasSession, { characterSession.active.id }, undoManager)
+    val transfer = CharacterTransferApplication(characterSession, extrasSession)
 
     val snapshot: AppSnapshot get() = characterSession.snapshot
     val active: DublCharacter get() = characterSession.active

@@ -9,6 +9,8 @@ internal class CharacterExtrasSession(
 ) {
     fun load(characterId: String): CharacterSheetExtras = store.load(characterId)
 
+    internal fun replace(characterId: String, extras: CharacterSheetExtras) = store.save(characterId, extras)
+
     internal fun update(characterId: String, transform: (CharacterSheetExtras) -> CharacterSheetExtras): CharacterSheetExtras {
         val next = transform(store.load(characterId))
         store.save(characterId, next)

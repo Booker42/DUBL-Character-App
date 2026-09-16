@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.dubl.character.android.application.DublApplication
+import com.dubl.character.android.application.CharacterTransferImportResult
 import com.dubl.character.android.data.DesktopCharacterExtrasStore
 import com.dubl.character.android.data.DesktopCharacterStore
 import com.dubl.character.android.model.*
@@ -148,6 +149,9 @@ class DesktopAppState {
     fun updateCustomCondition(id: String, title: String, description: String, active: Boolean? = null) = sync { application.sheet.updateCustomCondition(id, title, description, active) }
     fun setCustomConditionActive(id: String, active: Boolean) = sync { application.sheet.setCustomConditionActive(id, active) }
     fun removeCustomCondition(id: String) = sync { application.sheet.removeCustomCondition(id) }
+
+    fun exportActiveCharacter(): String = application.transfer.exportActive()
+    fun importCharacter(raw: String): CharacterTransferImportResult = sync { application.transfer.importCharacter(raw) }
 
     fun createCharacter() = sync { application.character.createCharacter() }
     fun selectCharacter(id: String) = sync { application.character.selectCharacter(id) }

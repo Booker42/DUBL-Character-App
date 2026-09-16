@@ -30,6 +30,8 @@ def test_typed_golden_scenarios_live_in_shared_common_test():
         "customResourceLifecycleClampsUpdatesSpendsAndRemoves",
         "conditionGroupingAndPreferencesSurviveApplicationRestart",
         "characterRosterDeletionRemovesExtrasAndKeepsValidActiveCharacter",
+        "characterTransferCreatesFreshActiveCopyAndPreservesPortableExtras",
+        "rejectedCharacterTransferDoesNotMutateApplicationState",
     ):
         assert f"fun {name}()" in text
 

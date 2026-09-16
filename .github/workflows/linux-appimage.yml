@@ -55,6 +55,7 @@ jobs:
             tools/tests/test_desktop_ui_structural_redesign.py \
             tools/tests/test_shared_application_lock.py \
             tools/tests/test_shared_application_golden.py \
+            tools/tests/test_character_transfer.py \
             tools/tests/test_rulebook_raw_ir.py \
             tools/tests/test_rulebook_source_index.py \
             tools/tests/test_rulebook_diagnostics.py \

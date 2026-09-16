@@ -1,7 +1,12 @@
 package com.dubl.character.android.ui.screens
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,16 +26,46 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.dubl.character.android.application.CharacterTransferImportResult
+import com.dubl.character.android.data.CharacterTransferRejectReason
 import com.dubl.character.android.state.CharacterController
 import com.dubl.character.android.ui.components.DublCard
 import com.dubl.character.android.ui.components.DublScreenHeader
+import java.nio.charset.StandardCharsets
+
+private const val TRANSFER_EXTENSION = ".dubl"
 
 @Composable
 fun CharactersScreen(controller: CharacterController) {
     var confirmDelete by remember { mutableStateOf(false) }
+    var transferStatus by remember { mutableStateOf<String?>(null) }
     val snapshot = controller.snapshot
+    val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri != null) {
+            transferStatus = if (writeTransferFile(context, uri, controller.exportActiveCharacter())) {
+                "Персонаж экспортирован."
+            } else {
+                "Не удалось сохранить файл персонажа."
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val raw = readTransferFile(context, uri)
+            transferStatus = if (raw == null) {
+                "Не удалось прочитать файл персонажа."
+            } else {
+                importStatus(controller.importCharacter(raw))
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -47,6 +82,29 @@ fun CharactersScreen(controller: CharacterController) {
                 Button(onClick = controller::createCharacter) { Text("+ Создать") }
             },
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { importLauncher.launch(arrayOf("*/*")) },
+                modifier = Modifier.weight(1f),
+            ) { Text("Импорт") }
+            OutlinedButton(
+                onClick = {
+                    exportLauncher.launch(safeTransferFileName(controller.active.name) + TRANSFER_EXTENSION)
+                },
+                modifier = Modifier.weight(1f),
+            ) { Text("Экспорт") }
+        }
+        transferStatus?.let { status ->
+            Text(
+                status,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         snapshot.characters.forEach { character ->
             val active = character.id == snapshot.activeCharacterId
@@ -95,3 +153,28 @@ fun CharactersScreen(controller: CharacterController) {
         )
     }
 }
+
+private fun writeTransferFile(context: Context, uri: Uri, raw: String): Boolean = runCatching {
+    val stream = context.contentResolver.openOutputStream(uri) ?: error("Cannot open output stream")
+    stream.bufferedWriter(StandardCharsets.UTF_8).use { it.write(raw) }
+}.isSuccess
+
+private fun readTransferFile(context: Context, uri: Uri): String? = runCatching {
+    val stream = context.contentResolver.openInputStream(uri) ?: error("Cannot open input stream")
+    stream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+}.getOrNull()
+
+private fun importStatus(result: CharacterTransferImportResult): String = when (result) {
+    is CharacterTransferImportResult.Imported -> "Импортирован персонаж: ${result.name}."
+    is CharacterTransferImportResult.Rejected -> when (result.reason) {
+        CharacterTransferRejectReason.INVALID_FILE -> "Это не поддерживаемый файл персонажа DUBL."
+        CharacterTransferRejectReason.UNSUPPORTED_FORMAT_VERSION -> "Версия файла персонажа пока не поддерживается."
+        CharacterTransferRejectReason.UNSUPPORTED_RULESET -> "Этот файл создан для другого рулбука или версии правил."
+    }
+}
+
+private fun safeTransferFileName(name: String): String = name
+    .trim()
+    .ifBlank { "character" }
+    .replace(Regex("[\\\\/:*?\"<>|]+"), "_")
+    .take(80)

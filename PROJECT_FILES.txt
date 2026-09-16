@@ -59,12 +59,14 @@ docs/superpowers/plans/2026-09-14-android-0.6.2-grouping-roll-flow.md
 docs/superpowers/plans/2026-09-14-kmp-foundation.md
 docs/superpowers/plans/2026-09-15-desktop-0.2-android-parity.md
 docs/superpowers/plans/2026-09-15-parity-contract-ruleset-magic.md
+docs/superpowers/plans/2026-09-16-character-transfer.md
 docs/superpowers/plans/2026-09-16-desktop-ui-structural-redesign-v1.md
 docs/superpowers/plans/2026-09-16-shared-application-lock.md
 docs/superpowers/specs/2026-09-14-android-0.6.2-grouping-roll-flow-design.md
 docs/superpowers/specs/2026-09-14-kmp-foundation-design.md
 docs/superpowers/specs/2026-09-15-desktop-0.2-android-parity-design.md
 docs/superpowers/specs/2026-09-15-parity-contract-ruleset-magic-design.md
+docs/superpowers/specs/2026-09-16-character-transfer-design.md
 docs/superpowers/specs/2026-09-16-desktop-ui-structural-redesign-v1-design.md
 docs/superpowers/specs/2026-09-16-shared-application-lock-design.md
 gradle.properties
@@ -83,6 +85,7 @@ settings.gradle.kts
 shared/build.gradle.kts
 shared/src/commonMain/kotlin/com/dubl/character/android/application/ApplicationUndoManager.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/application/CharacterApplication.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/application/CharacterTransferApplication.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/application/DevelopmentApplication.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/application/DublApplication.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/application/EquipmentApplication.kt
@@ -92,6 +95,7 @@ shared/src/commonMain/kotlin/com/dubl/character/android/application/SkillsApplic
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CatalogData.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CharacterExtrasStore.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/CharacterStore.kt
+shared/src/commonMain/kotlin/com/dubl/character/android/data/CharacterTransferCodec.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/MiniJson.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/data/SnapshotCodec.kt
 shared/src/commonMain/kotlin/com/dubl/character/android/model/CharacterEconomy.kt
@@ -125,6 +129,7 @@ shared/src/commonMain/resources/magic_equipment_catalog.json
 shared/src/commonMain/resources/skill_effects_catalog.json
 shared/src/commonTest/kotlin/com/dubl/character/android/application/SharedApplicationGoldenTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/data/CharacterStoreTest.kt
+shared/src/commonTest/kotlin/com/dubl/character/android/data/CharacterTransferCodecTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/CharacterEconomyTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/CharacterNormalizationTest.kt
 shared/src/commonTest/kotlin/com/dubl/character/android/model/CharacterRollContextsTest.kt
@@ -152,6 +157,7 @@ tools/setup-signing
 tools/tests/kotlin/CatalogParserHarness.kt
 tools/tests/kotlin/CharacterSessionHarness.kt
 tools/tests/kotlin/CharacterSheetSessionHarness.kt
+tools/tests/kotlin/CharacterTransferHarness.kt
 tools/tests/kotlin/DesktopCatalogHarness.kt
 tools/tests/kotlin/DesktopPersistenceHarness.kt
 tools/tests/kotlin/MagicParityHarness.kt
@@ -163,6 +169,7 @@ tools/tests/test_android_0_6_1_ui.py
 tools/tests/test_android_0_6_content.py
 tools/tests/test_build_version_matrix.py
 tools/tests/test_character_session.py
+tools/tests/test_character_transfer.py
 tools/tests/test_compose_collection_parity.py
 tools/tests/test_compose_desktop_parity.py
 tools/tests/test_compose_destructive_and_validation_parity.py
