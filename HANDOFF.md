@@ -60,7 +60,7 @@ Normal rebuild/check sequence is documented in `README.md`. Only run `check_base
 
 ## Release architecture
 
-Canonical Linux packaging is `packaging/linux/build-appimage.sh` -> `:desktopApp:createDistributable` -> AppImage. `.github/workflows/linux-appimage.yml` now builds Compose, not portable/Swing, and requires:
+Canonical Linux packaging is `packaging/linux/build-appimage.sh` -> `:desktopApp:createDistributable` -> AppImage. Windows packages are produced from the same `desktopApp` as native `.exe` and `.msi` installers by `.github/workflows/windows-desktop.yml`. Both desktop workflows now run on pushes to `main`; `.github/workflows/linux-appimage.yml` still builds Compose, not portable/Swing, and requires:
 
 ```text
 :shared:desktopTest

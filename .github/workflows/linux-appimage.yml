@@ -8,6 +8,7 @@ on:
         required: false
         default: 0.2.0
   push:
+    branches: [main]
     tags:
       - 'desktop-v*'
 
@@ -98,6 +99,7 @@ jobs:
             tools/tests/test_rulebook_development_runtime_promotion.py \
             tools/tests/test_rulebook_release_gate.py \
             tools/tests/test_build_version_matrix.py \
+            tools/tests/test_windows_desktop_ci.py \
             tools/tests/test_compose_release_ready.py
 
       - name: Compile and test Compose Desktop
@@ -113,6 +115,7 @@ jobs:
             VERSION="${GITHUB_REF_NAME#desktop-v}"
           else
             VERSION="${{ inputs.version }}"
+            VERSION="${VERSION:-0.2.0}"
           fi
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid desktop version: $VERSION" >&2; exit 1; }
           echo "DUBL_DESKTOP_VERSION=$VERSION" >> "$GITHUB_ENV"

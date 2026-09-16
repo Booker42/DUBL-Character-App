@@ -1,6 +1,7 @@
 .github/workflows/android-ci.yml
 .github/workflows/android-release.yml
 .github/workflows/linux-appimage.yml
+.github/workflows/windows-desktop.yml
 .gitignore
 CHANGELOG.md
 HANDOFF.md
@@ -168,6 +169,7 @@ tools/tests/kotlin/Ui061RegressionHarness.kt
 tools/tests/test_android_0_6_1_ui.py
 tools/tests/test_android_0_6_content.py
 tools/tests/test_build_version_matrix.py
+tools/tests/test_windows_desktop_ci.py
 tools/tests/test_character_session.py
 tools/tests/test_character_transfer.py
 tools/tests/test_compose_collection_parity.py

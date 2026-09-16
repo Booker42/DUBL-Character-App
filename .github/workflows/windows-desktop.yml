@@ -1,0 +1,80 @@
+name: Windows Desktop Compose
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Desktop version (for example 0.2.0)
+        required: false
+        default: 0.2.0
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-desktop:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Resolve desktop version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME -replace '^desktop-v', ''
+          } else {
+            $version = '${{ inputs.version }}'
+            if ([string]::IsNullOrWhiteSpace($version)) { $version = '0.2.0' }
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Invalid desktop version: $version"
+          }
+          "DUBL_DESKTOP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Test, compile, and package Windows desktop
+        shell: pwsh
+        run: |
+          $env:DUBL_VERSION = $env:DUBL_DESKTOP_VERSION
+          .\gradlew.bat --no-daemon :shared:desktopTest :desktopApp:compileKotlin :desktopApp:packageExe :desktopApp:packageMsi --stacktrace
+
+      - name: Verify Windows packages
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem 'desktopApp/build/compose/binaries/main/exe/*.exe' -ErrorAction Stop
+          $msi = Get-ChildItem 'desktopApp/build/compose/binaries/main/msi/*.msi' -ErrorAction Stop
+          if ($exe.Count -lt 1) { throw 'Windows EXE package was not produced.' }
+          if ($msi.Count -lt 1) { throw 'Windows MSI package was not produced.' }
+          $exe | ForEach-Object { Write-Host "EXE: $($_.FullName)" }
+          $msi | ForEach-Object { Write-Host "MSI: $($_.FullName)" }
+
+      - name: Upload Windows desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DUBL-Windows-Desktop
+          path: |
+            desktopApp/build/compose/binaries/main/exe/*.exe
+            desktopApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+          retention-days: 14
