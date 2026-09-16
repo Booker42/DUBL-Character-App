@@ -35,7 +35,42 @@ internal class CharacterExtrasSession(
 
     fun setSkillGroups(characterId: String, groups: List<SheetGroup>) = update(characterId) { it.copy(skillGroups = groups) }
     fun setDevelopmentGroups(characterId: String, groups: List<SheetGroup>) = update(characterId) { it.copy(developmentGroups = groups) }
-    fun setNotes(characterId: String, notes: String) = update(characterId) { it.copy(notes = notes.trimEnd()) }
+    fun setNotes(characterId: String, notes: String) = update(characterId) { it.copy(notes = notes.trimEnd(), noteEntries = emptyList()) }
+
+    fun addNote(characterId: String, title: String, body: String = ""): String? {
+        val cleanTitle = title.trim().takeIf(String::isNotBlank) ?: return null
+        val cleanBody = body.trimEnd()
+        var createdId: String? = null
+        update(characterId) { extras ->
+            val current = extras.displayNotes()
+            val existing = current.mapTo(linkedSetOf()) { it.id }
+            val id = generateSequence(1) { it + 1 }.map { "note-$it" }.first { it !in existing }
+            createdId = id
+            extras.copy(
+                notes = "",
+                noteEntries = current + CharacterNote(id = id, title = cleanTitle, body = cleanBody),
+            )
+        }
+        return createdId
+    }
+
+    fun updateNote(characterId: String, id: String, title: String, body: String) = update(characterId) { extras ->
+        val cleanTitle = title.trim().takeIf(String::isNotBlank) ?: return@update extras
+        val current = extras.displayNotes()
+        if (current.none { it.id == id }) return@update extras
+        extras.copy(
+            notes = "",
+            noteEntries = current.map { note ->
+                if (note.id == id) note.copy(title = cleanTitle, body = body.trimEnd()) else note
+            },
+        )
+    }
+
+    fun removeNote(characterId: String, id: String) = update(characterId) { extras ->
+        val current = extras.displayNotes()
+        if (current.none { it.id == id }) return@update extras
+        extras.copy(notes = "", noteEntries = current.filterNot { it.id == id })
+    }
 
     fun setConditionOverride(
         characterId: String,

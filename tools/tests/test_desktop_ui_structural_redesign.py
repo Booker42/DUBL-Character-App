@@ -88,7 +88,9 @@ def test_character_sheet_moves_telemetry_into_hero_and_keeps_notes():
     characteristics = sheet.split('private fun HeroCharacteristicsStrip', 1)[1].split('private fun attributeIcon', 1)[0]
     assert 'wide: Boolean' in characteristics
     assert 'wide -> 4' in characteristics
-    assert 'state.setNotes(' in sheet
+    assert 'state.addNote(' in sheet
+    assert 'state.updateNote(' in sheet
+    assert 'state.removeNote(' in sheet
 
 def test_live_screenshot_regression_uses_compact_hero_resources_and_skills_development_workspace():
     main = read(MAIN)
@@ -132,12 +134,18 @@ def test_notes_flow_through_shared_application_boundary_and_persistence():
     desktop_state = read(ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/DesktopAppState.kt')
     desktop_store = read(ROOT / 'shared/src/desktopMain/kotlin/com/dubl/character/android/data/DesktopCharacterExtrasStore.kt')
     android_store = read(ROOT / 'app/src/main/java/com/dubl/character/android/data/CharacterSheetExtrasRepository.kt')
-    assert 'val notes: String = ""' in extras
-    assert 'fun setNotes(' in session
-    assert 'fun setNotes(' in sheet_app
-    assert 'fun setNotes(' in desktop_state
-    assert '\"notes\"' in desktop_store
-    assert 'extras.notes' in android_store
+    assert 'data class CharacterNote' in extras
+    assert 'val noteEntries: List<CharacterNote> = emptyList()' in extras
+    assert 'fun CharacterSheetExtras.displayNotes()' in extras
+    for token in ('fun addNote(', 'fun updateNote(', 'fun removeNote('):
+        assert token in session
+        assert token in sheet_app
+        assert token in desktop_state
+    assert 'CharacterNoteDataCodec.encode' in desktop_store
+    assert 'CharacterNoteDataCodec.decode' in desktop_store
+    assert 'CharacterNoteDataCodec.encode' in android_store
+    assert 'CharacterNoteDataCodec.decode' in android_store
+    assert '"notes"' in desktop_store
 
 
 def test_dense_sheet_keeps_grouping_and_development_details_reachable():
@@ -156,13 +164,13 @@ def test_sheet_skills_show_all_visible_ranks_and_preserve_hidden_group_membershi
     assert 'SheetGroupHeaderCompact' in skills_panel
     assert 'SheetGroupingRules.balancedColumns' in skills_panel
     assert 'rank = skill.rank' in skills_panel
-    assert 'bonus = calc.total?.let(::signed) ?: "—"' in skills_panel
+    assert 'displayedBonus?.let(::signed) ?: "—"' in skills_panel
 
     primitives = read(PRIMITIVES)
     skill_row = primitives.split('internal fun DesktopSkillRow', 1)[1].split('internal fun DesktopResourceTile', 1)[0]
     assert 'rank: Int' in skill_row
     assert 'Text("Ранг $rank"' in skill_row
-    assert 'Text(bonus' in skill_row
+    assert 'Итоговый бонус $bonus' in skill_row
 
 
 def test_narrow_skills_column_falls_back_to_one_internal_column():
@@ -234,13 +242,42 @@ def test_sheet_actions_use_clear_user_facing_copy_instead_of_service_labels():
     assert 'Text("Открыть все →")' not in sheet
 
 
-def test_notes_panel_grows_with_content_instead_of_clamping_to_five_lines():
+def test_notes_panel_supports_multiple_titled_collapsible_notes_and_grows_with_content():
     sheet = read(SHEET)
-    notes = sheet.split('private fun NotesPanel', 1)[1].split('private fun NotesDialog', 1)[0]
+    notes = sheet.split('private fun NotesPanel', 1)[1].split('private fun NoteEditorDialog', 1)[0]
+    assert 'notes: List<CharacterNote>' in notes
+    assert 'Добавить заметку' in notes
+    assert 'expandedNoteIds' in notes
+    assert 'note.title' in notes
+    assert 'note.body' in notes
+    assert 'onDelete(note)' in notes
     assert 'maxLines = 5' not in notes
-    assert 'TextOverflow.Ellipsis' not in notes
     assert '.heightIn(min = 78.dp)' not in notes
-    assert 'notes.ifBlank { "Заметок пока нет." }' in notes
+    assert 'Заметок пока нет.' in notes
+
+
+def test_hero_visually_separates_identity_resources_characteristics_and_metrics():
+    sheet = read(SHEET)
+    primitives = read(PRIMITIVES)
+    assert 'fun DesktopHeroSection' in primitives
+    hero = sheet.split('private fun CharacterHero', 1)[1].split('private fun HeroPortrait', 1)[0]
+    assert hero.count('DesktopHeroSection') >= 2
+    telemetry = sheet.split('private fun HeroTelemetry', 1)[1].split('private fun HeroCharacteristicsStrip', 1)[0]
+    assert telemetry.count('DesktopHeroSection') >= 2
+
+
+def test_sheet_skill_bonus_exposes_hover_breakdown_with_automatic_effect_sources():
+    sheet = read(SHEET)
+    primitives = read(PRIMITIVES)
+    skills_panel = sheet.split('private fun SheetSkillsPanel', 1)[1].split('private fun skillIcon', 1)[0]
+    assert 'SkillEffectRules' in sheet
+    assert 'automaticContributions' in skills_panel
+    assert 'breakdownLines' in skills_panel
+    assert 'displayedBonus?.let(::signed)' in skills_panel
+    skill_row = primitives.split('internal fun DesktopSkillRow', 1)[1].split('internal fun DesktopResourceTile', 1)[0]
+    assert 'breakdownLines: List<String>' in skill_row
+    assert 'pointerMoveFilter' in primitives
+    assert 'Итоговый бонус' in skill_row
 
 
 def test_secondary_desktop_typography_is_readable_and_inline_actions_are_neutral():

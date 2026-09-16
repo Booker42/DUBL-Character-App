@@ -4,6 +4,7 @@ import android.content.Context
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.ConditionLocalDataCodec
+import com.dubl.character.android.model.CharacterNoteDataCodec
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.SheetGroupingRules
@@ -28,6 +29,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
         val conditionOverrides = ConditionLocalDataCodec.decodeOverrides(prefs.getString("${prefix}condition_overrides", null))
         val customConditions = ConditionLocalDataCodec.decodeCustom(prefs.getString("${prefix}custom_conditions", null))
         val notes = prefs.getString("${prefix}notes", "").orEmpty()
+        val noteEntries = CharacterNoteDataCodec.decode(prefs.getString("${prefix}note_entries", null))
         val preferredSkillAttributes = prefs
             .getStringSet("${prefix}preferred_skill_attributes", emptySet())
             .orEmpty()
@@ -51,6 +53,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             conditionOverrides = conditionOverrides,
             customConditions = customConditions,
             notes = notes,
+            noteEntries = noteEntries,
         )
     }
 
@@ -65,6 +68,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .putString("${prefix}condition_overrides", ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides))
             .putString("${prefix}custom_conditions", ConditionLocalDataCodec.encodeCustom(extras.customConditions))
             .putString("${prefix}notes", extras.notes)
+            .putString("${prefix}note_entries", CharacterNoteDataCodec.encode(extras.noteEntries))
             .putStringSet(
                 "${prefix}preferred_skill_attributes",
                 extras.preferredSkillAttributes.map { (skillId, attribute) ->
@@ -87,6 +91,7 @@ class CharacterSheetExtrasRepository(context: Context) : CharacterExtrasStore {
             .remove("${prefix}condition_overrides")
             .remove("${prefix}custom_conditions")
             .remove("${prefix}notes")
+            .remove("${prefix}note_entries")
             .remove("${prefix}preferred_skill_attributes")
             .remove("${prefix}favorite_skill_ids")
             .remove("${prefix}favorites")

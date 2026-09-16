@@ -58,7 +58,85 @@ data class CharacterSheetExtras(
     val conditionOverrides: Map<CharacterConditionId, ConditionLocalOverride> = emptyMap(),
     val customConditions: List<CustomCondition> = emptyList(),
     val notes: String = "",
+    val noteEntries: List<CharacterNote> = emptyList(),
 )
+
+data class CharacterNote(
+    val id: String,
+    val title: String,
+    val body: String = "",
+)
+
+const val LEGACY_CHARACTER_NOTE_ID = "legacy-note"
+
+fun CharacterSheetExtras.displayNotes(): List<CharacterNote> = when {
+    noteEntries.isNotEmpty() -> noteEntries
+    notes.isNotBlank() -> listOf(CharacterNote(LEGACY_CHARACTER_NOTE_ID, "Заметка", notes))
+    else -> emptyList()
+}
+
+object CharacterNoteDataCodec {
+    private const val RECORD_SEPARATOR = "\u001e"
+    private const val FIELD_SEPARATOR = "\u001f"
+    private const val HEX = "0123456789ABCDEF"
+
+    fun encode(values: List<CharacterNote>): String = values.joinToString(RECORD_SEPARATOR) { note ->
+        listOf(note.id, note.title, note.body).joinToString(FIELD_SEPARATOR) { encodeToken(it) }
+    }
+
+    fun decode(raw: String?): List<CharacterNote> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split(RECORD_SEPARATOR).mapNotNull { record ->
+            val fields = record.split(FIELD_SEPARATOR)
+            if (fields.size < 3) return@mapNotNull null
+            val id = decodeToken(fields[0]).takeIf(String::isNotBlank) ?: return@mapNotNull null
+            val title = decodeToken(fields[1]).ifBlank { "Без названия" }
+            CharacterNote(id = id, title = title, body = decodeToken(fields[2]))
+        }.distinctBy { it.id }
+    }
+
+    private fun encodeToken(value: String): String = buildString {
+        value.encodeToByteArray().forEach { signedByte ->
+            val byte = signedByte.toInt() and 0xff
+            when {
+                byte == 0x20 -> append('+')
+                isSafe(byte) -> append(byte.toChar())
+                else -> {
+                    append('%')
+                    append(HEX[byte ushr 4])
+                    append(HEX[byte and 0x0f])
+                }
+            }
+        }
+    }
+
+    private fun decodeToken(value: String): String {
+        val bytes = mutableListOf<Byte>()
+        var index = 0
+        while (index < value.length) {
+            when (val char = value[index]) {
+                '+' -> { bytes += 0x20; index += 1 }
+                '%' -> {
+                    if (index + 2 >= value.length) return value
+                    val high = HEX.indexOf(value[index + 1].uppercaseChar())
+                    val low = HEX.indexOf(value[index + 2].uppercaseChar())
+                    if (high < 0 || low < 0) return value
+                    bytes += ((high shl 4) or low).toByte()
+                    index += 3
+                }
+                else -> {
+                    char.toString().encodeToByteArray().forEach { bytes += it }
+                    index += 1
+                }
+            }
+        }
+        return bytes.toByteArray().decodeToString()
+    }
+
+    private fun isSafe(byte: Int): Boolean =
+        byte in 'a'.code..'z'.code || byte in 'A'.code..'Z'.code || byte in '0'.code..'9'.code ||
+            byte == '-'.code || byte == '_'.code || byte == '.'.code || byte == '*'.code
+}
 
 
 object ConditionLocalDataCodec {

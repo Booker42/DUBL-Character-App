@@ -61,6 +61,7 @@ import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.CharacterSheetExtras
+import com.dubl.character.android.model.CharacterNote
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.CustomCondition
 import com.dubl.character.android.model.CustomResource
@@ -74,7 +75,9 @@ import com.dubl.character.android.model.ResolvedSkill
 import com.dubl.character.android.model.SheetGroup
 import com.dubl.character.android.model.SheetGroupingRules
 import com.dubl.character.android.model.SkillCategory
+import com.dubl.character.android.model.SkillEffectRules
 import com.dubl.character.android.model.resolvedSkills
+import com.dubl.character.android.model.displayNotes
 import com.dubl.character.android.model.skillCalculationForRoll
 import com.dubl.character.desktop.DesktopAppState
 import java.awt.FileDialog
@@ -110,7 +113,8 @@ fun CharacterSheetScreen(
     var showIdentity by remember(character.id) { mutableStateOf(false) }
     var showEconomy by remember(character.id) { mutableStateOf(false) }
     var showConditions by remember(character.id) { mutableStateOf(false) }
-    var showNotes by remember(character.id) { mutableStateOf(false) }
+    var createNote by remember(character.id) { mutableStateOf(false) }
+    var editingNote by remember(character.id) { mutableStateOf<CharacterNote?>(null) }
     var showVisibility by remember(character.id) { mutableStateOf(false) }
     var showHealthControl by remember(character.id) { mutableStateOf(false) }
     var customResource by remember(character.id) { mutableStateOf<CustomResource?>(null) }
@@ -222,8 +226,10 @@ fun CharacterSheetScreen(
 
             item {
                 NotesPanel(
-                    notes = extras.notes,
-                    onEdit = { showNotes = true },
+                    notes = extras.displayNotes(),
+                    onAdd = { createNote = true },
+                    onEdit = { editingNote = it },
+                    onDelete = { state.removeNote(it.id) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -234,7 +240,20 @@ fun CharacterSheetScreen(
     if (showEconomy) EconomyDialog(state, onDismiss = { showEconomy = false })
     if (showConditions) ConditionsDialog(state, onDismiss = { showConditions = false }) { previous -> recent = RecentSheetChange("Состояния изменены", SheetUndo.Conditions(previous)) }
     if (showVisibility) ResourceVisibilityDialog(state, onDismiss = { showVisibility = false })
-    if (showNotes) NotesDialog(state, onDismiss = { showNotes = false })
+    if (createNote) NoteEditorDialog(
+        title = "Новая заметка",
+        initial = null,
+        onSave = { noteTitle, body -> state.addNote(noteTitle, body); createNote = false },
+        onDismiss = { createNote = false },
+    )
+    editingNote?.let { note ->
+        NoteEditorDialog(
+            title = "Редактировать заметку",
+            initial = note,
+            onSave = { noteTitle, body -> state.updateNote(note.id, noteTitle, body); editingNote = null },
+            onDismiss = { editingNote = null },
+        )
+    }
     if (showHealthControl) HealthControlDialog(
         current = state.activeCharacter.hpCurrent,
         maximum = state.activeCharacter.healthMaximum,
@@ -337,15 +356,19 @@ private fun CharacterHero(
     val activeCustom = extras.customConditions.filter { it.active }
     DesktopHeroPanel(Modifier.fillMaxWidth()) {
         Column(
-            Modifier.fillMaxWidth().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             when {
                 compact -> {
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        HeroPortrait(state, extras)
-                        HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                        HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                    DesktopHeroSection(Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            HeroPortrait(state, extras)
+                            HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                            HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                        }
+                    }
+                    DesktopHeroSection(Modifier.fillMaxWidth()) {
                         HeroResources(
                             state, character, extras, true,
                             onResourceDelta, onResourceVisibility, onHealthControl,
@@ -356,38 +379,51 @@ private fun CharacterHero(
                 wide -> {
                     Row(
                         Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.Top,
                     ) {
-                        HeroPortrait(state, extras)
-                        Column(Modifier.weight(.42f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                            HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                            HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                        DesktopHeroSection(Modifier.weight(.44f)) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                HeroPortrait(state, extras)
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                                    HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                                }
+                            }
                         }
-                        HeroResources(
-                            state, character, extras, false,
-                            onResourceDelta, onResourceVisibility, onHealthControl,
-                            onEditMaximum, onEditCustomResource, onCreateCustomResource,
-                            modifier = Modifier.weight(.58f),
-                        )
-                    }
-                }
-                else -> {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        HeroPortrait(state, extras)
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                            HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                            HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                        DesktopHeroSection(Modifier.weight(.56f)) {
                             HeroResources(
                                 state, character, extras, false,
                                 onResourceDelta, onResourceVisibility, onHealthControl,
                                 onEditMaximum, onEditCustomResource, onCreateCustomResource,
                             )
                         }
+                    }
+                }
+                else -> {
+                    DesktopHeroSection(Modifier.fillMaxWidth()) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            HeroPortrait(state, extras)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                                HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                            }
+                        }
+                    }
+                    DesktopHeroSection(Modifier.fillMaxWidth()) {
+                        HeroResources(
+                            state, character, extras, false,
+                            onResourceDelta, onResourceVisibility, onHealthControl,
+                            onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                        )
                     }
                 }
             }
@@ -626,10 +662,10 @@ private fun HeroTelemetry(
     if (wide && !compact) {
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Box(Modifier.weight(.58f)) {
+            DesktopHeroSection(Modifier.weight(.58f)) {
                 HeroCharacteristicsStrip(
                     character = character,
                     compact = false,
@@ -639,7 +675,7 @@ private fun HeroTelemetry(
                     onRoll = onRoll,
                 )
             }
-            Box(Modifier.weight(.42f)) {
+            DesktopHeroSection(Modifier.weight(.42f)) {
                 HeroMetricsStrip(
                     character = character,
                     compact = false,
@@ -651,19 +687,23 @@ private fun HeroTelemetry(
         }
     } else {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            HeroCharacteristicsStrip(
-                character = character,
-                compact = compact,
-                wide = wide,
-                onAttributeDelta = onAttributeDelta,
-                onRoll = onRoll,
-            )
-            HeroMetricsStrip(
-                character = character,
-                compact = compact,
-                wide = wide,
-                onRoll = onRoll,
-            )
+            DesktopHeroSection(Modifier.fillMaxWidth()) {
+                HeroCharacteristicsStrip(
+                    character = character,
+                    compact = compact,
+                    wide = wide,
+                    onAttributeDelta = onAttributeDelta,
+                    onRoll = onRoll,
+                )
+            }
+            DesktopHeroSection(Modifier.fillMaxWidth()) {
+                HeroMetricsStrip(
+                    character = character,
+                    compact = compact,
+                    wide = wide,
+                    onRoll = onRoll,
+                )
+            }
         }
     }
 }
@@ -865,6 +905,7 @@ private fun SheetSkillsPanel(
     val visibleGroups = groups.map { group ->
         group.copy(itemIds = group.itemIds.filter(visibleById::containsKey))
     }.filter { it.itemIds.isNotEmpty() }
+    val effectRules = SkillEffectRules(character, state.developmentCatalog, state.skillEffectCatalog)
 
     DesktopPanel(modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -901,11 +942,24 @@ private fun SheetSkillsPanel(
                                     groupSkills.forEach { skill ->
                                         val selected = skill.stockAttribute
                                         val calc = character.skillCalculationForRoll(skill, selected)
+                                        val effects = effectRules.forSkill(skill)
+                                        val automaticContributions = effects.automaticContributions
+                                        val displayedBonus = calc.total?.plus(effects.automaticBonus)
+                                        val breakdownLines = buildList {
+                                            calc.contributions.forEach { contribution ->
+                                                add("${contribution.label}: ${signed(contribution.value)}")
+                                            }
+                                            automaticContributions.forEach { contribution ->
+                                                add("${contribution.label}: ${signed(contribution.value)}")
+                                            }
+                                            if (calc.unavailableReason.isNotBlank()) add(calc.unavailableReason)
+                                        }
                                         DesktopSkillRow(
                                             icon = skillIcon(skill.category),
                                             title = skill.name,
                                             rank = skill.rank,
-                                            bonus = calc.total?.let(::signed) ?: "—",
+                                            bonus = displayedBonus?.let(::signed) ?: "—",
+                                            breakdownLines = breakdownLines,
                                             onRoll = { onSkillRoll(skill) },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
@@ -932,11 +986,24 @@ private fun SheetSkillsPanel(
                                             columnSkills.forEach { skill ->
                                                 val selected = skill.stockAttribute
                                                 val calc = character.skillCalculationForRoll(skill, selected)
+                                                val effects = effectRules.forSkill(skill)
+                                                val automaticContributions = effects.automaticContributions
+                                                val displayedBonus = calc.total?.plus(effects.automaticBonus)
+                                                val breakdownLines = buildList {
+                                                    calc.contributions.forEach { contribution ->
+                                                        add("${contribution.label}: ${signed(contribution.value)}")
+                                                    }
+                                                    automaticContributions.forEach { contribution ->
+                                                        add("${contribution.label}: ${signed(contribution.value)}")
+                                                    }
+                                                    if (calc.unavailableReason.isNotBlank()) add(calc.unavailableReason)
+                                                }
                                                 DesktopSkillRow(
                                                     icon = skillIcon(skill.category),
                                                     title = skill.name,
                                                     rank = skill.rank,
-                                                    bonus = calc.total?.let(::signed) ?: "—",
+                                                    bonus = displayedBonus?.let(::signed) ?: "—",
+                                                    breakdownLines = breakdownLines,
                                                     onRoll = { onSkillRoll(skill) },
                                                     modifier = Modifier.fillMaxWidth(),
                                                 )
@@ -1123,31 +1190,72 @@ private fun rankLabel(rank: Int): String = when (rank) {
 
 @Composable
 private fun NotesPanel(
-    notes: String,
-    onEdit: () -> Unit,
+    notes: List<CharacterNote>,
+    onAdd: () -> Unit,
+    onEdit: (CharacterNote) -> Unit,
+    onDelete: (CharacterNote) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var expandedNoteIds by remember(notes.map { it.id }) {
+        mutableStateOf(notes.mapTo(linkedSetOf()) { it.id })
+    }
     DesktopPanel(modifier) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DesktopSectionHeader(
                 "Заметки",
                 icon = DesktopIconKind.NOTES,
-                action = { DesktopSmallAction("Редактировать", onEdit) },
+                action = { DesktopSmallAction("Добавить заметку", onAdd) },
             )
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(9.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .18f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .42f)),
-            ) {
-                Row(Modifier.fillMaxWidth().padding(11.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-                    DesktopIcon(DesktopIconKind.NOTES, tint = DesktopMuted, size = 17.dp)
-                    Text(
-                        notes.ifBlank { "Заметок пока нет." },
-                        color = if (notes.isBlank()) DesktopMuted else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
+            if (notes.isEmpty()) {
+                EmptyState("Заметок пока нет.")
+            } else {
+                notes.forEach { note ->
+                    val expanded = note.id in expandedNoteIds
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(9.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .16f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .42f)),
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .clickable {
+                                        expandedNoteIds = if (expanded) expandedNoteIds - note.id else expandedNoteIds + note.id
+                                    }
+                                    .padding(horizontal = 11.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(if (expanded) "▾" else "▸", color = DesktopAccent, fontWeight = FontWeight.Bold)
+                                DesktopIcon(DesktopIconKind.NOTES, tint = DesktopMuted, size = 17.dp)
+                                Text(
+                                    note.title,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                DesktopInlineAction("Изменить", { onEdit(note) })
+                                DesktopInlineAction("Удалить", { onDelete(note) })
+                            }
+                            if (expanded) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 11.dp, end = 11.dp, bottom = 10.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = DesktopSurfaceInset.copy(alpha = .54f),
+                                ) {
+                                    Text(
+                                        note.body.ifBlank { "Пустая заметка." },
+                                        color = if (note.body.isBlank()) DesktopMuted else MaterialTheme.colorScheme.onSurface,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.fillMaxWidth().padding(11.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1155,23 +1263,41 @@ private fun NotesPanel(
 }
 
 @Composable
-private fun NotesDialog(state: DesktopAppState, onDismiss: () -> Unit) {
-    var notes by remember(state.activeCharacter.id) { mutableStateOf(state.extras.notes) }
+private fun NoteEditorDialog(
+    title: String,
+    initial: CharacterNote?,
+    onSave: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var noteTitle by remember(initial?.id) { mutableStateOf(initial?.title.orEmpty()) }
+    var body by remember(initial?.id) { mutableStateOf(initial?.body.orEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Заметки") },
+        title = { Text(title) },
         text = {
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it.take(12000) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp),
-                label = { Text("Заметки персонажа") },
-                minLines = 7,
-                maxLines = 14,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = noteTitle,
+                    onValueChange = { noteTitle = it.take(120) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Заголовок") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = body,
+                    onValueChange = { body = it.take(12000) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),
+                    label = { Text("Текст заметки") },
+                    minLines = 8,
+                    maxLines = 24,
+                )
+            }
         },
         confirmButton = {
-            Button(onClick = { state.setNotes(notes); onDismiss() }) { Text("Сохранить") }
+            Button(
+                enabled = noteTitle.isNotBlank(),
+                onClick = { onSave(noteTitle.trim(), body) },
+            ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )

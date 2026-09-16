@@ -43,6 +43,9 @@ class SheetApplication internal constructor(
     fun setSkillGroups(groups: List<SheetGroup>) = extras.setSkillGroups(activeCharacterId(), groups)
     fun setDevelopmentGroups(groups: List<SheetGroup>) = extras.setDevelopmentGroups(activeCharacterId(), groups)
     fun setNotes(notes: String) = extras.setNotes(activeCharacterId(), notes)
+    fun addNote(title: String, body: String = ""): String? = extras.addNote(activeCharacterId(), title, body)
+    fun updateNote(id: String, title: String, body: String) = extras.updateNote(activeCharacterId(), id, title, body)
+    fun removeNote(id: String) = extras.removeNote(activeCharacterId(), id)
 
     fun setConditionOverride(condition: CharacterConditionId, title: String?, description: String?) =
         extras.setConditionOverride(activeCharacterId(), condition, title, description)

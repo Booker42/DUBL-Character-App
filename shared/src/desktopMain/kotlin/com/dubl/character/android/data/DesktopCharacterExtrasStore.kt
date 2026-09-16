@@ -3,6 +3,7 @@ package com.dubl.character.android.data
 import com.dubl.character.android.model.AttributeId
 import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.ConditionLocalDataCodec
+import com.dubl.character.android.model.CharacterNoteDataCodec
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.SheetGroup
@@ -69,6 +70,7 @@ class DesktopCharacterExtrasStore(
             append(",\"conditionOverrides\":").append(quoted(ConditionLocalDataCodec.encodeOverrides(extras.conditionOverrides)))
             append(",\"customConditions\":").append(quoted(ConditionLocalDataCodec.encodeCustom(extras.customConditions)))
             append(",\"notes\":").append(quoted(extras.notes))
+            append(",\"noteEntries\":").append(quoted(CharacterNoteDataCodec.encode(extras.noteEntries)))
             append('}')
         }
         append("}}")
@@ -91,6 +93,7 @@ class DesktopCharacterExtrasStore(
                 conditionOverrides = ConditionLocalDataCodec.decodeOverrides(objectValue.strings["conditionOverrides"]),
                 customConditions = ConditionLocalDataCodec.decodeCustom(objectValue.strings["customConditions"]),
                 notes = objectValue.strings["notes"].orEmpty(),
+                noteEntries = CharacterNoteDataCodec.decode(objectValue.strings["noteEntries"]),
             )
         }
     }

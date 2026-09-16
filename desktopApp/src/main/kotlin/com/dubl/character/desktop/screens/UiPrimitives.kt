@@ -14,20 +14,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -103,6 +110,21 @@ internal fun DesktopHeroPanel(
         border = BorderStroke(1.dp, DesktopBorder.copy(alpha = 0.90f)),
     ) {
         content()
+    }
+}
+
+@Composable
+internal fun DesktopHeroSection(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(11.dp),
+        color = DesktopSurfaceInset.copy(alpha = 0.58f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = 0.74f)),
+    ) {
+        Box(Modifier.fillMaxWidth().padding(10.dp)) { content() }
     }
 }
 
@@ -557,15 +579,42 @@ internal fun DesktopSkillRow(
     title: String,
     rank: Int,
     bonus: String,
+    breakdownLines: List<String> = emptyList(),
     onRoll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showBreakdown by remember(title, bonus, breakdownLines) { mutableStateOf(false) }
     Surface(modifier, RoundedCornerShape(8.dp), DesktopSurfaceInset.copy(alpha=.72f), border=BorderStroke(1.dp,DesktopBorder.copy(alpha=.68f))) {
         Row(Modifier.fillMaxWidth().padding(horizontal=11.dp, vertical=6.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             DesktopIcon(icon, tint=DesktopMuted, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
             Text("Ранг $rank", color=DesktopMuted, style=MaterialTheme.typography.labelMedium, fontWeight=FontWeight.SemiBold)
-            Text(bonus, color=DesktopAccent, fontWeight=FontWeight.Bold)
+            Box {
+                Text(
+                    bonus,
+                    color=DesktopAccent,
+                    fontWeight=FontWeight.Bold,
+                    modifier = Modifier
+                        .pointerMoveFilter(
+                            onEnter = { showBreakdown = breakdownLines.isNotEmpty(); false },
+                            onExit = { showBreakdown = false; false },
+                        )
+                        .clickable(enabled = breakdownLines.isNotEmpty()) { showBreakdown = !showBreakdown }
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+                DropdownMenu(
+                    expanded = showBreakdown && breakdownLines.isNotEmpty(),
+                    onDismissRequest = { showBreakdown = false },
+                    modifier = Modifier.widthIn(min = 230.dp, max = 340.dp),
+                ) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Итоговый бонус $bonus", fontWeight = FontWeight.Bold, color = DesktopText)
+                        breakdownLines.forEach { line ->
+                            Text(line, color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
             DesktopIconButton(DesktopIconKind.DICE, onRoll)
         }
     }
