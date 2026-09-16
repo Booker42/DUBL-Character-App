@@ -11,11 +11,12 @@ def read(path: Path) -> str:
     return path.read_text(encoding='utf-8')
 
 
-def test_desktop_workspace_is_full_width_and_rail_has_no_prototype_footer():
+def test_desktop_workspace_caps_ultrawide_stretch_and_rail_has_no_prototype_footer():
     main = read(MAIN)
-    assert '.widthIn(max =' not in main
+    assert '.widthIn(max = 2160.dp)' in main
+    assert 'contentAlignment = Alignment.TopCenter' in main
     assert 'Desktop 0.2 · Compose parity' not in main
-    assert 'Modifier.width(220.dp)' in main
+    assert 'Modifier.width(230.dp)' in main
     assert 'DesktopSection.entries.filter { it != DesktopSection.CHARACTERS }' in main
     assert 'NavigationItem(DesktopSection.CHARACTERS' in main
 
@@ -86,6 +87,25 @@ def test_character_sheet_matches_dense_three_column_mock_and_notes():
     assert 'fun DesktopSkillRow' in primitives
     assert 'fun DesktopResourceTile' in primitives
     assert 'state.setNotes(' in sheet
+
+
+def test_live_screenshot_regression_uses_desktop_palette_and_equal_height_dashboard():
+    main = read(MAIN)
+    sheet = read(SHEET)
+    primitives = read(PRIMITIVES)
+    for token in (
+        'DesktopBackground',
+        'DesktopSurface',
+        'DesktopAccent',
+        'DesktopGold',
+        'DesktopMana',
+    ):
+        assert token in primitives, token
+    assert 'DesktopVisualTheme' in main
+    assert 'Modifier.fillMaxWidth().height(IntrinsicSize.Max)' in sheet
+    assert 'Modifier.weight(if (wide) 0.53f else 0.48f).fillMaxHeight()' in sheet
+    assert 'character.customResources.forEach { resource ->' in sheet
+    assert 'TextButton(onClick = onCreateCustomResource) { Text("+ Свой ресурс") }' not in sheet
 
 
 def test_notes_flow_through_shared_application_boundary_and_persistence():

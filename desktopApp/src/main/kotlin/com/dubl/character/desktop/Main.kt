@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -31,21 +32,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.dubl.character.android.ui.layout.DublLayoutClass
 import com.dubl.character.android.ui.layout.layoutClassForWidth
-import com.dubl.character.android.ui.theme.DublAccentSoft
-import com.dubl.character.android.ui.theme.DublFocus
-import com.dubl.character.android.ui.theme.DublMuted
-import com.dubl.character.android.ui.theme.DublSurfaceInset
-import com.dubl.character.android.ui.theme.DublSurfaceRaised
 import com.dubl.character.android.ui.theme.DublTheme
 import com.dubl.character.desktop.screens.CharacterSheetScreen
 import com.dubl.character.desktop.screens.CharactersScreen
 import com.dubl.character.desktop.screens.DevelopmentScreen
 import com.dubl.character.desktop.screens.DesktopIcon
 import com.dubl.character.desktop.screens.DesktopIconKind
+import com.dubl.character.desktop.screens.DesktopAccent
+import com.dubl.character.desktop.screens.DesktopAccentSoft
+import com.dubl.character.desktop.screens.DesktopBackground
+import com.dubl.character.desktop.screens.DesktopBorder
+import com.dubl.character.desktop.screens.DesktopGold
+import com.dubl.character.desktop.screens.DesktopMuted
+import com.dubl.character.desktop.screens.DesktopSurface
+import com.dubl.character.desktop.screens.DesktopSurfaceInset
+import com.dubl.character.desktop.screens.DesktopSurfaceRaised
+import com.dubl.character.desktop.screens.DesktopText
 import com.dubl.character.desktop.screens.EquipmentScreen
 import com.dubl.character.desktop.screens.MagicScreen
 import com.dubl.character.desktop.screens.SkillsScreen
@@ -61,8 +68,44 @@ internal enum class DesktopSection(val label: String) {
 
 fun main() = application {
     Window(onCloseRequest = ::exitApplication, title = "DUBL Character 0.2") {
-        DublTheme { DesktopApp() }
+        DublTheme { DesktopVisualTheme { DesktopApp() } }
     }
+}
+
+@Composable
+private fun DesktopVisualTheme(content: @Composable () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val typography = MaterialTheme.typography
+    MaterialTheme(
+        colorScheme = colors.copy(
+            primary = DesktopAccent,
+            onPrimary = Color.White,
+            primaryContainer = DesktopAccentSoft,
+            onPrimaryContainer = DesktopText,
+            secondary = DesktopGold,
+            background = DesktopBackground,
+            onBackground = DesktopText,
+            surface = DesktopSurface,
+            onSurface = DesktopText,
+            surfaceVariant = DesktopSurfaceRaised,
+            onSurfaceVariant = DesktopMuted,
+            outline = DesktopBorder,
+            outlineVariant = DesktopBorder,
+            error = Color(0xFFFF7183),
+        ),
+        typography = typography.copy(
+            headlineMedium = typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 36.sp),
+            headlineSmall = typography.headlineSmall.copy(fontSize = 28.sp, lineHeight = 34.sp),
+            titleLarge = typography.titleLarge.copy(fontSize = 20.sp, lineHeight = 25.sp),
+            titleMedium = typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 22.sp),
+            bodyLarge = typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 22.sp),
+            bodyMedium = typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 20.sp),
+            bodySmall = typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 17.sp),
+            labelLarge = typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 18.sp),
+            labelMedium = typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
+        ),
+        content = content,
+    )
 }
 
 @Composable
@@ -79,7 +122,7 @@ private fun DesktopApp() {
             }
         } else {
             Row(Modifier.fillMaxSize()) {
-                DesktopRail(state, selected, { selected = it }, Modifier.width(220.dp).fillMaxHeight())
+                DesktopRail(state, selected, { selected = it }, Modifier.width(230.dp).fillMaxHeight())
                 DesktopContent(state, selected, layout, { selected = it }, Modifier.weight(1f))
             }
         }
@@ -95,25 +138,25 @@ private fun DesktopRail(
 ) {
     var switcherOpen by remember { mutableStateOf(false) }
     Column(
-        modifier = modifier.background(DublSurfaceInset).padding(horizontal = 14.dp, vertical = 18.dp),
+        modifier = modifier.background(DesktopSurfaceInset).padding(horizontal = 14.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             "DUBL",
             style = MaterialTheme.typography.headlineMedium,
-            color = DublFocus,
+            color = DesktopAccent,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
         Surface(
             modifier = Modifier.fillMaxWidth().clickable { switcherOpen = true },
-            color = DublSurfaceRaised,
+            color = DesktopSurfaceRaised,
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.52f)),
         ) {
             Column(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(state.activeCharacter.name, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                Text("${state.activeCharacter.experience} XP · сменить ▼", color = DublMuted, style = MaterialTheme.typography.bodySmall)
+                Text("${state.activeCharacter.experience} XP · сменить ▼", color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
             }
         }
         DropdownMenu(expanded = switcherOpen, onDismissRequest = { switcherOpen = false }) {
@@ -148,7 +191,7 @@ private fun DesktopRail(
 
 @Composable
 private fun CompactNavigation(selected: DesktopSection, onSelected: (DesktopSection) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(DublSurfaceInset).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().background(DesktopSurfaceInset).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         DesktopSection.entries.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { section -> NavigationItem(section, section == selected, { onSelected(section) }, Modifier.weight(1f)) }
@@ -163,8 +206,8 @@ private fun NavigationItem(section: DesktopSection, active: Boolean, onClick: ()
     Surface(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = if (active) DublAccentSoft else Color.Transparent,
-        border = if (active) BorderStroke(1.dp, DublFocus.copy(alpha = 0.32f)) else null,
+        color = if (active) DesktopAccentSoft else Color.Transparent,
+        border = if (active) BorderStroke(1.dp, DesktopAccent.copy(alpha = 0.32f)) else null,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
@@ -173,13 +216,13 @@ private fun NavigationItem(section: DesktopSection, active: Boolean, onClick: ()
         ) {
             DesktopIcon(
                 kind = section.iconKind,
-                tint = if (active) DublFocus else DublMuted,
-                size = 18.dp,
+                tint = if (active) DesktopAccent else DesktopMuted,
+                size = 20.dp,
             )
             Text(
                 section.label,
                 fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (active) MaterialTheme.colorScheme.onSurface else DublMuted,
+                color = if (active) MaterialTheme.colorScheme.onSurface else DesktopMuted,
             )
         }
     }
@@ -203,9 +246,11 @@ private fun DesktopContent(
     onNavigate: (DesktopSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopStart) {
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         val pageModifier = Modifier
-            .fillMaxSize()
+            .widthIn(max = 2160.dp)
+            .fillMaxWidth()
+            .fillMaxHeight()
             .padding(
                 horizontal = when (layout) {
                     DublLayoutClass.COMPACT -> 16.dp
