@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -200,37 +198,33 @@ fun CharacterSheetScreen(
                     onEditMaximum = { maximumResource = it },
                     onEditCustomResource = { customResource = it },
                     onCreateCustomResource = { createResource = true },
-                )
-            }
-
-            item {
-                CharacterDashboard(
-                    state = state,
-                    character = character,
-                    extras = extras,
-                    compact = compactSheet,
-                    wide = wideSheet,
                     onAttributeDelta = { id, delta ->
                         state.changeAttribute(id, delta)
                         recent = RecentSheetChange("${id.title} ${signed(delta)}", SheetUndo.Attribute(id, delta))
                     },
                     onRoll = { context, attribute -> rollRequest = ContextRollRequest(context, attribute) },
-                    onSkillRoll = { sheetRollAttributeChoice = it },
-                    onNavigateSkills = onNavigateSkills,
-                    onGrouping = { grouping = it },
                 )
             }
 
             item {
-                SheetSummaries(
+                SkillsDevelopmentWorkspace(
                     state = state,
                     character = character,
                     extras = extras,
                     compact = compactSheet,
+                    onSkillRoll = { sheetRollAttributeChoice = it },
+                    onNavigateSkills = onNavigateSkills,
                     onGrouping = { grouping = it },
                     onDevelopmentDetails = { sheetDevelopmentEntry = it },
                     onNavigateDevelopment = onNavigateDevelopment,
-                    onEditNotes = { showNotes = true },
+                )
+            }
+
+            item {
+                NotesPanel(
+                    notes = extras.notes,
+                    onEdit = { showNotes = true },
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -337,59 +331,74 @@ private fun CharacterHero(
     onEditMaximum: (CharacterSheetResourceId) -> Unit,
     onEditCustomResource: (CustomResource) -> Unit,
     onCreateCustomResource: () -> Unit,
+    onAttributeDelta: (AttributeId, Int) -> Unit,
+    onRoll: (RollContext, AttributeId?) -> Unit,
 ) {
     val activeCustom = extras.customConditions.filter { it.active }
     DesktopHeroPanel(Modifier.fillMaxWidth()) {
-        when {
-            compact -> {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    HeroPortrait(state, extras)
-                    HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                    HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
-                    HeroResources(
-                        state, character, extras, true,
-                        onResourceDelta, onResourceVisibility, onHealthControl,
-                        onEditMaximum, onEditCustomResource, onCreateCustomResource,
-                    )
-                }
-            }
-            wide -> {
-                Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    HeroPortrait(state, extras)
-                    Column(Modifier.weight(.42f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                        HeroIdentity(character, economy, onEditIdentity, onEconomy)
-                        HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
-                    }
-                    HeroResources(
-                        state, character, extras, false,
-                        onResourceDelta, onResourceVisibility, onHealthControl,
-                        onEditMaximum, onEditCustomResource, onCreateCustomResource,
-                        modifier = Modifier.weight(.58f),
-                    )
-                }
-            }
-            else -> {
-                Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    HeroPortrait(state, extras)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when {
+                compact -> {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        HeroPortrait(state, extras)
                         HeroIdentity(character, economy, onEditIdentity, onEconomy)
                         HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
                         HeroResources(
-                            state, character, extras, false,
+                            state, character, extras, true,
                             onResourceDelta, onResourceVisibility, onHealthControl,
                             onEditMaximum, onEditCustomResource, onCreateCustomResource,
                         )
                     }
                 }
+                wide -> {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        HeroPortrait(state, extras)
+                        Column(Modifier.weight(.42f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                            HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                        }
+                        HeroResources(
+                            state, character, extras, false,
+                            onResourceDelta, onResourceVisibility, onHealthControl,
+                            onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                            modifier = Modifier.weight(.58f),
+                        )
+                    }
+                }
+                else -> {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        HeroPortrait(state, extras)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                            HeroIdentity(character, economy, onEditIdentity, onEconomy)
+                            HeroConditions(extras, effectiveConditions, activeCustom, onConditions)
+                            HeroResources(
+                                state, character, extras, false,
+                                onResourceDelta, onResourceVisibility, onHealthControl,
+                                onEditMaximum, onEditCustomResource, onCreateCustomResource,
+                            )
+                        }
+                    }
+                }
             }
+
+            HeroTelemetry(
+                character = character,
+                compact = compact,
+                wide = wide,
+                onAttributeDelta = onAttributeDelta,
+                onRoll = onRoll,
+            )
         }
     }
 }
@@ -622,80 +631,37 @@ private fun HeroResources(
 }
 
 @Composable
-private fun CharacterDashboard(
-    state: DesktopAppState,
+private fun HeroTelemetry(
     character: DublCharacter,
-    extras: CharacterSheetExtras,
     compact: Boolean,
     wide: Boolean,
     onAttributeDelta: (AttributeId, Int) -> Unit,
     onRoll: (RollContext, AttributeId?) -> Unit,
-    onSkillRoll: (ResolvedSkill) -> Unit,
-    onNavigateSkills: () -> Unit,
-    onGrouping: (GroupingKind) -> Unit,
 ) {
-    DenseStatsSkillsRow(
-        state = state,
-        character = character,
-        extras = extras,
-        compact = compact,
-        wide = wide,
-        onAttributeDelta = onAttributeDelta,
-        onRoll = onRoll,
-        onSkillRoll = onSkillRoll,
-        onNavigateSkills = onNavigateSkills,
-        onGrouping = onGrouping,
-    )
-}
-
-@Composable
-private fun DenseStatsSkillsRow(
-    state: DesktopAppState,
-    character: DublCharacter,
-    extras: CharacterSheetExtras,
-    compact: Boolean,
-    wide: Boolean,
-    onAttributeDelta: (AttributeId, Int) -> Unit,
-    onRoll: (RollContext, AttributeId?) -> Unit,
-    onSkillRoll: (ResolvedSkill) -> Unit,
-    onNavigateSkills: () -> Unit,
-    onGrouping: (GroupingKind) -> Unit,
-) {
-    val skillRoll: (ResolvedSkill) -> Unit = onSkillRoll
-    if (compact) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CompactCharacteristicsPanel(character, onAttributeDelta, onRoll, Modifier.fillMaxWidth())
-            CompactMetricsPanel(character, onRoll, Modifier.fillMaxWidth())
-            SheetSkillsPanel(state, character, extras, skillRoll, onNavigateSkills, onGrouping, Modifier.fillMaxWidth())
-        }
-    } else {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            CompactCharacteristicsPanel(
-                character, onAttributeDelta, onRoll,
-                Modifier.weight(if (wide) 0.27f else 0.29f),
-            )
-            CompactMetricsPanel(
-                character, onRoll,
-                Modifier.weight(if (wide) 0.20f else 0.23f),
-            )
-            SheetSkillsPanel(
-                state, character, extras, skillRoll, onNavigateSkills, onGrouping,
-                Modifier.weight(if (wide) 0.53f else 0.48f),
-            )
-        }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        HeroCharacteristicsStrip(
+            character = character,
+            compact = compact,
+            wide = wide,
+            onAttributeDelta = onAttributeDelta,
+            onRoll = onRoll,
+        )
+        HeroMetricsStrip(
+            character = character,
+            compact = compact,
+            wide = wide,
+            onRoll = onRoll,
+        )
     }
 }
 
 @Composable
-private fun CompactCharacteristicsPanel(
+private fun HeroCharacteristicsStrip(
     character: DublCharacter,
+    compact: Boolean,
+    wide: Boolean,
     onAttributeDelta: (AttributeId, Int) -> Unit,
     onRoll: (RollContext, AttributeId?) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val order = listOf(
         AttributeId.STRENGTH,
@@ -707,19 +673,34 @@ private fun CompactCharacteristicsPanel(
         AttributeId.WILL,
         AttributeId.CHARISMA,
     )
-    DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            DesktopSectionHeader("Характеристики", icon = DesktopIconKind.STRENGTH)
-            order.forEach { id ->
-                DesktopDenseAttributeRow(
-                    icon = attributeIcon(id),
-                    title = id.title,
-                    value = character.attribute(id).toString(),
-                    onRoll = { onRoll(RollContext.ATTRIBUTE, id) },
-                    onMinus = { onAttributeDelta(id, -1) },
-                    onPlus = { onAttributeDelta(id, 1) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+            DesktopIcon(DesktopIconKind.STRENGTH, tint = DesktopAccent, size = 18.dp)
+            Text("Характеристики", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        val columns = when {
+            compact -> 2
+            wide -> 4
+            else -> 2
+        }
+        order.chunked(columns).forEach { rowAttributes ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                rowAttributes.forEach { id ->
+                    DesktopHeroAttributeCell(
+                        icon = attributeIcon(id),
+                        title = id.title,
+                        value = character.attribute(id).toString(),
+                        onRoll = { onRoll(RollContext.ATTRIBUTE, id) },
+                        onMinus = { onAttributeDelta(id, -1) },
+                        onPlus = { onAttributeDelta(id, 1) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(columns - rowAttributes.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
@@ -737,30 +718,102 @@ private fun attributeIcon(id: AttributeId): DesktopIconKind = when (id) {
 }
 
 @Composable
-private fun CompactMetricsPanel(
+private fun HeroMetricsStrip(
     character: DublCharacter,
+    compact: Boolean,
+    wide: Boolean,
     onRoll: (RollContext, AttributeId?) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    data class Metric(val icon: DesktopIconKind, val title: String, val value: String, val context: RollContext? = null)
+    data class Metric(
+        val icon: DesktopIconKind,
+        val title: String,
+        val value: String,
+        val context: RollContext?,
+    )
     val metrics = listOf(
-        Metric(DesktopIconKind.DEFENSE, "Защита", character.defense.toString()),
+        Metric(DesktopIconKind.DEFENSE, "Защита", character.defense.toString(), null),
         Metric(DesktopIconKind.REFLEXES, "Рефлексы", character.reflexes.toString(), RollContext.REFLEXES),
         Metric(DesktopIconKind.INITIATIVE, "Инициатива", character.initiative.toString(), RollContext.INITIATIVE),
         Metric(DesktopIconKind.FORTITUDE, "Стойкость", character.fortitude.toString(), RollContext.FORTITUDE),
-        Metric(DesktopIconKind.RUN, "Бег", formatNumber(character.runFull)),
-        Metric(DesktopIconKind.SIZE, "Размер", character.size.toString()),
+        Metric(DesktopIconKind.RUN, "Бег", formatNumber(character.runFull), RollContext.RUN),
+        Metric(DesktopIconKind.SIZE, "Размер", character.size.toString(), null),
     )
-    DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            DesktopSectionHeader("Показатели", icon = DesktopIconKind.INITIATIVE)
-            metrics.forEach { metric ->
-                DesktopDenseMetricRow(
-                    icon = metric.icon,
-                    title = metric.title,
-                    value = metric.value,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = metric.context?.let { context -> { onRoll(context, null) } },
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+            DesktopIcon(DesktopIconKind.INITIATIVE, tint = DesktopGold, size = 18.dp)
+            Text("Показатели", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        val columns = when {
+            compact -> 2
+            wide -> 6
+            else -> 3
+        }
+        metrics.chunked(columns).forEach { rowMetrics ->
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                rowMetrics.forEach { metric ->
+                    val tint = when (metric.icon) {
+                        DesktopIconKind.FORTITUDE, DesktopIconKind.RUN -> DesktopAccent
+                        DesktopIconKind.INITIATIVE -> DesktopGold
+                        else -> DesktopMuted
+                    }
+                    DesktopHeroMetricCell(
+                        icon = metric.icon,
+                        title = metric.title,
+                        value = metric.value,
+                        tint = tint,
+                        onRoll = metric.context?.let { context -> { onRoll(context, null) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(columns - rowMetrics.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SkillsDevelopmentWorkspace(
+    state: DesktopAppState,
+    character: DublCharacter,
+    extras: CharacterSheetExtras,
+    compact: Boolean,
+    onSkillRoll: (ResolvedSkill) -> Unit,
+    onNavigateSkills: () -> Unit,
+    onGrouping: (GroupingKind) -> Unit,
+    onDevelopmentDetails: (DevelopmentEntry) -> Unit,
+    onNavigateDevelopment: () -> Unit,
+) {
+    if (compact) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SheetSkillsPanel(
+                state, character, extras, onSkillRoll, onNavigateSkills, onGrouping,
+                Modifier.fillMaxWidth(),
+            )
+            SheetDevelopmentPanel(
+                state, character, extras, onGrouping, onDevelopmentDetails, onNavigateDevelopment,
+                Modifier.fillMaxWidth(),
+            )
+        }
+    } else {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(Modifier.weight(.35f)) {
+                SheetSkillsPanel(
+                    state, character, extras, onSkillRoll, onNavigateSkills, onGrouping,
+                    Modifier.fillMaxWidth(),
+                )
+            }
+            Box(Modifier.weight(.65f)) {
+                SheetDevelopmentPanel(
+                    state, character, extras, onGrouping, onDevelopmentDetails, onNavigateDevelopment,
+                    Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -822,24 +875,13 @@ private fun SheetSkillsPanel(
                         },
                     )
                     if (!group.collapsed) {
-                        val (left, right) = SheetGroupingRules.balancedColumns(groupSkills) { skill ->
-                            when {
-                                skill.name.length >= 34 -> 3
-                                skill.name.length >= 20 -> 2
-                                else -> 1
-                            }
-                        }
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(9.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            listOf(left, right).forEach { columnSkills ->
+                        BoxWithConstraints(Modifier.fillMaxWidth()) {
+                            if (maxWidth < 560.dp) {
                                 Column(
-                                    Modifier.weight(1f),
+                                    Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    columnSkills.forEach { skill ->
+                                    groupSkills.forEach { skill ->
                                         val selected = skill.stockAttribute
                                         val calc = character.skillCalculationForRoll(skill, selected)
                                         DesktopSkillRow(
@@ -850,6 +892,39 @@ private fun SheetSkillsPanel(
                                             onRoll = { onSkillRoll(skill) },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
+                                    }
+                                }
+                            } else {
+                                val (left, right) = SheetGroupingRules.balancedColumns(groupSkills) { skill ->
+                                    when {
+                                        skill.name.length >= 34 -> 3
+                                        skill.name.length >= 20 -> 2
+                                        else -> 1
+                                    }
+                                }
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                    verticalAlignment = Alignment.Top,
+                                ) {
+                                    listOf(left, right).forEach { columnSkills ->
+                                        Column(
+                                            Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            columnSkills.forEach { skill ->
+                                                val selected = skill.stockAttribute
+                                                val calc = character.skillCalculationForRoll(skill, selected)
+                                                DesktopSkillRow(
+                                                    icon = skillIcon(skill.category),
+                                                    title = skill.name,
+                                                    rank = skill.rank,
+                                                    bonus = calc.total?.let(::signed) ?: "—",
+                                                    onRoll = { onSkillRoll(skill) },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -926,29 +1001,15 @@ private fun DevelopmentTreeRow(
 }
 
 @Composable
-private fun SheetSummaries(
+private fun SheetDevelopmentPanel(
     state: DesktopAppState,
     character: DublCharacter,
     extras: CharacterSheetExtras,
-    compact: Boolean,
     onGrouping: (GroupingKind) -> Unit,
     onDevelopmentDetails: (DevelopmentEntry) -> Unit,
     onNavigateDevelopment: () -> Unit,
-    onEditNotes: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    // Normalize against the complete skill catalog, including hidden skills, so a hide/restore
-    // round-trip does not erase the user's previous group placement.
-    val allSkills = character.resolvedSkills(includeHidden = true)
-    val skillGroups = SheetGroupingRules.normalize(
-        extras.skillGroups,
-        defaultSkillGroups(allSkills),
-        allSkills.map { it.id },
-        "skills:ungrouped",
-    )
-    LaunchedEffect(skillGroups, extras.skillGroups) {
-        if (skillGroups != extras.skillGroups) state.setSkillGroups(skillGroups)
-    }
-
     val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
     val developmentItems = rules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
     val developmentDefaults = defaultDevelopmentGroups(character, state)
@@ -964,63 +1025,61 @@ private fun SheetSummaries(
     val developmentById = developmentItems.associateBy { it.entry.id }
     val parentById = developmentItems.associate { it.entry.id to it.parentId }
 
-    val developmentPanel: @Composable () -> Unit = {
-        DesktopPanel(if (compact) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().fillMaxHeight()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                DesktopSectionHeader(
-                    "Навыки и развитие",
-                    subtitle = "Профессиональные навыки, особенности и пути развития",
-                    icon = DesktopIconKind.DEVELOPMENT,
-                    action = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { onGrouping(GroupingKind.DEVELOPMENT) }) { Text("Группы") }
-                            TextButton(onClick = onNavigateDevelopment) { Text("Открыть все →") }
-                        }
-                    },
-                )
-                if (developmentItems.isEmpty()) {
-                    EmptyState("Взятых навыков и боевых искусств пока нет.")
-                } else {
-                    developmentGroups.forEach { group ->
-                        val orderedIds = SheetGroupingRules.hierarchicalOrder(group.itemIds, parentById)
-                        val groupItems = orderedIds.mapNotNull(developmentById::get)
-                        if (groupItems.isNotEmpty()) {
-                            SheetGroupHeaderCompact(
-                                title = group.title,
-                                count = groupItems.size,
-                                collapsed = group.collapsed,
-                                onToggle = {
-                                    state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(developmentGroups, group.id))
-                                },
-                            )
-                            if (!group.collapsed) {
-                                val groupIds = groupItems.map { it.entry.id }
-                                val blocks = SheetGroupingRules.hierarchyBlocks(groupIds, parentById)
-                                    .map { ids -> ids.mapNotNull(developmentById::get) }
-                                val (leftBlocks, rightBlocks) = SheetGroupingRules.balancedColumns(blocks) { block ->
-                                    block.sumOf { item ->
-                                        1 + SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById).coerceAtMost(1)
-                                    }
+    DesktopPanel(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            DesktopSectionHeader(
+                "Навыки и развитие",
+                subtitle = "Профессиональные навыки, особенности и пути развития",
+                icon = DesktopIconKind.DEVELOPMENT,
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { onGrouping(GroupingKind.DEVELOPMENT) }) { Text("Группы") }
+                        TextButton(onClick = onNavigateDevelopment) { Text("Открыть все →") }
+                    }
+                },
+            )
+            if (developmentItems.isEmpty()) {
+                EmptyState("Взятых навыков и боевых искусств пока нет.")
+            } else {
+                developmentGroups.forEach { group ->
+                    val orderedIds = SheetGroupingRules.hierarchicalOrder(group.itemIds, parentById)
+                    val groupItems = orderedIds.mapNotNull(developmentById::get)
+                    if (groupItems.isNotEmpty()) {
+                        SheetGroupHeaderCompact(
+                            title = group.title,
+                            count = groupItems.size,
+                            collapsed = group.collapsed,
+                            onToggle = {
+                                state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(developmentGroups, group.id))
+                            },
+                        )
+                        if (!group.collapsed) {
+                            val groupIds = groupItems.map { it.entry.id }
+                            val blocks = SheetGroupingRules.hierarchyBlocks(groupIds, parentById)
+                                .map { ids -> ids.mapNotNull(developmentById::get) }
+                            val (leftBlocks, rightBlocks) = SheetGroupingRules.balancedColumns(blocks) { block ->
+                                block.sumOf { item ->
+                                    1 + SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById).coerceAtMost(1)
                                 }
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(9.dp),
-                                    verticalAlignment = Alignment.Top,
-                                ) {
-                                    listOf(leftBlocks, rightBlocks).forEach { columnBlocks ->
-                                        Column(
-                                            Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                                        ) {
-                                            columnBlocks.forEach { block ->
-                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    block.forEach { item ->
-                                                        DevelopmentTreeRow(
-                                                            item = item,
-                                                            displayDepth = SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById),
-                                                            onClick = { onDevelopmentDetails(item.entry) },
-                                                        )
-                                                    }
+                            }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                listOf(leftBlocks, rightBlocks).forEach { columnBlocks ->
+                                    Column(
+                                        Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        columnBlocks.forEach { block ->
+                                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                block.forEach { item ->
+                                                    DevelopmentTreeRow(
+                                                        item = item,
+                                                        displayDepth = SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById),
+                                                        onClick = { onDevelopmentDetails(item.entry) },
+                                                    )
                                                 }
                                             }
                                         }
@@ -1031,30 +1090,6 @@ private fun SheetSummaries(
                     }
                 }
             }
-        }
-    }
-
-    val notesPanel: @Composable () -> Unit = {
-        NotesPanel(
-            extras.notes,
-            onEditNotes,
-            if (compact) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().fillMaxHeight(),
-        )
-    }
-
-    if (compact) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            developmentPanel()
-            notesPanel()
-        }
-    } else {
-        Row(
-            Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(Modifier.weight(.57f).fillMaxHeight()) { developmentPanel() }
-            Box(Modifier.weight(.43f).fillMaxHeight()) { notesPanel() }
         }
     }
 }

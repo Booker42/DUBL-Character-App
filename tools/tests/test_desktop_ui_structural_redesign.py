@@ -36,21 +36,22 @@ def test_desktop_presentation_primitives_exist():
         assert f'fun {primitive}' in src, primitive
 
 
-def test_character_sheet_uses_dashboard_primitives_and_collapses_conditions():
+def test_character_sheet_uses_hero_telemetry_primitives_and_collapses_conditions():
     sheet = read(SHEET)
     for token in (
         'BoxWithConstraints',
         'DesktopHeroPanel',
         'DesktopResourceTile',
-        'DesktopDenseAttributeRow',
-        'DesktopDenseMetricRow',
+        'DesktopHeroAttributeCell',
+        'DesktopHeroMetricCell',
         'DesktopSkillRow',
         'DesktopConditionChip',
     ):
         assert token in sheet, token
     assert 'SectionCard("Состояния"' not in sheet
-    assert 'private fun CharacterDashboard' in sheet
-    assert 'private fun SheetSummaries' in sheet
+    assert 'private fun HeroTelemetry' in sheet
+    assert 'private fun SkillsDevelopmentWorkspace' in sheet
+    assert 'private fun SheetDevelopmentPanel' in sheet
 
 
 def test_character_sheet_preserves_shared_application_callbacks():
@@ -70,26 +71,26 @@ def test_character_sheet_preserves_shared_application_callbacks():
     assert 'horizontalScroll' not in sheet
 
 
-def test_character_sheet_matches_dense_three_column_mock_and_notes():
+def test_character_sheet_moves_telemetry_into_hero_and_keeps_notes():
     sheet = read(SHEET)
     primitives = read(PRIMITIVES)
-    assert 'private fun DenseStatsSkillsRow' in sheet
-    assert 'private fun CompactCharacteristicsPanel' in sheet
-    assert 'private fun CompactMetricsPanel' in sheet
-    assert 'private fun SheetSkillsPanel' in sheet
+    assert 'private fun HeroTelemetry' in sheet
+    assert 'private fun HeroCharacteristicsStrip' in sheet
+    assert 'private fun HeroMetricsStrip' in sheet
+    assert 'private fun SkillsDevelopmentWorkspace' in sheet
+    assert 'private fun SheetDevelopmentPanel' in sheet
     assert 'private fun NotesPanel' in sheet
-    assert 'private fun NotesDialog' in sheet
-    assert 'private fun DerivedMetricsPanel' not in sheet
-    assert 'DesktopIconKind' in primitives
-    assert 'fun DesktopIcon' in primitives
-    assert 'fun DesktopDenseAttributeRow' in primitives
-    assert 'fun DesktopDenseMetricRow' in primitives
-    assert 'fun DesktopSkillRow' in primitives
-    assert 'fun DesktopResourceTile' in primitives
+    assert 'private fun DenseStatsSkillsRow' not in sheet
+    assert 'private fun CompactCharacteristicsPanel' not in sheet
+    assert 'private fun CompactMetricsPanel' not in sheet
+    assert 'fun DesktopHeroAttributeCell' in primitives
+    assert 'fun DesktopHeroMetricCell' in primitives
+    characteristics = sheet.split('private fun HeroCharacteristicsStrip', 1)[1].split('private fun attributeIcon', 1)[0]
+    assert 'wide: Boolean' in characteristics
+    assert 'wide -> 4' in characteristics
     assert 'state.setNotes(' in sheet
 
-
-def test_live_screenshot_regression_uses_compact_hero_resources_and_content_height_dashboard():
+def test_live_screenshot_regression_uses_compact_hero_resources_and_skills_development_workspace():
     main = read(MAIN)
     sheet = read(SHEET)
     primitives = read(PRIMITIVES)
@@ -107,13 +108,22 @@ def test_live_screenshot_regression_uses_compact_hero_resources_and_content_heig
     assert 'if (shown.size <= 4) shown.size.coerceAtLeast(1) else 3' in sheet
     assert 'Ещё $overflow' in sheet
     assert 'private fun ResourcesPanel' not in sheet
-    dense = sheet.split('private fun DenseStatsSkillsRow', 1)[1].split('private fun CompactCharacteristicsPanel', 1)[0]
-    assert 'height(IntrinsicSize.Max)' not in dense
-    assert '.fillMaxHeight()' not in dense
-    assert 'Modifier.weight(if (wide) 0.53f else 0.48f)' in dense
+    assert 'private fun SkillsDevelopmentWorkspace' in sheet
+    workspace = sheet.split('private fun SkillsDevelopmentWorkspace', 1)[1].split('private fun SheetSkillsPanel', 1)[0]
+    assert 'Modifier.weight(.35f)' in workspace
+    assert 'Modifier.weight(.65f)' in workspace
+    assert 'SheetSkillsPanel(' in workspace
+    assert 'SheetDevelopmentPanel(' in workspace
     assert 'character.customResources.forEach { resource ->' in sheet
-    assert 'TextButton(onClick = onCreateCustomResource) { Text("+ Свой ресурс") }' not in sheet
 
+
+def test_hero_metrics_expose_only_requested_quick_rolls():
+    sheet = read(SHEET)
+    metrics = sheet.split('private fun HeroMetricsStrip', 1)[1].split('private fun SkillsDevelopmentWorkspace', 1)[0]
+    for token in ('RollContext.REFLEXES', 'RollContext.INITIATIVE', 'RollContext.FORTITUDE', 'RollContext.RUN'):
+        assert token in metrics
+    assert 'Metric(DesktopIconKind.DEFENSE, "Защита", character.defense.toString(), null)' in metrics
+    assert 'Metric(DesktopIconKind.SIZE, "Размер", character.size.toString(), null)' in metrics
 
 def test_notes_flow_through_shared_application_boundary_and_persistence():
     extras = read(ROOT / 'shared/src/commonMain/kotlin/com/dubl/character/android/model/CharacterSheetExtras.kt')
@@ -155,9 +165,17 @@ def test_sheet_skills_show_all_visible_ranks_and_preserve_hidden_group_membershi
     assert 'Text(bonus' in skill_row
 
 
-def test_sheet_development_summary_restores_grouped_hierarchy_from_shared_parent_ids():
+def test_narrow_skills_column_falls_back_to_one_internal_column():
     sheet = read(SHEET)
-    summary = sheet.split('private fun SheetSummaries', 1)[1].split('private fun rankLabel', 1)[0]
+    skills_panel = sheet.split('private fun SheetSkillsPanel', 1)[1].split('private fun skillIcon', 1)[0]
+    assert 'BoxWithConstraints(Modifier.fillMaxWidth())' in skills_panel
+    assert 'maxWidth < 560.dp' in skills_panel
+    assert 'groupSkills.forEach { skill ->' in skills_panel
+
+
+def test_sheet_development_panel_restores_grouped_hierarchy_from_shared_parent_ids():
+    sheet = read(SHEET)
+    panel = sheet.split('private fun SheetDevelopmentPanel', 1)[1].split('private fun rankLabel', 1)[0]
     for token in (
         'val parentById = developmentItems.associate { it.entry.id to it.parentId }',
         'SheetGroupingRules.hierarchicalOrder',
@@ -166,7 +184,7 @@ def test_sheet_development_summary_restores_grouped_hierarchy_from_shared_parent
         'SheetGroupHeaderCompact',
         'DevelopmentTreeRow',
     ):
-        assert token in summary, token
+        assert token in panel, token
 
 
 def test_grouping_manager_includes_rank_zero_visible_skills_and_keeps_tree_drag_contract():

@@ -6,6 +6,7 @@ enum class RollContext(val title: String) {
     FORTITUDE("Стойкость"),
     REFLEXES("Рефлексы"),
     INITIATIVE("Инициатива"),
+    RUN("Бег"),
     DODGE("Уворачивание"),
     ATTACK("Атака"),
     PARRY("Парирование"),
@@ -86,6 +87,10 @@ fun DublCharacter.rollPreset(
                 RollContribution("Улучшенная инициатива", developmentRank(DevelopmentEffectIds.IMPROVED_INITIATIVE)),
                 RollContribution("Владыка бури", stormLordBonus),
             ).filter { it.value != 0 },
+        )
+        RollContext.RUN -> fixedPreset(
+            context = context,
+            contributions = listOf(RollContribution("Бег", runFull.toInt())),
         )
         RollContext.DODGE -> fixedPreset(
             context = context,

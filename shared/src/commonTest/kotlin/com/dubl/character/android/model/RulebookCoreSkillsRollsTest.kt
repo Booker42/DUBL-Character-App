@@ -47,6 +47,12 @@ class RulebookCoreSkillsRollsTest {
     }
 
     @Test
+    fun quickRunUsesIntegralDerivedRunValue() {
+        val character = burdenedCharacter()
+        assertEquals(character.runFull.toInt(), character.rollPreset(RollContext.RUN).bonus)
+    }
+
+    @Test
     fun normalizationPreservesNegativeHealthForRulebookDeathAndLastSurvivorMechanics() {
         val character = DublCharacter(
             id = "negative-health",

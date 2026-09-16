@@ -29,6 +29,13 @@ def test_quick_fortitude_and_initiative_use_all_canonical_passive_components():
     assert 'RollContribution("Владыка бури", stormLordBonus)' in ROLLS
 
 
+
+
+def test_run_quick_roll_is_a_shared_context_using_the_derived_run_value():
+    assert 'RUN("Бег")' in ROLLS
+    assert 'RollContext.RUN -> fixedPreset(' in ROLLS
+    assert 'RollContribution("Бег", runFull.toInt())' in ROLLS
+
 def test_skill_synergy_and_assistance_are_shared_rulebook_rules():
     assert RULES.exists()
     text = RULES.read_text(encoding='utf-8')

@@ -464,6 +464,78 @@ internal fun DesktopDenseMetricRow(
 }
 
 @Composable
+internal fun DesktopHeroAttributeCell(
+    icon: DesktopIconKind,
+    title: String,
+    value: String,
+    onRoll: () -> Unit,
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = DesktopSurfaceInset.copy(alpha = .76f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            DesktopIcon(icon, tint = DesktopAccent, size = 18.dp)
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(value, color = DesktopText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            DesktopIconButton(DesktopIconKind.DICE, onRoll, tint = DesktopAccent)
+            DesktopTinyButton("−", onMinus)
+            DesktopTinyButton("+", onPlus)
+        }
+    }
+}
+
+@Composable
+internal fun DesktopHeroMetricCell(
+    icon: DesktopIconKind,
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    tint: Color = DesktopMuted,
+    onRoll: (() -> Unit)? = null,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = DesktopSurfaceInset.copy(alpha = .70f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .56f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            DesktopIcon(icon, tint = tint, size = 18.dp)
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(value, color = DesktopText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (onRoll != null) DesktopIconButton(DesktopIconKind.DICE, onRoll, tint = DesktopAccent)
+        }
+    }
+}
+
+@Composable
 internal fun DesktopSkillRow(
     icon: DesktopIconKind,
     title: String,
