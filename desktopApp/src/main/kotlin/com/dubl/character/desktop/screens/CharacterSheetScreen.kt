@@ -1197,7 +1197,7 @@ private fun NotesPanel(
     modifier: Modifier = Modifier,
 ) {
     var expandedNoteIds by remember(notes.map { it.id }) {
-        mutableStateOf(notes.mapTo(linkedSetOf()) { it.id })
+        mutableStateOf<Set<String>>(notes.mapTo(linkedSetOf()) { it.id })
     }
     DesktopPanel(modifier) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
