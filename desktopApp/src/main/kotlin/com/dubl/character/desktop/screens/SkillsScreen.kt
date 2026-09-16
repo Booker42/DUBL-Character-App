@@ -66,7 +66,10 @@ fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     OutlinedTextField(search, { search = it }, label = { Text("Поиск") }, singleLine = true, modifier = Modifier.weight(1f))
                     Button(onClick = { showSpecialized = true }) { Text("Специализация") }
                     OutlinedButton(onClick = { showCustom = true }) { Text("Своё") }
-                    TextButton(onClick = { showHidden = true }) { Text("Скрытые") }
+                    TextButton(onClick = { showHidden = true }) {
+                        val hiddenCount = character.hiddenSkillIds.size
+                        Text(if (hiddenCount > 0) "Скрытые · $hiddenCount" else "Скрытые")
+                    }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilterChip(selected = category == null, onClick = { category = null }, label = { Text("Все") })

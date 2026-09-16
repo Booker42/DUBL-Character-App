@@ -467,6 +467,7 @@ internal fun DesktopDenseMetricRow(
 internal fun DesktopSkillRow(
     icon: DesktopIconKind,
     title: String,
+    rank: Int,
     bonus: String,
     onRoll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -475,6 +476,7 @@ internal fun DesktopSkillRow(
         Row(Modifier.fillMaxWidth().padding(horizontal=11.dp, vertical=6.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             DesktopIcon(icon, tint=DesktopMuted, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
+            Text("Ранг $rank", color=DesktopMuted, style=MaterialTheme.typography.labelMedium, fontWeight=FontWeight.SemiBold)
             Text(bonus, color=DesktopAccent, fontWeight=FontWeight.Bold)
             DesktopIconButton(DesktopIconKind.DICE, onRoll)
         }

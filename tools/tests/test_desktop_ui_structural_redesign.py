@@ -135,3 +135,56 @@ def test_dense_sheet_keeps_grouping_and_development_details_reachable():
     assert 'onGrouping(GroupingKind.SKILLS)' in sheet
     assert 'onGrouping(GroupingKind.DEVELOPMENT)' in sheet
     assert 'onDevelopmentDetails(item.entry)' in sheet
+
+
+def test_sheet_skills_show_all_visible_ranks_and_preserve_hidden_group_membership():
+    sheet = read(SHEET)
+    skills_panel = sheet.split('private fun SheetSkillsPanel', 1)[1].split('private fun skillIcon', 1)[0]
+    assert 'character.resolvedSkills(includeHidden = true)' in skills_panel
+    assert 'character.resolvedSkills()' in skills_panel
+    assert 'filter { it.rank > 0 }' not in skills_panel
+    assert 'SheetGroupHeaderCompact' in skills_panel
+    assert 'SheetGroupingRules.balancedColumns' in skills_panel
+    assert 'rank = skill.rank' in skills_panel
+    assert 'bonus = calc.total?.let(::signed) ?: "—"' in skills_panel
+
+    primitives = read(PRIMITIVES)
+    skill_row = primitives.split('internal fun DesktopSkillRow', 1)[1].split('internal fun DesktopResourceTile', 1)[0]
+    assert 'rank: Int' in skill_row
+    assert 'Text("Ранг $rank"' in skill_row
+    assert 'Text(bonus' in skill_row
+
+
+def test_sheet_development_summary_restores_grouped_hierarchy_from_shared_parent_ids():
+    sheet = read(SHEET)
+    summary = sheet.split('private fun SheetSummaries', 1)[1].split('private fun rankLabel', 1)[0]
+    for token in (
+        'val parentById = developmentItems.associate { it.entry.id to it.parentId }',
+        'SheetGroupingRules.hierarchicalOrder',
+        'SheetGroupingRules.hierarchyBlocks',
+        'SheetGroupingRules.localDepth',
+        'SheetGroupHeaderCompact',
+        'DevelopmentTreeRow',
+    ):
+        assert token in summary, token
+
+
+def test_grouping_manager_includes_rank_zero_visible_skills_and_keeps_tree_drag_contract():
+    sheet = read(SHEET)
+    grouping = sheet.split('private fun GroupingManagerDialog', 1)[1].split('private fun DraggableGroupingItem', 1)[0]
+    assert 'character.resolvedSkills(includeHidden = true)' in grouping
+    assert 'filter { it.rank > 0 }' not in grouping
+    assert 'SheetGroupingRules.subtreeBlock' in grouping
+    assert 'SheetGroupingRules.hierarchicalOrder' in grouping
+    assert 'movesTree' in grouping
+
+
+def test_desktop_skills_screen_keeps_all_visible_default_and_hidden_restore_entrypoint():
+    skills = read(ROOT / 'desktopApp/src/main/kotlin/com/dubl/character/desktop/screens/SkillsScreen.kt')
+    assert 'val skills = character.resolvedSkills().filter { skill ->' in skills
+    assert '(!learnedOnly || skill.rank > 0)' in skills
+    assert 'character.hiddenSkillIds.size' in skills
+    assert 'HiddenSkillsDialog' in skills
+    assert 'state.hideSkill(skill.id)' in skills
+    assert 'state.restoreSkill(skill.id)' in skills
+    assert 'state.restoreAllSkills()' in skills

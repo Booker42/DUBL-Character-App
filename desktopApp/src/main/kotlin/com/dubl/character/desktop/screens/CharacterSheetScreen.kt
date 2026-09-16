@@ -777,17 +777,27 @@ private fun SheetSkillsPanel(
     onGrouping: (GroupingKind) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val trained = character.resolvedSkills().filter { it.rank > 0 }
-    val defaults = defaultSkillGroups(trained)
-    val groups = SheetGroupingRules.normalize(extras.skillGroups, defaults, trained.map { it.id }, "skills:ungrouped")
+    // Keep hidden skills in the grouping model so hiding/restoring a skill does not
+    // silently destroy its previous group placement. Rendering still uses only visible skills.
+    val allSkills = character.resolvedSkills(includeHidden = true)
+    val visibleSkills = character.resolvedSkills()
+    val defaults = defaultSkillGroups(allSkills)
+    val groups = SheetGroupingRules.normalize(
+        extras.skillGroups,
+        defaults,
+        allSkills.map { it.id },
+        "skills:ungrouped",
+    )
     LaunchedEffect(groups, extras.skillGroups) {
         if (groups != extras.skillGroups) state.setSkillGroups(groups)
     }
-    val byId = trained.associateBy { it.id }
-    val ordered = groups.flatMap { group -> group.itemIds.mapNotNull(byId::get) }.distinctBy { it.id }
+    val visibleById = visibleSkills.associateBy { it.id }
+    val visibleGroups = groups.map { group ->
+        group.copy(itemIds = group.itemIds.filter(visibleById::containsKey))
+    }.filter { it.itemIds.isNotEmpty() }
 
     DesktopPanel(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             DesktopSectionHeader(
                 "Умения",
                 icon = DesktopIconKind.SKILLS,
@@ -798,23 +808,52 @@ private fun SheetSkillsPanel(
                     }
                 },
             )
-            if (ordered.isEmpty()) {
-                EmptyState("Изученные умения появятся здесь.")
+            if (visibleSkills.isEmpty()) {
+                EmptyState("Все умения скрыты. Вернуть их можно на экране «Умения».")
             } else {
-                ordered.chunked(2).forEach { pair ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-                        pair.forEach { skill ->
-                            val selected = skill.stockAttribute
-                            val calc = character.skillCalculationForRoll(skill, selected)
-                            DesktopSkillRow(
-                                icon = skillIcon(skill.category),
-                                title = skill.name,
-                                bonus = calc.total?.let(::signed) ?: "—",
-                                onRoll = { onSkillRoll(skill) },
-                                modifier = Modifier.weight(1f),
-                            )
+                visibleGroups.forEach { group ->
+                    val groupSkills = group.itemIds.mapNotNull(visibleById::get)
+                    SheetGroupHeaderCompact(
+                        title = group.title,
+                        count = groupSkills.size,
+                        collapsed = group.collapsed,
+                        onToggle = {
+                            state.setSkillGroups(SheetGroupingRules.toggleCollapsed(groups, group.id))
+                        },
+                    )
+                    if (!group.collapsed) {
+                        val (left, right) = SheetGroupingRules.balancedColumns(groupSkills) { skill ->
+                            when {
+                                skill.name.length >= 34 -> 3
+                                skill.name.length >= 20 -> 2
+                                else -> 1
+                            }
                         }
-                        repeat(2 - pair.size) { Spacer(Modifier.weight(1f)) }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(9.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            listOf(left, right).forEach { columnSkills ->
+                                Column(
+                                    Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    columnSkills.forEach { skill ->
+                                        val selected = skill.stockAttribute
+                                        val calc = character.skillCalculationForRoll(skill, selected)
+                                        DesktopSkillRow(
+                                            icon = skillIcon(skill.category),
+                                            title = skill.name,
+                                            rank = skill.rank,
+                                            bonus = calc.total?.let(::signed) ?: "—",
+                                            onRoll = { onSkillRoll(skill) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -834,6 +873,59 @@ private fun skillIcon(category: SkillCategory): DesktopIconKind = when (category
 }
 
 @Composable
+private fun SheetGroupHeaderCompact(
+    title: String,
+    count: Int,
+    collapsed: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onToggle),
+        shape = RoundedCornerShape(7.dp),
+        color = DesktopSurfaceRaised.copy(alpha = .36f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .46f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(if (collapsed) "▸" else "▾", color = DesktopAccent, fontWeight = FontWeight.Bold)
+            Text(title, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(count.toString(), color = DesktopMuted, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentTreeRow(
+    item: com.dubl.character.android.model.DevelopmentSheetItem,
+    displayDepth: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val indent = (displayDepth.coerceAtMost(3) * 13).dp
+    Surface(
+        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        color = DesktopSurfaceInset.copy(alpha = .72f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 9.dp + indent, end = 9.dp, top = 5.dp, bottom = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (displayDepth > 0) Text("↳", color = DesktopMuted, fontWeight = FontWeight.Bold)
+            DesktopIcon(DesktopIconKind.DEVELOPMENT, tint = if (displayDepth == 0) DesktopGold else DesktopMuted, size = 18.dp)
+            Text(item.entry.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(rankLabel(item.rank), color = DesktopAccent, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
 private fun SheetSummaries(
     state: DesktopAppState,
     character: DublCharacter,
@@ -844,9 +936,15 @@ private fun SheetSummaries(
     onNavigateDevelopment: () -> Unit,
     onEditNotes: () -> Unit,
 ) {
-    // Keep sheet grouping normalized through the shared extras API even though the summary is deliberately compact.
-    val trained = character.resolvedSkills().filter { it.rank > 0 }
-    val skillGroups = SheetGroupingRules.normalize(extras.skillGroups, defaultSkillGroups(trained), trained.map { it.id }, "skills:ungrouped")
+    // Normalize against the complete skill catalog, including hidden skills, so a hide/restore
+    // round-trip does not erase the user's previous group placement.
+    val allSkills = character.resolvedSkills(includeHidden = true)
+    val skillGroups = SheetGroupingRules.normalize(
+        extras.skillGroups,
+        defaultSkillGroups(allSkills),
+        allSkills.map { it.id },
+        "skills:ungrouped",
+    )
     LaunchedEffect(skillGroups, extras.skillGroups) {
         if (skillGroups != extras.skillGroups) state.setSkillGroups(skillGroups)
     }
@@ -854,16 +952,21 @@ private fun SheetSummaries(
     val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
     val developmentItems = rules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
     val developmentDefaults = defaultDevelopmentGroups(character, state)
-    val developmentGroups = SheetGroupingRules.normalize(extras.developmentGroups, developmentDefaults, developmentItems.map { it.entry.id }, "development:ungrouped")
+    val developmentGroups = SheetGroupingRules.normalize(
+        extras.developmentGroups,
+        developmentDefaults,
+        developmentItems.map { it.entry.id },
+        "development:ungrouped",
+    )
     LaunchedEffect(developmentGroups, extras.developmentGroups) {
         if (developmentGroups != extras.developmentGroups) state.setDevelopmentGroups(developmentGroups)
     }
-    val byId = developmentItems.associateBy { it.entry.id }
-    val orderedDevelopment = developmentGroups.flatMap { group -> group.itemIds.mapNotNull(byId::get) }.distinctBy { it.entry.id }
+    val developmentById = developmentItems.associateBy { it.entry.id }
+    val parentById = developmentItems.associate { it.entry.id to it.parentId }
 
     val developmentPanel: @Composable () -> Unit = {
         DesktopPanel(if (compact) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().fillMaxHeight()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 DesktopSectionHeader(
                     "Навыки и развитие",
                     subtitle = "Профессиональные навыки, особенности и пути развития",
@@ -875,30 +978,55 @@ private fun SheetSummaries(
                         }
                     },
                 )
-                if (orderedDevelopment.isEmpty()) {
+                if (developmentItems.isEmpty()) {
                     EmptyState("Взятых навыков и боевых искусств пока нет.")
                 } else {
-                    orderedDevelopment.take(8).chunked(2).forEach { pair ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                            pair.forEach { item ->
-                                Surface(
-                                    modifier = Modifier.weight(1f).clickable { onDevelopmentDetails(item.entry) },
-                                    shape = RoundedCornerShape(9.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .22f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .45f)),
+                    developmentGroups.forEach { group ->
+                        val orderedIds = SheetGroupingRules.hierarchicalOrder(group.itemIds, parentById)
+                        val groupItems = orderedIds.mapNotNull(developmentById::get)
+                        if (groupItems.isNotEmpty()) {
+                            SheetGroupHeaderCompact(
+                                title = group.title,
+                                count = groupItems.size,
+                                collapsed = group.collapsed,
+                                onToggle = {
+                                    state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(developmentGroups, group.id))
+                                },
+                            )
+                            if (!group.collapsed) {
+                                val groupIds = groupItems.map { it.entry.id }
+                                val blocks = SheetGroupingRules.hierarchyBlocks(groupIds, parentById)
+                                    .map { ids -> ids.mapNotNull(developmentById::get) }
+                                val (leftBlocks, rightBlocks) = SheetGroupingRules.balancedColumns(blocks) { block ->
+                                    block.sumOf { item ->
+                                        1 + SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById).coerceAtMost(1)
+                                    }
+                                }
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                    verticalAlignment = Alignment.Top,
                                 ) {
-                                    Row(
-                                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        DesktopIcon(DesktopIconKind.DEVELOPMENT, tint = DesktopMuted, size = 16.dp)
-                                        Text(item.entry.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(rankLabel(item.rank), color = DesktopAccent, fontWeight = FontWeight.Bold)
+                                    listOf(leftBlocks, rightBlocks).forEach { columnBlocks ->
+                                        Column(
+                                            Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            columnBlocks.forEach { block ->
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    block.forEach { item ->
+                                                        DevelopmentTreeRow(
+                                                            item = item,
+                                                            displayDepth = SheetGroupingRules.localDepth(item.entry.id, groupIds, parentById),
+                                                            onClick = { onDevelopmentDetails(item.entry) },
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
-                            repeat(2 - pair.size) { Spacer(Modifier.weight(1f)) }
                         }
                     }
                 }
@@ -1345,10 +1473,16 @@ private fun ResourceVisibilityDialog(state: DesktopAppState, onDismiss: () -> Un
 @Composable
 private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, onDismiss: () -> Unit) {
     val character = state.activeCharacter
-    val skillItems = character.resolvedSkills().filter { it.rank > 0 }
+    val skillItems = character.resolvedSkills(includeHidden = true)
     val developmentRules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
     val developmentItems = developmentRules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
-    val labels = if (kind == GroupingKind.SKILLS) skillItems.associate { it.id to it.name } else developmentItems.associate { it.entry.id to it.entry.name }
+    val labels = if (kind == GroupingKind.SKILLS) {
+        skillItems.associate { skill ->
+            skill.id to if (skill.id in character.hiddenSkillIds) "${skill.name} · скрыто" else skill.name
+        }
+    } else {
+        developmentItems.associate { it.entry.id to it.entry.name }
+    }
     val parentById = if (kind == GroupingKind.DEVELOPMENT) developmentItems.associate { it.entry.id to it.parentId } else emptyMap()
     val defaults = if (kind == GroupingKind.SKILLS) defaultSkillGroups(skillItems) else defaultDevelopmentGroups(character, state)
     val ungroupedId = if (kind == GroupingKind.SKILLS) "skills:ungrouped" else "development:ungrouped"
