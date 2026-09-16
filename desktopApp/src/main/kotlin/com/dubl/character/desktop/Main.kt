@@ -100,9 +100,9 @@ private fun DesktopVisualTheme(content: @Composable () -> Unit) {
             titleMedium = typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 22.sp),
             bodyLarge = typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 22.sp),
             bodyMedium = typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 20.sp),
-            bodySmall = typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 17.sp),
+            bodySmall = typography.bodySmall.copy(fontSize = 14.sp, lineHeight = 18.sp),
             labelLarge = typography.labelLarge.copy(fontSize = 14.sp, lineHeight = 18.sp),
-            labelMedium = typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
+            labelMedium = typography.labelMedium.copy(fontSize = 14.sp, lineHeight = 18.sp),
         ),
         content = content,
     )

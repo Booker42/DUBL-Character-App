@@ -206,3 +206,47 @@ def test_desktop_skills_screen_keeps_all_visible_default_and_hidden_restore_entr
     assert 'state.hideSkill(skill.id)' in skills
     assert 'state.restoreSkill(skill.id)' in skills
     assert 'state.restoreAllSkills()' in skills
+
+
+def test_hero_telemetry_places_characteristics_and_metrics_side_by_side_on_wide_desktop():
+    sheet = read(SHEET)
+    telemetry = sheet.split('private fun HeroTelemetry', 1)[1].split('private fun HeroCharacteristicsStrip', 1)[0]
+    assert 'if (wide && !compact)' in telemetry
+    assert 'Modifier.weight(.58f)' in telemetry
+    assert 'Modifier.weight(.42f)' in telemetry
+
+    characteristics = sheet.split('private fun HeroCharacteristicsStrip', 1)[1].split('private fun attributeIcon', 1)[0]
+    assert 'embedded: Boolean = false' in characteristics
+    assert 'embedded -> 2' in characteristics
+
+    metrics = sheet.split('private fun HeroMetricsStrip', 1)[1].split('private fun SkillsDevelopmentWorkspace', 1)[0]
+    assert 'embedded: Boolean = false' in metrics
+    assert 'embedded -> 2' in metrics
+
+
+def test_sheet_actions_use_clear_user_facing_copy_instead_of_service_labels():
+    sheet = read(SHEET)
+    for token in ('Добавить ресурс', 'Показать / скрыть', 'Настроить группы', 'Все умения →', 'Все навыки →', 'Расход опыта'):
+        assert token in sheet, token
+    assert 'Text("+ ресурс"' not in sheet
+    assert 'Text("Видимость"' not in sheet
+    assert 'Text("Группы")' not in sheet
+    assert 'Text("Открыть все →")' not in sheet
+
+
+def test_notes_panel_grows_with_content_instead_of_clamping_to_five_lines():
+    sheet = read(SHEET)
+    notes = sheet.split('private fun NotesPanel', 1)[1].split('private fun NotesDialog', 1)[0]
+    assert 'maxLines = 5' not in notes
+    assert 'TextOverflow.Ellipsis' not in notes
+    assert '.heightIn(min = 78.dp)' not in notes
+    assert 'notes.ifBlank { "Заметок пока нет." }' in notes
+
+
+def test_secondary_desktop_typography_is_readable_and_inline_actions_are_neutral():
+    main = read(MAIN)
+    primitives = read(PRIMITIVES)
+    assert 'bodySmall = typography.bodySmall.copy(fontSize = 14.sp' in main
+    assert 'labelMedium = typography.labelMedium.copy(fontSize = 14.sp' in main
+    assert 'internal fun DesktopInlineAction' in primitives
+    assert 'color = DesktopMuted' in primitives.split('internal fun DesktopInlineAction', 1)[1].split('@Composable', 1)[0]

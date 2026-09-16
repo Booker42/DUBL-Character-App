@@ -136,6 +136,22 @@ internal fun DesktopSmallAction(
 }
 
 @Composable
+internal fun DesktopInlineAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        label,
+        modifier = modifier.clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 5.dp),
+        color = DesktopMuted,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+    )
+}
+
+@Composable
 internal fun DesktopConditionChip(
     label: String,
     modifier: Modifier = Modifier,
@@ -480,7 +496,7 @@ internal fun DesktopHeroAttributeCell(
         border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -517,7 +533,7 @@ internal fun DesktopHeroMetricCell(
         border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .56f)),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 5.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {

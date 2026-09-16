@@ -477,12 +477,7 @@ private fun HeroIdentity(
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
             DesktopSmallAction("Редактировать", onEditIdentity)
-            Text(
-                "Экономика",
-                color = DesktopAccent,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.clickable(onClick = onEconomy).padding(horizontal = 7.dp, vertical = 3.dp),
-            )
+            DesktopInlineAction("Расход опыта", onEconomy)
         }
     }
 }
@@ -537,18 +532,8 @@ private fun HeroResources(
                 DesktopIcon(DesktopIconKind.HEALTH, tint = DesktopHealth, size = 20.dp)
                 Text("Ресурсы", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            Text(
-                "+ ресурс",
-                color = DesktopAccent,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.clickable(onClick = onCreateCustomResource).padding(horizontal = 7.dp, vertical = 4.dp),
-            )
-            Text(
-                "Видимость",
-                color = DesktopAccent,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.clickable(onClick = onResourceVisibility).padding(horizontal = 7.dp, vertical = 4.dp),
-            )
+            DesktopInlineAction("Добавить ресурс", onCreateCustomResource)
+            DesktopInlineAction("Показать / скрыть", onResourceVisibility)
         }
 
         val tiles = mutableListOf<@Composable (Modifier) -> Unit>()
@@ -638,20 +623,48 @@ private fun HeroTelemetry(
     onAttributeDelta: (AttributeId, Int) -> Unit,
     onRoll: (RollContext, AttributeId?) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        HeroCharacteristicsStrip(
-            character = character,
-            compact = compact,
-            wide = wide,
-            onAttributeDelta = onAttributeDelta,
-            onRoll = onRoll,
-        )
-        HeroMetricsStrip(
-            character = character,
-            compact = compact,
-            wide = wide,
-            onRoll = onRoll,
-        )
+    if (wide && !compact) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(Modifier.weight(.58f)) {
+                HeroCharacteristicsStrip(
+                    character = character,
+                    compact = false,
+                    wide = false,
+                    embedded = true,
+                    onAttributeDelta = onAttributeDelta,
+                    onRoll = onRoll,
+                )
+            }
+            Box(Modifier.weight(.42f)) {
+                HeroMetricsStrip(
+                    character = character,
+                    compact = false,
+                    wide = false,
+                    embedded = true,
+                    onRoll = onRoll,
+                )
+            }
+        }
+    } else {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            HeroCharacteristicsStrip(
+                character = character,
+                compact = compact,
+                wide = wide,
+                onAttributeDelta = onAttributeDelta,
+                onRoll = onRoll,
+            )
+            HeroMetricsStrip(
+                character = character,
+                compact = compact,
+                wide = wide,
+                onRoll = onRoll,
+            )
+        }
     }
 }
 
@@ -660,6 +673,7 @@ private fun HeroCharacteristicsStrip(
     character: DublCharacter,
     compact: Boolean,
     wide: Boolean,
+    embedded: Boolean = false,
     onAttributeDelta: (AttributeId, Int) -> Unit,
     onRoll: (RollContext, AttributeId?) -> Unit,
 ) {
@@ -679,6 +693,7 @@ private fun HeroCharacteristicsStrip(
             Text("Характеристики", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
         val columns = when {
+            embedded -> 2
             compact -> 2
             wide -> 4
             else -> 2
@@ -722,6 +737,7 @@ private fun HeroMetricsStrip(
     character: DublCharacter,
     compact: Boolean,
     wide: Boolean,
+    embedded: Boolean = false,
     onRoll: (RollContext, AttributeId?) -> Unit,
 ) {
     data class Metric(
@@ -744,6 +760,7 @@ private fun HeroMetricsStrip(
             Text("Показатели", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
         val columns = when {
+            embedded -> 2
             compact -> 2
             wide -> 6
             else -> 3
@@ -856,8 +873,8 @@ private fun SheetSkillsPanel(
                 icon = DesktopIconKind.SKILLS,
                 action = {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { onGrouping(GroupingKind.SKILLS) }) { Text("Группы") }
-                        TextButton(onClick = onOpenAll) { Text("Открыть все →") }
+                        DesktopInlineAction("Настроить группы", { onGrouping(GroupingKind.SKILLS) })
+                        DesktopInlineAction("Все умения →", onOpenAll)
                     }
                 },
             )
@@ -1033,8 +1050,8 @@ private fun SheetDevelopmentPanel(
                 icon = DesktopIconKind.DEVELOPMENT,
                 action = {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { onGrouping(GroupingKind.DEVELOPMENT) }) { Text("Группы") }
-                        TextButton(onClick = onNavigateDevelopment) { Text("Открыть все →") }
+                        DesktopInlineAction("Настроить группы", { onGrouping(GroupingKind.DEVELOPMENT) })
+                        DesktopInlineAction("Все навыки →", onNavigateDevelopment)
                     }
                 },
             )
@@ -1115,10 +1132,10 @@ private fun NotesPanel(
             DesktopSectionHeader(
                 "Заметки",
                 icon = DesktopIconKind.NOTES,
-                action = { DesktopSmallAction("Изменить", onEdit) },
+                action = { DesktopSmallAction("Редактировать", onEdit) },
             )
             Surface(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 78.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(9.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .18f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .42f)),
@@ -1129,8 +1146,6 @@ private fun NotesPanel(
                         notes.ifBlank { "Заметок пока нет." },
                         color = if (notes.isBlank()) DesktopMuted else MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 5,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                 }
