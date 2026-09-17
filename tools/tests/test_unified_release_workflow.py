@@ -57,3 +57,9 @@ def test_local_fallback_versions_are_fury_0_5_line():
     assert '?: "0.5.0"' in desktop
     assert 'TargetFormat.Exe' in desktop
     assert 'TargetFormat.Msi' in desktop
+
+
+def test_release_workflow_invokes_apksigner_from_installed_build_tools():
+    workflow = text(RELEASE)
+    assert '"$ANDROID_SDK_ROOT/build-tools/37.0.0/apksigner" verify' in workflow
+    assert '\n          apksigner verify' not in workflow

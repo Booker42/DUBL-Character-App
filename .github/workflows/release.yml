@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           [[ -f "$APK" ]] || { echo "Signed release APK not found" >&2; exit 1; }
-          apksigner verify --verbose --print-certs "$APK"
+          "$ANDROID_SDK_ROOT/build-tools/37.0.0/apksigner" verify --verbose --print-certs "$APK"
           mkdir -p out
           cp "$APK" "out/FURY-${{ needs.validate.outputs.version }}-Android.apk"
 
