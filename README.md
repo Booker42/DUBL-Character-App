@@ -11,8 +11,9 @@ This source snapshot contains the Android 0.6.2 application and the Compose Desk
 
 ## Current versions
 
-- **Android 0.6.2** — canonical behavior/rules reference.
-- **Desktop 0.2.0** — Compose Desktop functional-parity target over the same shared application/domain layer.
+- **FURY 0.5** — unified public release line for Android, Linux, and Windows.
+- **Android 0.6.2** — historical mature implementation/UX reference used during the parity migration.
+- **Desktop 0.2.0** — historical Compose parity milestone; desktop packages now ship under the FURY version line.
 
 ## Desktop 0.2 functionality
 
@@ -67,7 +68,7 @@ python3 -m tools.rulebook.check_baseline build/rulesets/dubl-3.69 \
 The canonical Linux release path is now Compose Desktop:
 
 ```bash
-DUBL_VERSION=0.2.0 packaging/linux/build-appimage.sh
+DUBL_VERSION=0.5.0 packaging/linux/build-appimage.sh
 ```
 
 The script builds `:desktopApp:createDistributable`, bundles the JVM runtime produced by Compose Desktop, then wraps the distributable as an AppImage. `.github/workflows/linux-appimage.yml` runs parity tests, `:shared:desktopTest`, `:desktopApp:compileKotlin`, and the AppImage build before publishing artifacts.
@@ -91,11 +92,11 @@ The repository uses Kotlin 2.4.20, Compose Multiplatform 1.12.0, AGP 9.3.0, Grad
 
 ## Release tags
 
-Android release tags remain `v0.6.2`-style. Desktop Linux releases use separate tags such as:
+FURY uses one product version and one release tag for every shipped platform. For 0.5:
 
 ```bash
-git tag -a desktop-v0.2.0 -m "FURY Desktop 0.2.0"
-git push origin desktop-v0.2.0
+git tag -a v0.5 -m "FURY 0.5"
+git push origin v0.5
 ```
 
-That tag invokes the Compose Desktop Linux release workflow.
+`.github/workflows/release.yml` validates the tag, builds the signed Android APK, Linux AppImage, and Windows EXE/MSI, then publishes all artifacts into one GitHub Release titled `FURY 0.5`. The DUBL ruleset version remains `3.69` and is independent of the FURY product version.

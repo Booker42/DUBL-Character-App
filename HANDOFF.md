@@ -60,7 +60,7 @@ Normal rebuild/check sequence is documented in `README.md`. Only run `check_base
 
 ## Release architecture
 
-Canonical Linux packaging is `packaging/linux/build-appimage.sh` -> `:desktopApp:createDistributable` -> AppImage. Windows packages are produced from the same `desktopApp` as native `.exe` and `.msi` installers by `.github/workflows/windows-desktop.yml`. Both desktop workflows now run on pushes to `main`; `.github/workflows/linux-appimage.yml` still builds Compose, not portable/Swing, and requires:
+FURY 0.5 uses `.github/workflows/release.yml` as the only GitHub Release publisher: one `v0.5` tag fans out to signed Android, Linux AppImage, and Windows EXE/MSI jobs, then publishes one `FURY 0.5` release. Platform CI workflows still run independently on `main` but do not publish releases. Canonical Linux packaging remains `packaging/linux/build-appimage.sh` -> `:desktopApp:createDistributable` -> AppImage; Windows packages come from the same `desktopApp`. The Linux CI/release path requires:
 
 ```text
 :shared:desktopTest

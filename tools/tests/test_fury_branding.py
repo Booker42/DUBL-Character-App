@@ -54,11 +54,11 @@ def test_linux_appimage_uses_fury_name_and_icon_but_preserves_data_identity():
 
 def test_release_artifacts_use_fury_product_name_while_ruleset_identity_stays_dubl():
     android_ci = text(".github/workflows/android-ci.yml")
-    android_release = text(".github/workflows/android-release.yml")
+    release = text(".github/workflows/release.yml")
     ruleset = text("shared/src/commonMain/kotlin/com/dubl/character/android/model/RulesetModels.kt")
 
     assert 'FURY-Android-dev.apk' in android_ci
-    assert 'FURY-Android-${DUBL_VERSION_NAME}.apk' in android_release
-    assert '--title "FURY Android ${DUBL_VERSION_NAME}"' in android_release
+    assert 'FURY-${{ needs.validate.outputs.version }}-Android.apk' in release
+    assert '--title "FURY $VERSION"' in release
     assert 'const val ID = "dubl"' in ruleset
     assert 'const val VERSION = "3.69"' in ruleset

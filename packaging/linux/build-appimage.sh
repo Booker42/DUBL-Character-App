@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-VERSION="${DUBL_VERSION:-0.2.0}"
+VERSION="${DUBL_VERSION:-0.5.0}"
 ARCH="x86_64"
 DIST="$ROOT/dist"
 APPDIR="$ROOT/build/appimage/FURY.AppDir"

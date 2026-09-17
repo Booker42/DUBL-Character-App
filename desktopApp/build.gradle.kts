@@ -1,4 +1,4 @@
-val desktopVersion = providers.environmentVariable("DUBL_VERSION").orNull ?: "0.2.0"
+val desktopVersion = providers.environmentVariable("DUBL_VERSION").orNull ?: "0.5.0"
 
 plugins {
     id("org.jetbrains.kotlin.jvm")

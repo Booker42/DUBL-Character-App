@@ -1,26 +1,28 @@
 # GitHub build/release workflow
 
-## Development APK
+## Development builds
 
-`android-ci.yml` runs on every push to `main` and on pull requests. It builds the `.dev` application and uploads `FURY-Android-dev.apk` as a 14-day Actions artifact.
+Normal pushes do not create GitHub Releases.
 
-The development application ID is `com.dubl.character.android.dev`. Its signing key in `ci/dubl-debug.keystore` is intentionally public and is never used for production releases.
+- `android-ci.yml` builds `FURY-Android-dev.apk` on `main`/PRs.
+- `linux-appimage.yml` builds and smoke-tests the Compose Linux AppImage on `main` or manual dispatch.
+- `windows-desktop.yml` builds the Compose Windows EXE/MSI on `main` or manual dispatch.
 
-## Production APK
+The development Android application ID remains `com.dubl.character.android.dev`. The repository debug keystore is intentionally public and is never used for production releases.
 
-`android-release.yml` accepts both `vX.Y` and `vX.Y.Z` tags.
+## Unified production release
 
-The tag determines `versionName`. `versionCode` is deterministically encoded as:
+`.github/workflows/release.yml` is the only workflow that publishes a GitHub Release. A tag such as `v0.5` produces one `FURY 0.5` release containing:
 
-```text
-major * 1,000,000 + minor * 1,000 + patch
-```
+- `FURY-0.5-Android.apk`;
+- `FURY-0.5-Linux-x86_64.AppImage`;
+- `FURY-0.5-Linux-x86_64.AppImage.sha256`;
+- `FURY-0.5-Windows-x64.exe`;
+- `FURY-0.5-Windows-x64.msi`.
 
-Examples:
+The public product version may use two components (`0.5`). Compose native packaging receives the normalized three-component version (`0.5.0`) internally, while published artifact names keep `0.5`.
 
-- `0.2` -> `2000`
-- `0.2.1` -> `2001`
-- `1.0.0` -> `1000000`
+Android release `versionCode` uses a dedicated FURY range. `v0.5` maps to `105000000`, which is intentionally higher than the legacy Android `6002000` code so existing installations can update normally even though the public product version has been unified at 0.5.
 
 Release signing requires these GitHub Actions secrets:
 
@@ -29,19 +31,15 @@ Release signing requires these GitHub Actions secrets:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
-Run `./tools/setup-signing` once to create the private key locally and upload those secrets with GitHub CLI.
+Run `./tools/setup-signing` once to create the private key locally and upload those secrets with GitHub CLI. Never delete the only backup of the release keystore: future Android updates must use the same signing identity.
 
-Never delete your only backup of the release keystore. Android updates require future releases to be signed by the same key.
+## Releasing 0.5
 
+After the desired commit is on `main`:
 
-## Desktop builds after push
+```bash
+git tag -a v0.5 -m "FURY 0.5"
+git push origin v0.5
+```
 
-Every push to `main` now starts all three platform builds independently:
-
-- `Android CI` builds `DUBL-Android-dev.apk`;
-- `Linux Desktop Compose` runs the desktop parity gate and builds the AppImage;
-- `Windows Desktop Compose` runs the shared desktop tests, compiles Compose Desktop, and builds both `.exe` and `.msi` packages.
-
-Desktop tag pushes matching `desktop-vX.Y.Z` also build Linux and Windows packages using the version from the tag. Manual desktop workflow runs use the supplied version and fall back to `0.2.0` on an ordinary `main` push.
-
-The Windows build uses the same `desktopApp` and shared application/rules layers as Linux. It is a packaging target, not a separate Windows implementation.
+The release is published only after Android, Linux, and Windows jobs all succeed.

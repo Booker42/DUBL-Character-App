@@ -46,4 +46,5 @@ def test_linux_appimage_also_builds_on_main_push():
     text = read(LINUX_WORKFLOW)
     assert 'push:' in text
     assert 'branches: [main]' in text
-    assert "'desktop-v*'" in text
+    assert "'desktop-v*'" not in text
+    assert 'tags:' not in text
