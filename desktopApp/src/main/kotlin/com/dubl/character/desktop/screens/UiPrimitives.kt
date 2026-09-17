@@ -534,6 +534,113 @@ internal fun DesktopTinyButton(
 }
 
 @Composable
+internal fun FuryStepper(
+    onMinus: () -> Unit,
+    onPlus: () -> Unit,
+    modifier: Modifier = Modifier,
+    minusEnabled: Boolean = true,
+    plusEnabled: Boolean = true,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(7.dp),
+        color = DesktopSurfaceInset,
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .88f)),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .clickable(enabled = minusEnabled, onClick = onMinus),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("−", color = if (minusEnabled) DesktopText else DesktopMuted, fontWeight = FontWeight.Bold)
+            }
+            Box(Modifier.width(1.dp).height(18.dp).background(DesktopBorder.copy(alpha = .82f)))
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .clickable(enabled = plusEnabled, onClick = onPlus),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("+", color = if (plusEnabled) DesktopText else DesktopMuted, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun FurySegmentedControl(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(9.dp),
+        color = DesktopSurfaceInset,
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .88f)),
+    ) {
+        Row(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, label ->
+                val selected = index == selectedIndex
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(if (selected) DesktopAccentSoft.copy(alpha = .92f) else Color.Transparent)
+                        .clickable { onSelected(index) }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        color = if (selected) DesktopAccent else DesktopMuted,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun FuryChoiceButton(
+    label: String,
+    meta: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(9.dp),
+        color = if (selected) DesktopAccentSoft.copy(alpha = .72f) else DesktopSurfaceInset.copy(alpha = .84f),
+        border = BorderStroke(1.dp, if (selected) DesktopAccent.copy(alpha = .86f) else DesktopBorder.copy(alpha = .72f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                label,
+                modifier = Modifier.weight(1f),
+                color = if (selected) DesktopText else DesktopMuted,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(meta, color = if (selected) DesktopAccent else DesktopMuted, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
 internal fun DesktopIconButton(
     kind: DesktopIconKind,
     onClick: () -> Unit,
@@ -773,27 +880,45 @@ internal fun DesktopResourceTile(
     modifier: Modifier = Modifier,
     onSecondary: (() -> Unit)? = null,
 ) {
-    val fraction = if (maximum <= 0) 0f else (current.toFloat()/maximum.toFloat()).coerceIn(0f,1f)
+    val fraction = if (maximum <= 0) 0f else (current.toFloat() / maximum.toFloat()).coerceIn(0f, 1f)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             DesktopIcon(icon, tint = tint, size = 18.dp)
-            Text(title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("$current / $maximum", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DesktopText)
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "$current / $maximum",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = DesktopText,
+            )
+            FuryStepper(
+                onMinus = onMinus,
+                onPlus = onPlus,
+                modifier = Modifier,
+            )
             if (onSecondary != null) {
                 Text(
                     "⋯",
                     color = DesktopMuted,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable(onClick = onSecondary).padding(horizontal = 3.dp, vertical = 1.dp),
+                    modifier = Modifier.clickable(onClick = onSecondary).padding(horizontal = 4.dp, vertical = 2.dp),
                 )
             }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            DesktopTinyButton("−", onMinus, Modifier.size(26.dp))
-            Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFF222D39))) {
-                if (fraction > 0f) Box(Modifier.fillMaxWidth(fraction).height(5.dp).background(tint.copy(alpha=.94f)))
+        Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(999.dp)).background(Color(0xFF222D39))) {
+            if (fraction > 0f) {
+                Box(Modifier.fillMaxWidth(fraction).height(5.dp).background(tint.copy(alpha = .94f)))
             }
-            DesktopTinyButton("+", onPlus, Modifier.size(26.dp))
         }
     }
 }

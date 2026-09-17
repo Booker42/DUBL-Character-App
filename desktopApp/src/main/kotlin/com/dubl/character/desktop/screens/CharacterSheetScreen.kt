@@ -1,6 +1,7 @@
 package com.dubl.character.desktop.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -25,6 +26,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,6 +49,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -1057,28 +1061,72 @@ private fun SheetGroupHeaderCompact(
 }
 
 @Composable
+private fun DevelopmentBranchConnector(modifier: Modifier = Modifier) {
+    Canvas(modifier.width(16.dp).height(22.dp)) {
+        val stroke = 1.25.dp.toPx()
+        val x = 4.dp.toPx()
+        val mid = size.height * .5f
+        drawLine(
+            color = DesktopBorder.copy(alpha = .95f),
+            start = androidx.compose.ui.geometry.Offset(x, 0f),
+            end = androidx.compose.ui.geometry.Offset(x, mid),
+            strokeWidth = stroke,
+        )
+        drawLine(
+            color = DesktopBorder.copy(alpha = .95f),
+            start = androidx.compose.ui.geometry.Offset(x, mid),
+            end = androidx.compose.ui.geometry.Offset(size.width, mid),
+            strokeWidth = stroke,
+        )
+    }
+}
+
+@Composable
 private fun DevelopmentTreeRow(
     item: com.dubl.character.android.model.DevelopmentSheetItem,
     displayDepth: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val indent = (displayDepth.coerceAtMost(3) * 13).dp
+    val child = displayDepth > 0
+    val indent = (displayDepth.coerceAtMost(3) * 10).dp
     Surface(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = DesktopSurfaceInset.copy(alpha = .72f),
-        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
+        modifier = modifier.fillMaxWidth().padding(start = if (child) 8.dp else 0.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(if (child) 6.dp else 8.dp),
+        color = if (child) DesktopSurfaceInset.copy(alpha = .46f) else DesktopSurfaceInset.copy(alpha = .72f),
+        border = if (child) null else BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 9.dp + indent, end = 9.dp, top = 5.dp, bottom = 5.dp),
+            Modifier.fillMaxWidth().padding(
+                start = 7.dp + indent,
+                end = 9.dp,
+                top = if (child) 3.dp else 5.dp,
+                bottom = if (child) 3.dp else 5.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (child) 5.dp else 7.dp),
         ) {
-            if (displayDepth > 0) Text("↳", color = DesktopMuted, fontWeight = FontWeight.Bold)
-            DesktopIcon(DesktopIconKind.DEVELOPMENT, tint = if (displayDepth == 0) DesktopGold else DesktopMuted, size = 18.dp)
-            Text(item.entry.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(rankLabel(item.rank), color = DesktopAccent, fontWeight = FontWeight.Bold)
+            if (child) DevelopmentBranchConnector()
+            DesktopIcon(
+                DesktopIconKind.DEVELOPMENT,
+                tint = if (child) DesktopMuted.copy(alpha = .82f) else DesktopGold,
+                size = if (child) 16.dp else 18.dp,
+            )
+            Text(
+                item.entry.name,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (child) DesktopText.copy(alpha = .90f) else DesktopText,
+                style = if (child) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                fontWeight = if (child) FontWeight.Medium else FontWeight.SemiBold,
+            )
+            Text(
+                rankLabel(item.rank),
+                color = DesktopAccent,
+                fontWeight = FontWeight.Bold,
+                style = if (child) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }
@@ -1393,6 +1441,35 @@ private fun IdentityDialog(state: DesktopAppState, character: DublCharacter, onD
 }
 
 @Composable
+private fun EconomySummaryCard(
+    title: String,
+    rows: List<Pair<String, String>>,
+    warning: Boolean = false,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(9.dp),
+        color = if (warning) DesktopAccentSoft.copy(alpha = .42f) else DesktopSurfaceInset.copy(alpha = .68f),
+        border = BorderStroke(1.dp, if (warning) DesktopAccent.copy(alpha = .52f) else DesktopBorder.copy(alpha = .62f)),
+    ) {
+        Column(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, color = if (warning) DesktopAccent else DesktopText)
+            rows.forEach { (label, value) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(label, color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        value,
+                        color = if (warning) MaterialTheme.colorScheme.error else DesktopText,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun EconomyDialog(state: DesktopAppState, onDismiss: () -> Unit) {
     val character = state.activeCharacter
     val economy = CharacterEconomy.breakdown(character, state.developmentCatalog)
@@ -1404,17 +1481,92 @@ private fun EconomyDialog(state: DesktopAppState, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text("Опыт и создание") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                OutlinedTextField(total, { total = it.filter(Char::isDigit).take(8) }, label = { Text("Общий XP") })
-                OutlinedTextField(creation, { creation = it.filter(Char::isDigit).take(8) }, label = { Text("Стартовый XP") })
-                OutlinedTextField(adjustment, { adjustment = it.take(9) }, label = { Text("XP adjustment") })
-                OutlinedTextField(abilityOverride, { abilityOverride = it.filter(Char::isDigit).take(5) }, label = { Text("ОС override (пусто = авто)") })
-                Text("Характеристики ${economy.attributeXp} · Умения ${economy.skillXp} · Навыки ${economy.developmentXp} · Мана ${economy.manaXp} · ЦИ ${economy.chiXp} · Школы ${economy.magicSchoolXp} · Заклинания ${economy.spellXp}", color = DesktopMuted)
-                Text("Потрачено ${economy.spentXp} · осталось ${economy.remainingXp}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DesktopAccent)
-                Text("ОС: ${economy.abilityPointsSpent}/${economy.abilityPointsBudget} · осталось ${economy.abilityPointsRemaining}", color = if (economy.overspentAbilityPoints) MaterialTheme.colorScheme.error else DesktopAccent)
-                if (economy.unpricedLearnedSpells > 0) Text("Заклинаний без цены XP: ${economy.unpricedLearnedSpells}", color = DesktopGold)
-                if (character.creationComplete) OutlinedButton(onClick = { state.reopenCreation() }) { Text("Вернуться в создание") }
-                else Button(onClick = { state.completeCreation() }) { Text("Завершить создание") }
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        total,
+                        { total = it.filter(Char::isDigit).take(8) },
+                        label = { Text("Общий опыт") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        creation,
+                        { creation = it.filter(Char::isDigit).take(8) },
+                        label = { Text("Стартовый опыт") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        adjustment,
+                        { adjustment = it.filter { c -> c.isDigit() || c == '-' }.take(9) },
+                        label = { Text("Корректировка опыта") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        abilityOverride,
+                        { abilityOverride = it.filter(Char::isDigit).take(5) },
+                        label = { Text("Очки способностей вручную") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                }
+                Text(
+                    "Оставьте поле очков способностей пустым, чтобы использовать автоматический расчёт от стартового опыта.",
+                    color = DesktopMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(9.dp),
+                    color = DesktopSurfaceInset.copy(alpha = .52f),
+                    border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .52f)),
+                ) {
+                    Column(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Распределение опыта", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Характеристики ${economy.attributeXp} · Умения ${economy.skillXp} · Навыки ${economy.developmentXp}",
+                            color = DesktopMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            "Мана ${economy.manaXp} · ЦИ ${economy.chiXp} · Школы ${economy.magicSchoolXp} · Заклинания ${economy.spellXp}",
+                            color = DesktopMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                EconomySummaryCard(
+                    title = "Бюджет опыта",
+                    rows = listOf(
+                        "Потрачено" to economy.spentXp.toString(),
+                        "Осталось" to economy.remainingXp.toString(),
+                    ),
+                    warning = economy.overspentXp,
+                )
+                EconomySummaryCard(
+                    title = "Очки способностей",
+                    rows = listOf(
+                        "Потрачено" to "${economy.abilityPointsSpent} из ${economy.abilityPointsBudget}",
+                        "Осталось" to economy.abilityPointsRemaining.toString(),
+                    ),
+                    warning = economy.overspentAbilityPoints,
+                )
+                if (economy.unpricedLearnedSpells > 0) {
+                    Text("Заклинаний без цены опыта: ${economy.unpricedLearnedSpells}", color = DesktopGold)
+                }
+                if (character.creationComplete) {
+                    OutlinedButton(onClick = { state.reopenCreation() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Вернуться в создание")
+                    }
+                } else {
+                    Button(onClick = { state.completeCreation() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Завершить создание")
+                    }
+                }
             }
         },
         confirmButton = { TextButton(onClick = {
@@ -1467,6 +1619,63 @@ private fun CustomResourceDialog(state: DesktopAppState, resource: CustomResourc
     )
 }
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@Composable
+private fun ConditionRow(
+    title: String,
+    description: String,
+    active: Boolean,
+    marker: String? = null,
+    onActiveChange: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+) {
+    var hovered by remember(title) { mutableStateOf(false) }
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerMoveFilter(
+                onEnter = { hovered = true; false },
+                onExit = { hovered = false; false },
+            ),
+        shape = RoundedCornerShape(8.dp),
+        color = if (active) DesktopAccentSoft.copy(alpha = .34f) else DesktopSurfaceInset.copy(alpha = .36f),
+        border = BorderStroke(1.dp, if (active) DesktopAccent.copy(alpha = .38f) else DesktopBorder.copy(alpha = .38f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Checkbox(
+                checked = active,
+                onCheckedChange = onActiveChange,
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(title, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    if (!marker.isNullOrBlank()) {
+                        Text(marker, color = DesktopGold, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                if (description.isNotBlank()) {
+                    Text(
+                        description,
+                        color = DesktopMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Box(Modifier.width(86.dp), contentAlignment = Alignment.CenterEnd) {
+                if (hovered || active) {
+                    TextButton(onClick = onEdit) { Text("Изменить") }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onChanged: (Set<CharacterConditionId>) -> Unit) {
     val previous = state.extras.activeConditions
@@ -1477,42 +1686,37 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
         onDismissRequest = onDismiss,
         title = { Text("Состояния") },
         text = {
-            LazyColumn(modifier = Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(CharacterConditionId.entries, key = { it.name }) { condition ->
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                CharacterConditionId.entries.forEach { condition ->
                     val local = state.extras.conditionOverrides[condition]
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            condition in state.extras.activeConditions,
-                            { state.toggleCondition(condition) },
-                        )
-                        Column(Modifier.weight(1f)) {
-                            Text(local?.title ?: condition.title, fontWeight = FontWeight.Bold)
-                            Text(local?.description ?: state.conditionCatalog.summary(condition), color = DesktopMuted)
-                            if (local != null) Text("локальная правка", color = DesktopGold, fontSize = 11.sp)
-                        }
-                        TextButton(onClick = { editCondition = condition }) { Text("Правка") }
-                    }
+                    ConditionRow(
+                        title = local?.title ?: condition.title,
+                        description = local?.description ?: state.conditionCatalog.summary(condition),
+                        active = condition in state.extras.activeConditions,
+                        marker = if (local != null) "локальная правка" else null,
+                        onActiveChange = { state.toggleCondition(condition) },
+                        onEdit = { editCondition = condition },
+                    )
                 }
                 if (state.extras.customConditions.isNotEmpty()) {
-                    item { Text("Свои состояния", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
-                    items(state.extras.customConditions, key = { it.id }) { condition ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = condition.active,
-                                onCheckedChange = { checked -> state.setCustomConditionActive(condition.id, checked) },
-                            )
-                            Column(Modifier.weight(1f)) {
-                                Text(condition.title, fontWeight = FontWeight.Bold)
-                                if (condition.description.isNotBlank()) Text(condition.description, color = DesktopMuted)
-                            }
-                            TextButton(onClick = { editCustomId = condition.id }) { Text("Изменить") }
-                        }
+                    Text(
+                        "Свои состояния",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                    )
+                    state.extras.customConditions.forEach { condition ->
+                        ConditionRow(
+                            title = condition.title,
+                            description = condition.description,
+                            active = condition.active,
+                            marker = "своё",
+                            onActiveChange = { checked -> state.setCustomConditionActive(condition.id, checked) },
+                            onEdit = { editCustomId = condition.id },
+                        )
                     }
                 }
-                item {
-                    OutlinedButton(onClick = { createCustom = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Добавить своё состояние")
-                    }
+                OutlinedButton(onClick = { createCustom = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("+ Добавить своё состояние")
                 }
             }
         },
@@ -1646,6 +1850,67 @@ private fun ResourceVisibilityDialog(state: DesktopAppState, onDismiss: () -> Un
 }
 
 @Composable
+private fun GroupingDragHandle(
+    modifier: Modifier = Modifier,
+    active: Boolean = false,
+) {
+    Surface(
+        modifier = modifier.size(28.dp),
+        shape = RoundedCornerShape(7.dp),
+        color = if (active) DesktopAccentSoft.copy(alpha = .82f) else DesktopSurfaceInset.copy(alpha = .88f),
+        border = BorderStroke(1.dp, if (active) DesktopAccent.copy(alpha = .72f) else DesktopBorder.copy(alpha = .68f)),
+    ) {
+        Canvas(Modifier.fillMaxSize().padding(8.dp)) {
+            val dot = 1.35.dp.toPx()
+            val xs = listOf(size.width * .30f, size.width * .70f)
+            val ys = listOf(size.height * .16f, size.height * .50f, size.height * .84f)
+            xs.forEach { x -> ys.forEach { y -> drawCircle(if (active) DesktopAccent else DesktopMuted, dot, androidx.compose.ui.geometry.Offset(x, y)) } }
+        }
+    }
+}
+
+@Composable
+private fun GroupCountBadge(count: Int) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = DesktopSurfaceInset.copy(alpha = .76f),
+        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .58f)),
+    ) {
+        Text(
+            count.toString(),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            color = DesktopMuted,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun GroupActionMenu(
+    canDelete: Boolean,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        DesktopTinyButton("⋯", { expanded = true }, Modifier.size(28.dp))
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Переименовать") },
+                onClick = { expanded = false; onRename() },
+            )
+            if (canDelete) {
+                DropdownMenuItem(
+                    text = { Text("Удалить группу") },
+                    onClick = { expanded = false; onDelete() },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, onDismiss: () -> Unit) {
     val character = state.activeCharacter
     val skillItems = character.resolvedSkills(includeHidden = true)
@@ -1672,6 +1937,7 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
         )
     }
     var newName by remember { mutableStateOf("") }
+    var creatingGroup by remember { mutableStateOf(false) }
     var editingGroupId by remember { mutableStateOf<String?>(null) }
     var editingGroupName by remember { mutableStateOf("") }
     var hoveredGroupId by remember { mutableStateOf<String?>(null) }
@@ -1754,18 +2020,20 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                     .fillMaxWidth()
                     .heightIn(max = 620.dp)
                     .onGloballyPositioned { listBounds = it.boundsInWindow() },
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 item {
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(8.dp),
+                        color = DesktopSurfaceInset.copy(alpha = .72f),
+                        border = BorderStroke(1.dp, DesktopBorder.copy(alpha = .58f)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            "Зажмите ≡ и тяните. Корень ветки переносит всё дерево; дочерний навык можно перенести отдельно.",
-                            modifier = Modifier.padding(10.dp),
+                            "Перетаскивайте группы и элементы за ручку. Корень ветки переносит дочерние элементы вместе.",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                             color = DesktopMuted,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
@@ -1781,13 +2049,13 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                             .zIndex(if (groupDragging) 8f else 0f)
                             .graphicsLayer { translationY = groupDragOffset }
                             .onGloballyPositioned { groupBounds[group.id] = it.boundsInWindow() },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (dropTarget) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f),
-                        border = BorderStroke(if (dropTarget) 2.dp else 1.dp, if (dropTarget) DesktopAccent else MaterialTheme.colorScheme.outline),
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (dropTarget) DesktopAccentSoft.copy(alpha = .46f) else DesktopSurfaceInset.copy(alpha = .52f),
+                        border = BorderStroke(if (dropTarget) 2.dp else 1.dp, if (dropTarget) DesktopAccent else DesktopBorder.copy(alpha = .72f)),
                     ) {
-                        Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
+                        Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                GroupingDragHandle(
                                     modifier = Modifier.pointerInput(group.id) {
                                         var accumulated = 0f
                                         detectDragGesturesAfterLongPress(
@@ -1820,38 +2088,58 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                                             },
                                         )
                                     },
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    active = groupDragging,
+                                )
+                                Row(
+                                    modifier = Modifier.weight(1f).clickable { persist(SheetGroupingRules.toggleCollapsed(visualGroups, group.id)) },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 ) {
-                                    Text("≡", modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp), fontSize = 21.sp, color = DesktopAccent, fontWeight = FontWeight.Bold)
+                                    Text(if (group.collapsed) "▸" else "▾", color = DesktopAccent, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        group.title,
+                                        modifier = Modifier.weight(1f),
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    GroupCountBadge(group.itemIds.size)
                                 }
-                                Spacer(Modifier.width(8.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(group.title, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text("${group.itemIds.size} элементов", color = DesktopMuted)
-                                }
-                                TextButton(onClick = { persist(SheetGroupingRules.toggleCollapsed(visualGroups, group.id)) }) {
-                                    Text(if (group.collapsed) "▸" else "▾")
-                                }
-                                TextButton(onClick = { editingGroupId = group.id; editingGroupName = group.title }) { Text("✎") }
-                                if (group.id != ungroupedId) {
-                                    TextButton(onClick = { persist(SheetGroupingRules.deleteGroup(visualGroups, group.id, ungroupedId)) }) { Text("×") }
-                                }
+                                GroupActionMenu(
+                                    canDelete = group.id != ungroupedId,
+                                    onRename = { editingGroupId = group.id; editingGroupName = group.title },
+                                    onDelete = { persist(SheetGroupingRules.deleteGroup(visualGroups, group.id, ungroupedId)) },
+                                )
                             }
 
                             if (editingGroupId == group.id) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    OutlinedTextField(editingGroupName, { editingGroupName = it }, label = { Text("Название") }, modifier = Modifier.weight(1f), singleLine = true)
-                                    Button(onClick = {
-                                        persist(SheetGroupingRules.renameGroup(visualGroups, group.id, editingGroupName))
-                                        editingGroupId = null
-                                    }) { Text("OK") }
+                                    OutlinedTextField(
+                                        editingGroupName,
+                                        { editingGroupName = it.take(80) },
+                                        label = { Text("Название группы") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                    )
+                                    Button(
+                                        enabled = editingGroupName.isNotBlank(),
+                                        onClick = {
+                                            persist(SheetGroupingRules.renameGroup(visualGroups, group.id, editingGroupName))
+                                            editingGroupId = null
+                                        },
+                                    ) { Text("Сохранить") }
+                                    TextButton(onClick = { editingGroupId = null }) { Text("Отмена") }
                                 }
                             }
 
                             if (!group.collapsed) {
                                 if (group.itemIds.isEmpty()) {
-                                    Text("Пустая группа — перетащите сюда элемент.", color = DesktopMuted)
+                                    Text(
+                                        "Пустая группа — перетащите сюда элемент.",
+                                        modifier = Modifier.padding(start = 35.dp, top = 3.dp, bottom = 3.dp),
+                                        color = DesktopMuted,
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
                                 }
                                 group.itemIds.forEach { itemId ->
                                     val depth = SheetGroupingRules.localDepth(itemId, group.itemIds, parentById)
@@ -1875,15 +2163,29 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                 }
 
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(newName, { newName = it }, label = { Text("Новая группа") }, modifier = Modifier.weight(1f), singleLine = true)
-                        Button(
-                            enabled = newName.isNotBlank(),
-                            onClick = {
-                                persist(SheetGroupingRules.addGroup(groups, "custom:${UUID.randomUUID()}", newName))
-                                newName = ""
-                            },
-                        ) { Text("Добавить") }
+                    if (creatingGroup) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                newName,
+                                { newName = it.take(80) },
+                                label = { Text("Название новой группы") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                            Button(
+                                enabled = newName.isNotBlank(),
+                                onClick = {
+                                    persist(SheetGroupingRules.addGroup(groups, "custom:${UUID.randomUUID()}", newName))
+                                    newName = ""
+                                    creatingGroup = false
+                                },
+                            ) { Text("Добавить") }
+                            TextButton(onClick = { newName = ""; creatingGroup = false }) { Text("Отмена") }
+                        }
+                    } else {
+                        OutlinedButton(onClick = { creatingGroup = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("+ Создать группу")
+                        }
                     }
                 }
             }
@@ -1907,63 +2209,79 @@ private fun DraggableGroupingItem(
     var dragOffset by remember(itemId) { mutableStateOf(0f) }
     var dragging by remember(itemId) { mutableStateOf(false) }
     var bounds by remember(itemId) { mutableStateOf(Rect.Zero) }
+    val child = depth > 0
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = (depth.coerceAtMost(3) * 12).dp)
+            .padding(start = (depth.coerceAtMost(3) * 10).dp + if (child) 6.dp else 0.dp)
             .zIndex(if (dragging) 5f else 0f)
             .graphicsLayer { translationY = dragOffset }
-            .onGloballyPositioned { coordinates -> bounds = coordinates.boundsInWindow(); onBounds(bounds) }
-            .pointerInput(itemId, movesTree, treeSize) {
-                var accumulated = 0f
-                var pointerY = 0f
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { local ->
-                        accumulated = 0f
-                        dragOffset = 0f
-                        dragging = true
-                        pointerY = bounds.top + local.y
-                        onDragWindowY(pointerY)
-                    },
-                    onDragCancel = {
-                        dragOffset = 0f
-                        dragging = false
-                        onDragCancel()
-                    },
-                    onDragEnd = {
-                        dragOffset = 0f
-                        dragging = false
-                        onDropWindowY(pointerY)
-                    },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        accumulated += amount.y
-                        dragOffset = accumulated
-                        pointerY += amount.y
-                        onDragWindowY(pointerY)
-                    },
-                )
-            },
-        shape = RoundedCornerShape(9.dp),
-        color = if (dragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (dragging) DesktopAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+            .onGloballyPositioned { coordinates -> bounds = coordinates.boundsInWindow(); onBounds(bounds) },
+        shape = RoundedCornerShape(if (child) 6.dp else 7.dp),
+        color = when {
+            dragging -> DesktopAccentSoft.copy(alpha = .78f)
+            child -> DesktopSurfaceInset.copy(alpha = .36f)
+            else -> DesktopSurfaceRaised.copy(alpha = .42f)
+        },
+        border = if (dragging) BorderStroke(1.dp, DesktopAccent) else null,
     ) {
-        Row(Modifier.padding(horizontal = 9.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("≡", color = DesktopAccent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
-            if (depth > 0) {
-                Text("↳", color = DesktopAccent)
-                Spacer(Modifier.width(5.dp))
+        Row(
+            Modifier.padding(horizontal = 7.dp, vertical = if (child) 4.dp else 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (child) DevelopmentBranchConnector(Modifier.width(13.dp).height(18.dp))
+            GroupingDragHandle(
+                modifier = Modifier.pointerInput(itemId, movesTree, treeSize) {
+                    var accumulated = 0f
+                    var pointerY = 0f
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { local ->
+                            accumulated = 0f
+                            dragOffset = 0f
+                            dragging = true
+                            pointerY = bounds.top + local.y
+                            onDragWindowY(pointerY)
+                        },
+                        onDragCancel = {
+                            dragOffset = 0f
+                            dragging = false
+                            onDragCancel()
+                        },
+                        onDragEnd = {
+                            dragOffset = 0f
+                            dragging = false
+                            onDropWindowY(pointerY)
+                        },
+                        onDrag = { change, amount ->
+                            change.consume()
+                            accumulated += amount.y
+                            dragOffset = accumulated
+                            pointerY += amount.y
+                            onDragWindowY(pointerY)
+                        },
+                    )
+                },
+                active = dragging,
+            )
+            Text(
+                label,
+                modifier = Modifier.weight(1f),
+                fontWeight = if (child) FontWeight.Medium else FontWeight.SemiBold,
+                style = if (child) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                color = if (child) DesktopText.copy(alpha = .88f) else DesktopText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (movesTree) {
+                Text(
+                    "ветка · $treeSize",
+                    color = DesktopGold,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
-            Column(Modifier.weight(1f)) {
-                Text(label, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                when {
-                    movesTree -> Text("Корень дерева · переносит $treeSize элементов", color = DesktopGold)
-                    depth > 0 -> Text("Дочерний навык · переносится отдельно", color = DesktopMuted)
-                }
-            }
-            Text("тянуть", color = DesktopMuted)
         }
     }
 }

@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,18 +55,36 @@ fun SkillAttributeChoiceDialog(
         onDismissRequest = onDismiss,
         title = { Text("${skill.name}: характеристика") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("По умолчанию выбрана стоковая характеристика. Для этого броска можно выбрать любую другую.", color = DublMuted)
-                Text("${selectedAttribute.title}: ${calculation.formulaText(skill, showConfiguredOptions = false)} · ${calculation.total?.let(::signed) ?: "—"}")
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Выберите характеристику для этого броска. Стоковая характеристика уже выбрана.",
+                    color = DublMuted,
+                )
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(9.dp),
+                    color = DesktopSurfaceInset.copy(alpha = .62f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DesktopBorder.copy(alpha = .62f)),
+                ) {
+                    Column(Modifier.padding(horizontal = 11.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(selectedAttribute.title, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text(
+                            calculation.formulaText(skill, showConfiguredOptions = false),
+                            color = DublMuted,
+                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
                 AttributeId.entries.chunked(2).forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { option ->
-                            OutlinedButton(
+                            FuryChoiceButton(
+                                label = option.title,
+                                meta = signed(character.attribute(option)),
+                                selected = selectedAttribute == option,
                                 onClick = { selectedAttribute = option },
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Text("${if (selectedAttribute == option) "✓ " else ""}${option.shortTitle} · ${signed(character.attribute(option))}")
-                            }
+                            )
                         }
                     }
                 }
@@ -76,7 +94,7 @@ fun SkillAttributeChoiceDialog(
             TextButton(
                 enabled = calculation.total != null,
                 onClick = { onConfirm(selectedAttribute) },
-            ) { Text("К броску · ${calculation.total?.let(::signed) ?: "—"}") }
+            ) { Text("Бросить ${calculation.total?.let(::signed) ?: "—"}") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )
@@ -119,19 +137,36 @@ fun SkillRollDialog(
                         DropdownMenuItem(text = { Text(option.title) }, onClick = { attribute = option; attrMenu = false })
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    RollMode.entries.forEach { option ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = mode == option, onClick = { mode = option })
-                            Text(option.title)
-                        }
-                    }
-                }
+                FurySegmentedControl(
+                    options = RollMode.entries.map { it.title },
+                    selectedIndex = RollMode.entries.indexOf(mode),
+                    onSelected = { index -> mode = RollMode.entries[index] },
+                )
                 if (mode != RollMode.NORMAL) {
-                    OutlinedTextField(effectCountText, { effectCountText = it.filter(Char::isDigit).take(2) }, label = { Text("Доп. костей") }, singleLine = true)
+                    OutlinedTextField(
+                        effectCountText,
+                        { effectCountText = it.filter(Char::isDigit).take(2) },
+                        label = { Text("Доп. костей") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
-                OutlinedTextField(situationalText, { situationalText = it.take(4) }, label = { Text("Ситуативная поправка") }, singleLine = true)
-                OutlinedTextField(targetText, { targetText = it.filter { c -> c.isDigit() || c == '-' }.take(4) }, label = { Text("СЛ / результат противника") }, singleLine = true)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        situationalText,
+                        { situationalText = it.filter { c -> c.isDigit() || c == '-' }.take(4) },
+                        label = { Text("Ситуативная поправка") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        targetText,
+                        { targetText = it.filter { c -> c.isDigit() || c == '-' }.take(4) },
+                        label = { Text("СЛ / результат") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                }
 
                 if (effects.automaticContributions.isNotEmpty()) {
                     Text("Автоматически: " + effects.automaticContributions.joinToString { "${it.label} ${signed(it.value)}" })
@@ -151,7 +186,17 @@ fun SkillRollDialog(
                 effects.reminders.forEach { reminder ->
                     Text("${reminder.sourceName}: ${reminder.effectText}", color = DublMuted)
                 }
-                Text(calculation.formulaText(skill), color = DublMuted)
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(9.dp),
+                    color = DesktopSurfaceInset.copy(alpha = .58f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DesktopBorder.copy(alpha = .56f)),
+                ) {
+                    Column(Modifier.padding(horizontal = 11.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Расчёт броска", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        Text(calculation.formulaText(skill), color = DublMuted, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                    }
+                }
                 result?.let { roll ->
                     val chosen = roll.chosenIndices.sorted().joinToString { roll.dice[it].toString() }
                     Text("Кости: ${roll.dice.joinToString()} · выбрано: $chosen")
