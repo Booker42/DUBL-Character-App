@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DUBL"
+rootProject.name = "FURY"
 include(":shared", ":app", ":desktopApp")

@@ -24,7 +24,7 @@ def test_release_workflow_builds_compose_desktop_appimage():
 def test_compose_packager_uses_real_desktop_distributable():
     text = read(PACKAGER)
     assert ':desktopApp:createDistributable' in text
-    assert 'desktopApp/build/compose/binaries/main/app/DUBL' in text
+    assert 'desktopApp/build/compose/binaries/main/app/FURY' in text
     assert 'appimagetool' in text
 
 
@@ -38,9 +38,9 @@ def test_character_sheet_portrait_is_not_embedded_swing_ui():
 
 def test_appimage_appdir_contains_desktop_icon_and_diricon():
     text = read(PACKAGER)
-    assert 'dubl.svg' in text
+    assert 'fury.svg' in text
     assert '.DirIcon' in text
-    assert 'Icon=dubl' in text
+    assert 'Icon=fury' in text
 
 
 def test_release_workflow_runs_all_compose_parity_guards():

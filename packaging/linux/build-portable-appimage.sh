@@ -6,7 +6,7 @@ BUILD="$ROOT/build/portable-appimage"
 STAGE="$BUILD/stage/app"
 DIST="$ROOT/dist"
 VERSION="${DUBL_VERSION:-0.2.0}"
-ARTIFACT="$DIST/DUBL-Character-${VERSION}-linux-x86_64.AppImage"
+ARTIFACT="$DIST/FURY-${VERSION}-linux-x86_64.AppImage"
 KOTLINC="${KOTLINC:-$(command -v kotlinc || true)}"
 
 [[ -n "$KOTLINC" ]] || { echo "kotlinc is required to build the portable fallback" >&2; exit 1; }

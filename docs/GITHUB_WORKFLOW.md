@@ -2,7 +2,7 @@
 
 ## Development APK
 
-`android-ci.yml` runs on every push to `main` and on pull requests. It builds the `.dev` application and uploads `DUBL-Android-dev.apk` as a 14-day Actions artifact.
+`android-ci.yml` runs on every push to `main` and on pull requests. It builds the `.dev` application and uploads `FURY-Android-dev.apk` as a 14-day Actions artifact.
 
 The development application ID is `com.dubl.character.android.dev`. Its signing key in `ci/dubl-debug.keystore` is intentionally public and is never used for production releases.
 

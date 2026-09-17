@@ -68,7 +68,7 @@ class DublWindow(
     private val extrasStore: CharacterExtrasStore,
     private val catalogs: CatalogBundle,
     private val dataDir: Path,
-) : JFrame("DUBL Character") {
+) : JFrame("FURY — DUBL 3.69") {
     private val root = JPanel(BorderLayout())
     private val rail = JPanel()
     private val contentHost = JPanel(BorderLayout())
@@ -108,7 +108,7 @@ class DublWindow(
         rail.layout = BoxLayout(rail, BoxLayout.Y_AXIS)
         rail.border = EmptyBorder(18, 14, 18, 14)
         rail.preferredSize = Dimension(190, 0)
-        rail.add(JLabel("DUBL").apply {
+        rail.add(JLabel("FURY").apply {
             foreground = focus; font = font.deriveFont(Font.BOLD, 25f); alignmentX = Component.LEFT_ALIGNMENT
             border = EmptyBorder(2, 10, 6, 4)
         })
@@ -1777,9 +1777,9 @@ class DublWindow(
     }
 
     private fun dialog(component: Component, title: String): Boolean = JOptionPane.showConfirmDialog(this, component, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION
-    private fun confirm(message: String): Boolean = JOptionPane.showConfirmDialog(this, message, "DUBL", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION
+    private fun confirm(message: String): Boolean = JOptionPane.showConfirmDialog(this, message, "FURY", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION
     private fun info(title: String, message: String) = JOptionPane.showMessageDialog(this, JTextArea(message, 12, 48).apply { isEditable = false; lineWrap = true; wrapStyleWord = true; background = surface; foreground = textColor }, title, JOptionPane.INFORMATION_MESSAGE)
-    private fun error(message: String) = JOptionPane.showMessageDialog(this, message, "DUBL", JOptionPane.ERROR_MESSAGE)
+    private fun error(message: String) = JOptionPane.showMessageDialog(this, message, "FURY", JOptionPane.ERROR_MESSAGE)
 }
 
 private fun <T> titleRenderer(label: (T) -> String) = object : javax.swing.DefaultListCellRenderer() {

@@ -173,10 +173,10 @@ fun JPanel.cardGap() { add(Box.createVerticalStrut(12)) }
 
 fun infoLabel(value: String, tint: Color = muted) = JLabel(value).apply { foreground = tint }
 
-fun confirm(parent: Component, message: String, title: String = "DUBL"): Boolean =
+fun confirm(parent: Component, message: String, title: String = "FURY"): Boolean =
     javax.swing.JOptionPane.showConfirmDialog(parent, message, title, javax.swing.JOptionPane.YES_NO_OPTION) == javax.swing.JOptionPane.YES_OPTION
 
-fun message(parent: Component, message: String, title: String = "DUBL") {
+fun message(parent: Component, message: String, title: String = "FURY") {
     javax.swing.JOptionPane.showMessageDialog(parent, message, title, javax.swing.JOptionPane.INFORMATION_MESSAGE)
 }
 

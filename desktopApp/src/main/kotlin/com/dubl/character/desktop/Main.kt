@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,7 +68,11 @@ internal enum class DesktopSection(val label: String) {
 }
 
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "DUBL Character 0.2") {
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "FURY — DUBL 3.69",
+        icon = painterResource("fury-icon.svg"),
+    ) {
         DublTheme { DesktopVisualTheme { DesktopApp() } }
     }
 }
@@ -142,11 +147,17 @@ private fun DesktopRail(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            "DUBL",
+            "FURY",
             style = MaterialTheme.typography.headlineMedium,
             color = DesktopAccent,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+        Text(
+            "DUBL 3.69",
+            color = DesktopMuted,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
         Surface(
             modifier = Modifier.fillMaxWidth().clickable { switcherOpen = true },

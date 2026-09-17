@@ -20,7 +20,7 @@ compose.desktop {
     application {
         mainClass = "com.dubl.character.desktop.MainKt"
         nativeDistributions {
-            packageName = "DUBL"
+            packageName = "FURY"
             packageVersion = desktopVersion
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
@@ -28,6 +28,12 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe,
             )
+            windows {
+                iconFile.set(project.file("src/main/resources/fury-icon.ico"))
+            }
+            linux {
+                iconFile.set(project.file("src/main/resources/fury-icon.png"))
+            }
         }
     }
 }

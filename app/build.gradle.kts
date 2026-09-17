@@ -26,7 +26,7 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
-        resValue("string", "app_name", "DUBL")
+        resValue("string", "app_name", "FURY")
     }
 
     signingConfigs {
@@ -50,7 +50,7 @@ android {
         debug {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "DUBL Dev")
+            resValue("string", "app_name", "FURY Dev")
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
@@ -69,7 +69,7 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             isDebuggable = false
-            resValue("string", "app_name", "DUBL Dev")
+            resValue("string", "app_name", "FURY Dev")
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }

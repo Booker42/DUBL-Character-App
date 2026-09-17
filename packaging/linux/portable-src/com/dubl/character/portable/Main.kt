@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
 
     when {
         args.contains("--version") -> {
-            println("DUBL Character $APP_VERSION")
+            println("FURY $APP_VERSION — DUBL 3.69")
             return
         }
         args.contains("--smoke-test") -> {

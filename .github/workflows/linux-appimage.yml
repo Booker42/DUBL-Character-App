@@ -129,7 +129,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APPIMAGE="dist/DUBL-Character-${DUBL_DESKTOP_VERSION}-linux-x86_64.AppImage"
+          APPIMAGE="dist/FURY-${DUBL_DESKTOP_VERSION}-linux-x86_64.AppImage"
           [[ -x "$APPIMAGE" ]] || { echo "Missing executable AppImage: $APPIMAGE" >&2; exit 1; }
           SMOKE_HOME="$(mktemp -d)"
           trap 'rm -rf "$SMOKE_HOME"' EXIT
@@ -147,7 +147,7 @@ jobs:
       - name: Upload Linux desktop artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DUBL-Linux-Desktop
+          name: FURY-Linux-Desktop
           path: |
             dist/*.AppImage
             dist/*.AppImage.sha256

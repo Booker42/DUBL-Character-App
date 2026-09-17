@@ -80,7 +80,7 @@ jobs:
           [[ -f "$APK" ]] || { echo "Signed release APK not found" >&2; exit 1; }
           apksigner verify --verbose --print-certs "$APK"
           mkdir -p out
-          cp "$APK" "out/DUBL-Android-${DUBL_VERSION_NAME}.apk"
+          cp "$APK" "out/FURY-Android-${DUBL_VERSION_NAME}.apk"
 
       - name: Publish GitHub Release
         shell: bash
@@ -88,12 +88,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          APK="out/DUBL-Android-${DUBL_VERSION_NAME}.apk"
+          APK="out/FURY-Android-${DUBL_VERSION_NAME}.apk"
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$APK" --clobber
           else
             gh release create "$GITHUB_REF_NAME" "$APK" \
               --verify-tag \
-              --title "DUBL Android ${DUBL_VERSION_NAME}" \
+              --title "FURY Android ${DUBL_VERSION_NAME}" \
               --generate-notes
           fi

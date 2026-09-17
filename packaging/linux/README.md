@@ -4,7 +4,7 @@
 
 Linux x86_64 users should receive a single executable file:
 
-`DUBL-Character-<version>-linux-x86_64.AppImage`
+`FURY-<version>-linux-x86_64.AppImage`
 
 They do not need Gradle, a JDK, Android Studio, or the Android SDK.
 

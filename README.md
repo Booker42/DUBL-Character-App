@@ -1,4 +1,4 @@
-# DUBL — Android 0.6.2 + Desktop 0.2.0
+# FURY
 
 This source snapshot contains the Android 0.6.2 application and the Compose Desktop 0.2 parity migration over a shared Kotlin Multiplatform rules/application layer. **DUBL 3.69 rulebooks are the authority for rules and canonical content**; Android is the mature implementation/UX reference, not an authority when it conflicts with the books. Shared Kotlin owns executable rules, application mutations, catalog parsers, and runtime catalog payloads. Web/Wasm, server accounts, and sync are intentionally out of scope.
 
@@ -94,7 +94,7 @@ The repository uses Kotlin 2.4.20, Compose Multiplatform 1.12.0, AGP 9.3.0, Grad
 Android release tags remain `v0.6.2`-style. Desktop Linux releases use separate tags such as:
 
 ```bash
-git tag -a desktop-v0.2.0 -m "DUBL Desktop 0.2.0"
+git tag -a desktop-v0.2.0 -m "FURY Desktop 0.2.0"
 git push origin desktop-v0.2.0
 ```
 
