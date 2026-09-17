@@ -13,6 +13,9 @@ import com.dubl.character.android.model.CharacterConditionId
 import com.dubl.character.android.model.CharacterSheetExtras
 import com.dubl.character.android.model.CharacterSheetResourceId
 import com.dubl.character.android.model.DevelopmentEntry
+import com.dubl.character.android.model.DevelopmentCatalog
+import com.dubl.character.android.model.DevelopmentAcquisitionRequest
+import com.dubl.character.android.model.DevelopmentAcquisitionResult
 import com.dubl.character.android.model.DublCharacter
 import com.dubl.character.android.model.GearCatalogEntry
 import com.dubl.character.android.model.GearItem
@@ -100,6 +103,7 @@ class CharacterController(
     fun setPreferredSkillAttribute(skillId: String, attribute: AttributeId?) = sync { application.skills.setPreferredAttribute(skillId, attribute) }
 
     fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) = sync { application.development.setRank(entryId, rank, optionIndex) }
+    fun acquireDevelopment(catalog: DevelopmentCatalog, request: DevelopmentAcquisitionRequest): DevelopmentAcquisitionResult = sync { application.development.acquire(catalog, request) }
     fun setDevelopmentOverride(entry: DevelopmentEntry) = sync { application.development.setOverride(entry) }
     fun resetDevelopmentOverride(entryId: String) = sync { application.development.resetOverride(entryId) }
     fun addCustomDevelopment(entry: DevelopmentEntry): String? = sync { application.development.addCustom(entry) }

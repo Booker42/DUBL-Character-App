@@ -55,6 +55,12 @@ import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
 import com.dubl.character.android.model.ChiTechnique
 import com.dubl.character.android.model.DevelopmentCatalog
+import com.dubl.character.android.model.DevelopmentAcquisitionChoice
+import com.dubl.character.android.model.DevelopmentAcquisitionPlan
+import com.dubl.character.android.model.DevelopmentAcquisitionPlanner
+import com.dubl.character.android.model.DevelopmentAcquisitionRequest
+import com.dubl.character.android.model.DevelopmentAcquisitionStep
+import com.dubl.character.android.model.DevelopmentAcquisitionTarget
 import com.dubl.character.android.model.DevelopmentEffectIds
 import com.dubl.character.android.model.DevelopmentEntry
 import com.dubl.character.android.model.DevelopmentProgress
@@ -79,6 +85,13 @@ private enum class DevelopmentTab(val title: String) {
     MARTIAL_ARTS("Боевые искусства"),
     CHI("ЦИ"),
     OWNED("Взято"),
+}
+
+private enum class DevelopmentBrowserFilter(val title: String) {
+    ALL("Все"),
+    AVAILABLE("Можно взять"),
+    ALMOST("Почти доступно"),
+    PLAN("План"),
 }
 
 private data class PendingAbilityPurchase(
@@ -109,7 +122,10 @@ fun FeatsScreen(controller: CharacterController) {
     var query by remember(character.id) { mutableStateOf("") }
     var tab by remember(character.id) { mutableStateOf(DevelopmentTab.REGULAR) }
     var availableOnly by remember(character.id) { mutableStateOf(false) }
+    var browserFilter by remember(character.id) { mutableStateOf(DevelopmentBrowserFilter.ALL) }
     var selectedEntryId by remember(character.id) { mutableStateOf<String?>(null) }
+    var plannedDevelopmentIds by remember(character.id) { mutableStateOf(emptySet<String>()) }
+    var acquisitionRequest by remember(character.id) { mutableStateOf<DevelopmentAcquisitionRequest?>(null) }
     var pendingAbilityPurchase by remember(character.id) { mutableStateOf<PendingAbilityPurchase?>(null) }
     var pendingRequirementOverride by remember(character.id) { mutableStateOf<PendingRequirementOverride?>(null) }
     var editingDevelopment by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
@@ -118,6 +134,7 @@ fun FeatsScreen(controller: CharacterController) {
     val rules = remember(character, progress, catalog) {
         DevelopmentRules(character, catalog, progress)
     }
+    val planner = remember(character, catalog) { DevelopmentAcquisitionPlanner(character, catalog) }
     val economy = remember(character, catalog) { CharacterEconomy.breakdown(character, catalog) }
     val chiRules = remember(character, catalog) { ChiRules(character, catalog) }
 
@@ -153,7 +170,7 @@ fun FeatsScreen(controller: CharacterController) {
         else -> entry.category.ifBlank { entry.name }
     }
 
-    val filteredEntries = remember(query, tab, availableOnly, character, progress, catalog) {
+    val filteredEntries = remember(query, tab, availableOnly, browserFilter, plannedDevelopmentIds, character, progress, catalog) {
         val localRules = DevelopmentRules(character, catalog, progress)
         val needle = developmentNormalize(query)
         catalog.entries
@@ -183,7 +200,24 @@ fun FeatsScreen(controller: CharacterController) {
                 ).contains(needle)
             }
             .filter { entry ->
-                tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
+                if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
+                    tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
+                } else {
+                    val availability = localRules.availability(entry)
+                    when (browserFilter) {
+                        DevelopmentBrowserFilter.ALL -> true
+                        DevelopmentBrowserFilter.AVAILABLE -> availability.canIncrease
+                        DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
+                        DevelopmentBrowserFilter.ALMOST -> {
+                            if (availability.canIncrease) false else {
+                                val missing = planner.plan(
+                                    DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
+                                )
+                                missing.unresolvedRequirements.isEmpty() && missing.steps.size == 1
+                            }
+                        }
+                    }
+                }
             }
             .sortedWith(
                 compareBy<DevelopmentEntry>(
@@ -223,6 +257,41 @@ fun FeatsScreen(controller: CharacterController) {
             DevelopmentBudgetCard(economy)
         }
 
+        if (plannedDevelopmentIds.isNotEmpty()) {
+            val planSummary = planner.plan(
+                DevelopmentAcquisitionRequest(
+                    targets = plannedDevelopmentIds.sorted().map { DevelopmentAcquisitionTarget(it) },
+                    enforceBudget = false,
+                ),
+            )
+            item {
+                DublCard(Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("План персонажа · ${plannedDevelopmentIds.size}", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Осталось: ${planSummary.xpCost} XP${if (planSummary.abilityCost > 0) " · ${planSummary.abilityCost} ОС" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Button(
+                            enabled = planSummary.steps.isNotEmpty(),
+                            onClick = {
+                                acquisitionRequest = DevelopmentAcquisitionRequest(
+                                    targets = plannedDevelopmentIds.sorted().map { DevelopmentAcquisitionTarget(it) },
+                                )
+                            },
+                        ) { Text("Взять план") }
+                    }
+                }
+            }
+        }
+
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 items(DevelopmentTab.entries) { target ->
@@ -232,6 +301,7 @@ fun FeatsScreen(controller: CharacterController) {
                             tab = target
                             query = ""
                             availableOnly = false
+                            browserFilter = DevelopmentBrowserFilter.ALL
                         },
                         label = { Text(target.title) },
                     )
@@ -312,6 +382,7 @@ fun FeatsScreen(controller: CharacterController) {
                         entry = entry,
                         rules = rules,
                         progress = progress,
+                        planned = entry.id in plannedDevelopmentIds,
                         onClick = { selectedEntryId = entry.id },
                     )
                 }
@@ -351,11 +422,15 @@ fun FeatsScreen(controller: CharacterController) {
 
             if (tab != DevelopmentTab.OWNED) {
                 item {
-                    FilterChip(
-                        selected = availableOnly,
-                        onClick = { availableOnly = !availableOnly },
-                        label = { Text("Доступно сейчас") },
-                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        items(DevelopmentBrowserFilter.entries) { filter ->
+                            FilterChip(
+                                selected = browserFilter == filter,
+                                onClick = { browserFilter = filter },
+                                label = { Text(filter.title) },
+                            )
+                        }
+                    }
                 }
             }
 
@@ -413,6 +488,7 @@ fun FeatsScreen(controller: CharacterController) {
                             entry = entry,
                             rules = rules,
                             progress = progress,
+                            planned = entry.id in plannedDevelopmentIds,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -438,6 +514,7 @@ fun FeatsScreen(controller: CharacterController) {
                             entry = entry,
                             rules = rules,
                             progress = progress,
+                            planned = entry.id in plannedDevelopmentIds,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -455,6 +532,7 @@ fun FeatsScreen(controller: CharacterController) {
                                 entry = entry,
                                 rules = rules,
                                 progress = progress,
+                                planned = entry.id in plannedDevelopmentIds,
                                 onClick = { selectedEntryId = entry.id },
                             )
                         }
@@ -536,6 +614,25 @@ fun FeatsScreen(controller: CharacterController) {
                 catalog = catalog,
                 progress = progress,
                 rules = rules,
+                planner = planner,
+                planned = entry.id in plannedDevelopmentIds,
+                onTogglePlanned = {
+                    plannedDevelopmentIds = if (entry.id in plannedDevelopmentIds) {
+                        plannedDevelopmentIds - entry.id
+                    } else {
+                        plannedDevelopmentIds + entry.id
+                    }
+                },
+                onAcquireRequirements = {
+                    acquisitionRequest = DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false)
+                },
+                onAcquireAll = { optionIndex ->
+                    acquisitionRequest = DevelopmentAcquisitionRequest.single(
+                        entryId = entry.id,
+                        includeTarget = true,
+                        optionIndex = optionIndex,
+                    )
+                },
                 onOpenEntry = { targetId -> selectedEntryId = targetId },
                 onIncrease = { optionIndex -> increase(entry, optionIndex) },
                 onDecrease = { decrease(entry) },
@@ -553,6 +650,19 @@ fun FeatsScreen(controller: CharacterController) {
                 onDismiss = { selectedEntryId = null },
             )
         } ?: run { selectedEntryId = null }
+    }
+
+    acquisitionRequest?.let { request ->
+        DevelopmentAcquisitionPreviewDialog(
+            character = character,
+            catalog = catalog,
+            request = request,
+            onApply = { resolved ->
+                controller.acquireDevelopment(catalog, resolved)
+                acquisitionRequest = null
+            },
+            onDismiss = { acquisitionRequest = null },
+        )
     }
 
     editingDevelopment?.let { entry ->
@@ -1102,6 +1212,7 @@ private fun DevelopmentRow(
     entry: DevelopmentEntry,
     rules: DevelopmentRules,
     progress: DevelopmentProgress,
+    planned: Boolean = false,
     onClick: () -> Unit,
 ) {
     val availability = remember(entry.id, rules) { rules.availability(entry) }
@@ -1115,6 +1226,7 @@ private fun DevelopmentRow(
         else -> MaterialTheme.colorScheme.outline
     }
     val status = when {
+        planned -> "★ В плане"
         invalidOwned -> "⚠ Требования"
         owned && entry.isAbility -> "✓ Открыта"
         owned -> "✓ $rank/${entry.maxRank}"
@@ -1232,6 +1344,11 @@ private fun DevelopmentDetailSheet(
     catalog: DevelopmentCatalog,
     progress: DevelopmentProgress,
     rules: DevelopmentRules,
+    planner: DevelopmentAcquisitionPlanner,
+    planned: Boolean,
+    onTogglePlanned: () -> Unit,
+    onAcquireRequirements: () -> Unit,
+    onAcquireAll: (Int) -> Unit,
     onOpenEntry: (String) -> Unit,
     onIncrease: (Int) -> Unit,
     onDecrease: () -> Unit,
@@ -1250,7 +1367,10 @@ private fun DevelopmentDetailSheet(
         )
     }
     val availability = rules.availability(entry, optionIndex)
-    val children = catalog.childrenOf(entry.id)
+    val missing = planner.plan(
+        DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
+    )
+    val unlocks = planner.unlocks(entry.id)
     val ownedInvalid = currentRank > 0 && availability.checks.any { it.status != RequirementStatus.OK }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -1291,6 +1411,12 @@ private fun DevelopmentDetailSheet(
                 }
             }
 
+            FilterChip(
+                selected = planned,
+                onClick = onTogglePlanned,
+                label = { Text(if (planned) "★ В плане" else "☆ В план") },
+            )
+
             if (entry.tags.isNotEmpty()) {
                 Text(
                     entry.tags.joinToString(" · "),
@@ -1315,6 +1441,27 @@ private fun DevelopmentDetailSheet(
                 RequirementRow(check = check, onOpenEntry = onOpenEntry)
             }
 
+            if (missing.steps.isNotEmpty() || missing.unresolvedRequirements.isNotEmpty()) {
+                Text("Что нужно сделать", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                missing.steps.forEach { step ->
+                    Text(
+                        "• ${developmentAcquisitionStepText(step)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                missing.unresolvedRequirements.forEach { unresolved ->
+                    Text("• $unresolved", style = MaterialTheme.typography.bodySmall, color = DublDanger)
+                }
+                Text(
+                    "Чтобы выполнить требования: ${missing.xpCost} XP${if (missing.abilityCost > 0) " · ${missing.abilityCost} ОС" else ""}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = DublGold,
+                )
+            } else {
+                Text("Все требования выполнены", style = MaterialTheme.typography.labelMedium, color = DublAccent)
+            }
+
             if (ownedInvalid) {
                 Surface(
                     shape = RoundedCornerShape(9.dp),
@@ -1330,21 +1477,21 @@ private fun DevelopmentDetailSheet(
                 }
             }
 
-            if (children.isNotEmpty()) {
+            if (unlocks.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 Text(
-                    "Открывает ${children.size}",
+                    "Открывает ${unlocks.size}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                children.take(8).forEach { child ->
-                    TextButton(onClick = { onOpenEntry(child.id) }) {
-                        Text(child.name, modifier = Modifier.fillMaxWidth())
+                unlocks.take(8).forEach { target ->
+                    TextButton(onClick = { onOpenEntry(target.id) }) {
+                        Text("→ ${target.name}", modifier = Modifier.fillMaxWidth())
                     }
                 }
-                if (children.size > 8) {
+                if (unlocks.size > 8) {
                     Text(
-                        "И ещё ${children.size - 8} записей в ветке",
+                        "И ещё ${unlocks.size - 8} записей",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1378,6 +1525,22 @@ private fun DevelopmentDetailSheet(
                 style = MaterialTheme.typography.labelLarge,
                 color = DublGold,
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    enabled = missing.steps.isNotEmpty(),
+                    onClick = onAcquireRequirements,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Добрать требования") }
+                Button(
+                    enabled = currentRank < entry.maxRank,
+                    onClick = { onAcquireAll(optionIndex) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Добрать и взять") }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1430,6 +1593,99 @@ private fun DevelopmentDetailSheet(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+
+private fun developmentAcquisitionStepText(step: DevelopmentAcquisitionStep): String = when (step) {
+    is DevelopmentAcquisitionStep.Attribute -> "${step.label}: ${step.fromValue} → ${step.toValue} · ${step.xpCost} XP"
+    is DevelopmentAcquisitionStep.Skill -> "${step.label}: ${step.fromRank} → ${step.toRank} · ${step.xpCost} XP"
+    is DevelopmentAcquisitionStep.Development -> "${step.label}: ${step.fromRank} → ${step.toRank}" +
+        when {
+            step.abilityCost > 0 -> " · ${step.abilityCost} ОС"
+            step.xpCost > 0 -> " · ${step.xpCost} XP"
+            else -> ""
+        }
+}
+
+@Composable
+private fun DevelopmentAcquisitionPreviewDialog(
+    character: com.dubl.character.android.model.DublCharacter,
+    catalog: DevelopmentCatalog,
+    request: DevelopmentAcquisitionRequest,
+    onApply: (DevelopmentAcquisitionRequest) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var choiceSelections by remember(request) { mutableStateOf(request.choiceSelections) }
+    val resolvedRequest = request.copy(choiceSelections = choiceSelections)
+    val plan = remember(character, catalog, resolvedRequest) {
+        DevelopmentAcquisitionPlanner(character, catalog).plan(resolvedRequest)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("План развития") },
+        text = {
+            Column(
+                modifier = Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                plan.choices.forEach { choice: DevelopmentAcquisitionChoice ->
+                    Text("Выберите путь: ${choice.label}", fontWeight = FontWeight.SemiBold)
+                    choice.options.forEachIndexed { index, option ->
+                        OutlinedButton(
+                            onClick = { choiceSelections = choiceSelections + (choice.id to index) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                "${if (choice.selectedIndex == index) "✓ " else ""}${option.label} · ${option.xpCost} XP" +
+                                    if (option.abilityCost > 0) " · ${option.abilityCost} ОС" else "",
+                            )
+                        }
+                    }
+                }
+
+                if (plan.steps.isEmpty()) {
+                    Text("Все выбранные требования уже выполнены.")
+                } else {
+                    Text("Будет получено", fontWeight = FontWeight.Bold)
+                    plan.steps.forEach { step ->
+                        Text("• ${developmentAcquisitionStepText(step)}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+
+                if (plan.unresolvedRequirements.isNotEmpty()) {
+                    Text("Нельзя определить автоматически", fontWeight = FontWeight.Bold, color = DublDanger)
+                    plan.unresolvedRequirements.forEach { requirement ->
+                        Text("• $requirement", style = MaterialTheme.typography.bodySmall, color = DublDanger)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                Text(
+                    "Итого: ${plan.xpCost} XP${if (plan.abilityCost > 0) " · ${plan.abilityCost} ОС" else ""}",
+                    fontWeight = FontWeight.Bold,
+                    color = DublGold,
+                )
+                Text(
+                    "После покупки: ${plan.xpRemainingAfter} XP · ${plan.abilityRemainingAfter} ОС",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!plan.canAfford) {
+                    Text("Недостаточно XP или очков способностей.", color = DublDanger)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = plan.canApply,
+                onClick = { onApply(resolvedRequest) },
+            ) {
+                Text("Применить · ${plan.xpCost} XP${if (plan.abilityCost > 0) " + ${plan.abilityCost} ОС" else ""}")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
 }
 
 private fun emptyCustomDevelopmentEntry(): DevelopmentEntry = DevelopmentEntry(

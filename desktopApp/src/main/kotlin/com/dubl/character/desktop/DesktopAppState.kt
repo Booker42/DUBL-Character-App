@@ -109,6 +109,7 @@ class DesktopAppState {
     fun setPreferredSkillAttribute(skillId: String, attribute: AttributeId?) = sync { application.skills.setPreferredAttribute(skillId, attribute) }
 
     fun setDevelopmentRank(entryId: String, rank: Int, optionIndex: Int = 0) = sync { application.development.setRank(entryId, rank, optionIndex) }
+    fun acquireDevelopment(request: DevelopmentAcquisitionRequest): DevelopmentAcquisitionResult = sync { application.development.acquire(developmentCatalog, request) }
     fun setDevelopmentOverride(entry: DevelopmentEntry) = sync { application.development.setOverride(entry) }
     fun resetDevelopmentOverride(entryId: String) = sync { application.development.resetOverride(entryId) }
     fun addCustomDevelopment(entry: DevelopmentEntry): String? = sync { application.development.addCustom(entry) }
