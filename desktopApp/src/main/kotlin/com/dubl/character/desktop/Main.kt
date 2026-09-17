@@ -1,5 +1,8 @@
 package com.dubl.character.desktop
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,13 +26,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,6 +61,7 @@ import com.dubl.character.desktop.screens.DesktopSurfaceInset
 import com.dubl.character.desktop.screens.DesktopSurfaceRaised
 import com.dubl.character.desktop.screens.DesktopText
 import com.dubl.character.desktop.screens.EquipmentScreen
+import com.dubl.character.desktop.screens.FuryMotion
 import com.dubl.character.desktop.screens.MagicScreen
 import com.dubl.character.desktop.screens.SkillsScreen
 
@@ -214,10 +221,25 @@ private fun CompactNavigation(selected: DesktopSection, onSelected: (DesktopSect
 
 @Composable
 private fun NavigationItem(section: DesktopSection, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val background by animateColorAsState(
+        targetValue = if (active) DesktopAccentSoft else Color.Transparent,
+        animationSpec = tween(FuryMotion.FastMs),
+        label = "navigation-background",
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (active) DesktopAccent else DesktopMuted,
+        animationSpec = tween(FuryMotion.FastMs),
+        label = "navigation-icon",
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (active) MaterialTheme.colorScheme.onSurface else DesktopMuted,
+        animationSpec = tween(FuryMotion.FastMs),
+        label = "navigation-text",
+    )
     Surface(
         modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = if (active) DesktopAccentSoft else Color.Transparent,
+        color = background,
         border = if (active) BorderStroke(1.dp, DesktopAccent.copy(alpha = 0.32f)) else null,
     ) {
         Row(
@@ -227,13 +249,13 @@ private fun NavigationItem(section: DesktopSection, active: Boolean, onClick: ()
         ) {
             DesktopIcon(
                 kind = section.iconKind,
-                tint = if (active) DesktopAccent else DesktopMuted,
+                tint = iconColor,
                 size = 20.dp,
             )
             Text(
                 section.label,
                 fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (active) MaterialTheme.colorScheme.onSurface else DesktopMuted,
+                color = textColor,
             )
         }
     }
@@ -270,20 +292,33 @@ private fun DesktopContent(
                 },
                 vertical = if (layout == DublLayoutClass.COMPACT) 14.dp else 22.dp,
             )
-        when (section) {
-            DesktopSection.SHEET -> CharacterSheetScreen(
-                state = state,
-                modifier = pageModifier,
-                onNavigateSkills = { onNavigate(DesktopSection.SKILLS) },
-                onNavigateDevelopment = { onNavigate(DesktopSection.DEVELOPMENT) },
-                onNavigateMagic = { onNavigate(DesktopSection.MAGIC) },
-                onNavigateEquipment = { onNavigate(DesktopSection.EQUIPMENT) },
+        key(section) {
+            var entered by remember(section) { mutableStateOf(false) }
+            LaunchedEffect(section) { entered = true }
+            val pageProgress by animateFloatAsState(
+                targetValue = if (entered) 1f else 0f,
+                animationSpec = tween(FuryMotion.FastMs),
+                label = "desktop-section-enter",
             )
-            DesktopSection.SKILLS -> SkillsScreen(state, pageModifier)
-            DesktopSection.DEVELOPMENT -> DevelopmentScreen(state, pageModifier)
-            DesktopSection.MAGIC -> MagicScreen(state, pageModifier)
-            DesktopSection.EQUIPMENT -> EquipmentScreen(state, pageModifier)
-            DesktopSection.CHARACTERS -> CharactersScreen(state, pageModifier)
+            val animatedPageModifier = pageModifier.graphicsLayer {
+                alpha = pageProgress
+                translationY = (1f - pageProgress) * 6f
+            }
+            when (section) {
+                DesktopSection.SHEET -> CharacterSheetScreen(
+                    state = state,
+                    modifier = animatedPageModifier,
+                    onNavigateSkills = { onNavigate(DesktopSection.SKILLS) },
+                    onNavigateDevelopment = { onNavigate(DesktopSection.DEVELOPMENT) },
+                    onNavigateMagic = { onNavigate(DesktopSection.MAGIC) },
+                    onNavigateEquipment = { onNavigate(DesktopSection.EQUIPMENT) },
+                )
+                DesktopSection.SKILLS -> SkillsScreen(state, animatedPageModifier)
+                DesktopSection.DEVELOPMENT -> DevelopmentScreen(state, animatedPageModifier)
+                DesktopSection.MAGIC -> MagicScreen(state, animatedPageModifier)
+                DesktopSection.EQUIPMENT -> EquipmentScreen(state, animatedPageModifier)
+                DesktopSection.CHARACTERS -> CharactersScreen(state, animatedPageModifier)
+            }
         }
     }
 }

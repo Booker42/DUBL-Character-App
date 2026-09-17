@@ -164,7 +164,7 @@ def test_sheet_skills_show_all_visible_ranks_and_preserve_hidden_group_membershi
     assert 'SheetGroupHeaderCompact' in skills_panel
     assert 'SheetGroupingRules.balancedColumns' in skills_panel
     assert 'rank = skill.rank' in skills_panel
-    assert 'displayedBonus?.let(::signed) ?: "—"' in skills_panel
+    assert 'calc.total?.plus(effects.automaticBonus)?.let(::signed) ?: "—"' in skills_panel
 
     primitives = read(PRIMITIVES)
     skill_row = primitives.split('internal fun DesktopSkillRow', 1)[1].split('internal fun DesktopResourceTile', 1)[0]
@@ -273,7 +273,7 @@ def test_sheet_skill_bonus_exposes_hover_breakdown_with_automatic_effect_sources
     assert 'SkillEffectRules' in sheet
     assert 'automaticContributions' in skills_panel
     assert 'breakdownLines' in skills_panel
-    assert 'displayedBonus?.let(::signed)' in skills_panel
+    assert 'calc.total?.plus(effects.automaticBonus)?.let(::signed)' in skills_panel
     skill_row = primitives.split('internal fun DesktopSkillRow', 1)[1].split('internal fun DesktopResourceTile', 1)[0]
     assert 'breakdownLines: List<String>' in skill_row
     assert 'pointerMoveFilter' in primitives
@@ -286,4 +286,6 @@ def test_secondary_desktop_typography_is_readable_and_inline_actions_are_neutral
     assert 'bodySmall = typography.bodySmall.copy(fontSize = 14.sp' in main
     assert 'labelMedium = typography.labelMedium.copy(fontSize = 14.sp' in main
     assert 'internal fun DesktopInlineAction' in primitives
-    assert 'color = DesktopMuted' in primitives.split('internal fun DesktopInlineAction', 1)[1].split('@Composable', 1)[0]
+    inline = primitives.split('internal fun DesktopInlineAction', 1)[1].split('@Composable', 1)[0]
+    assert 'DesktopMuted' in inline
+    assert 'animateColorAsState' in inline

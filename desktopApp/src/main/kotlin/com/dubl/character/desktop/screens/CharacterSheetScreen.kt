@@ -1,5 +1,13 @@
 package com.dubl.character.desktop.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -21,6 +29,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -89,6 +98,7 @@ import java.awt.Frame
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private sealed interface SheetUndo {
@@ -100,6 +110,7 @@ private sealed interface SheetUndo {
 private data class RecentSheetChange(val text: String, val undo: SheetUndo? = null)
 private data class ContextRollRequest(val context: RollContext, val attribute: AttributeId? = null)
 private data class SheetSkillRollRequest(val skill: ResolvedSkill, val attribute: AttributeId)
+private data class SheetSkillPresentation(val bonus: String, val breakdownLines: List<String>)
 private enum class GroupingKind(val title: String) { SKILLS("Умения"), DEVELOPMENT("Навыки") }
 
 @Composable
@@ -131,6 +142,19 @@ fun CharacterSheetScreen(
     var sheetEditingDevelopment by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
     var grouping by remember(character.id) { mutableStateOf<GroupingKind?>(null) }
     var recent by remember(character.id) { mutableStateOf<RecentSheetChange?>(null) }
+    var displayedRecent by remember(character.id) { mutableStateOf<RecentSheetChange?>(null) }
+    var recentHovered by remember(character.id) { mutableStateOf(false) }
+
+    LaunchedEffect(recent) {
+        if (recent != null) displayedRecent = recent
+    }
+    LaunchedEffect(recent, recentHovered) {
+        val snapshot = recent ?: return@LaunchedEffect
+        if (!recentHovered) {
+            delay(FuryMotion.UndoToastDurationMs)
+            if (recent == snapshot && !recentHovered) recent = null
+        }
+    }
 
     fun changeResource(resource: CharacterSheetResourceId, delta: Int) {
         val before = when (resource) {
@@ -160,35 +184,19 @@ fun CharacterSheetScreen(
         recent = null
     }
 
-    val effectiveConditions = buildSet {
-        addAll(extras.activeConditions)
-        if (character.enduranceCurrent == 0) add(CharacterConditionId.WEAKNESS)
+    val effectiveConditions = remember(extras.activeConditions, character.enduranceCurrent) {
+        buildSet {
+            addAll(extras.activeConditions)
+            if (character.enduranceCurrent == 0) add(CharacterConditionId.WEAKNESS)
+        }
     }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val compactSheet = maxWidth < 880.dp
         val wideSheet = maxWidth >= 1320.dp
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (recent != null) {
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(recent!!.text)
-                            if (recent!!.undo != null) TextButton(onClick = ::undoRecent) { Text("Отменить") }
-                        }
-                    }
-                }
-            }
-
-            item {
                 CharacterHero(
                     state = state,
                     character = character,
@@ -228,14 +236,44 @@ fun CharacterSheetScreen(
                 )
             }
 
-            item {
-                NotesPanel(
-                    notes = extras.displayNotes(),
-                    onAdd = { createNote = true },
-                    onEdit = { editingNote = it },
-                    onDelete = { state.removeNote(it.id) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                item {
+                    NotesPanel(
+                        notes = extras.displayNotes(),
+                        onAdd = { createNote = true },
+                        onEdit = { editingNote = it },
+                        onDelete = { state.removeNote(it.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = recent != null,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+                    .widthIn(max = 860.dp)
+                    .fillMaxWidth()
+                    .zIndex(40f),
+                enter = slideInVertically(
+                    animationSpec = tween(FuryMotion.StandardMs),
+                    initialOffsetY = { -it / 2 },
+                ) + fadeIn(tween(FuryMotion.FastMs)),
+                exit = slideOutVertically(
+                    animationSpec = tween(FuryMotion.StandardMs),
+                    targetOffsetY = { -it / 3 },
+                ) + fadeOut(tween(FuryMotion.FastMs)),
+            ) {
+                displayedRecent?.let { change ->
+                    FuryUndoToast(
+                        text = change.text,
+                        canUndo = change.undo != null,
+                        onUndo = ::undoRecent,
+                        onDismiss = { recent = null; recentHovered = false },
+                        onHoverChange = { recentHovered = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -893,23 +931,67 @@ private fun SheetSkillsPanel(
 ) {
     // Keep hidden skills in the grouping model so hiding/restoring a skill does not
     // silently destroy its previous group placement. Rendering still uses only visible skills.
-    val allSkills = character.resolvedSkills(includeHidden = true)
-    val visibleSkills = character.resolvedSkills()
-    val defaults = defaultSkillGroups(allSkills)
-    val groups = SheetGroupingRules.normalize(
-        extras.skillGroups,
-        defaults,
-        allSkills.map { it.id },
-        "skills:ungrouped",
-    )
+    val allSkills = remember(character.skills, character.hiddenSkillIds) {
+        character.resolvedSkills(includeHidden = true)
+    }
+    val visibleSkills = remember(character.skills, character.hiddenSkillIds) {
+        character.resolvedSkills()
+    }
+    val defaults = remember(allSkills) { defaultSkillGroups(allSkills) }
+    val groups = remember(extras.skillGroups, defaults, allSkills) {
+        SheetGroupingRules.normalize(
+            extras.skillGroups,
+            defaults,
+            allSkills.map { it.id },
+            "skills:ungrouped",
+        )
+    }
     LaunchedEffect(groups, extras.skillGroups) {
         if (groups != extras.skillGroups) state.setSkillGroups(groups)
     }
-    val visibleById = visibleSkills.associateBy { it.id }
-    val visibleGroups = groups.map { group ->
-        group.copy(itemIds = group.itemIds.filter(visibleById::containsKey))
-    }.filter { it.itemIds.isNotEmpty() }
-    val effectRules = SkillEffectRules(character, state.developmentCatalog, state.skillEffectCatalog)
+    val visibleById = remember(visibleSkills) { visibleSkills.associateBy { it.id } }
+    val visibleGroups = remember(groups, visibleById) {
+        groups.map { group ->
+            group.copy(itemIds = group.itemIds.filter(visibleById::containsKey))
+        }.filter { it.itemIds.isNotEmpty() }
+    }
+    val effectRules = remember(
+        character.development,
+        character.disabledSkillEffectIds,
+        state.developmentCatalog,
+        state.skillEffectCatalog,
+    ) {
+        SkillEffectRules(character, state.developmentCatalog, state.skillEffectCatalog)
+    }
+    val skillPresentations = remember(
+        character.attributes,
+        character.size,
+        character.skills,
+        character.development,
+        character.disabledSkillEffectIds,
+        character.gear,
+        visibleSkills,
+        effectRules,
+    ) {
+        visibleSkills.associate { skill ->
+            val selected = skill.stockAttribute
+            val calc = character.skillCalculationForRoll(skill, selected)
+            val effects = effectRules.forSkill(skill)
+            val breakdownLines = buildList {
+                calc.contributions.forEach { contribution ->
+                    add("${contribution.label}: ${signed(contribution.value)}")
+                }
+                effects.automaticContributions.forEach { contribution ->
+                    add("${contribution.label}: ${signed(contribution.value)}")
+                }
+                if (calc.unavailableReason.isNotBlank()) add(calc.unavailableReason)
+            }
+            skill.id to SheetSkillPresentation(
+                bonus = calc.total?.plus(effects.automaticBonus)?.let(::signed) ?: "—",
+                breakdownLines = breakdownLines,
+            )
+        }
+    }
 
     DesktopPanel(modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -936,7 +1018,11 @@ private fun SheetSkillsPanel(
                             state.setSkillGroups(SheetGroupingRules.toggleCollapsed(groups, group.id))
                         },
                     )
-                    if (!group.collapsed) {
+                    AnimatedVisibility(
+                        visible = !group.collapsed,
+                        enter = expandVertically(tween(FuryMotion.StandardMs)) + fadeIn(tween(FuryMotion.FastMs)),
+                        exit = shrinkVertically(tween(FuryMotion.StandardMs)) + fadeOut(tween(FuryMotion.FastMs)),
+                    ) {
                         BoxWithConstraints(Modifier.fillMaxWidth()) {
                             if (maxWidth < 560.dp) {
                                 Column(
@@ -944,26 +1030,13 @@ private fun SheetSkillsPanel(
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     groupSkills.forEach { skill ->
-                                        val selected = skill.stockAttribute
-                                        val calc = character.skillCalculationForRoll(skill, selected)
-                                        val effects = effectRules.forSkill(skill)
-                                        val automaticContributions = effects.automaticContributions
-                                        val displayedBonus = calc.total?.plus(effects.automaticBonus)
-                                        val breakdownLines = buildList {
-                                            calc.contributions.forEach { contribution ->
-                                                add("${contribution.label}: ${signed(contribution.value)}")
-                                            }
-                                            automaticContributions.forEach { contribution ->
-                                                add("${contribution.label}: ${signed(contribution.value)}")
-                                            }
-                                            if (calc.unavailableReason.isNotBlank()) add(calc.unavailableReason)
-                                        }
+                                        val presentation = skillPresentations.getValue(skill.id)
                                         DesktopSkillRow(
                                             icon = skillIcon(skill.category),
                                             title = skill.name,
                                             rank = skill.rank,
-                                            bonus = displayedBonus?.let(::signed) ?: "—",
-                                            breakdownLines = breakdownLines,
+                                            bonus = presentation.bonus,
+                                            breakdownLines = presentation.breakdownLines,
                                             onRoll = { onSkillRoll(skill) },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
@@ -988,26 +1061,13 @@ private fun SheetSkillsPanel(
                                             verticalArrangement = Arrangement.spacedBy(6.dp),
                                         ) {
                                             columnSkills.forEach { skill ->
-                                                val selected = skill.stockAttribute
-                                                val calc = character.skillCalculationForRoll(skill, selected)
-                                                val effects = effectRules.forSkill(skill)
-                                                val automaticContributions = effects.automaticContributions
-                                                val displayedBonus = calc.total?.plus(effects.automaticBonus)
-                                                val breakdownLines = buildList {
-                                                    calc.contributions.forEach { contribution ->
-                                                        add("${contribution.label}: ${signed(contribution.value)}")
-                                                    }
-                                                    automaticContributions.forEach { contribution ->
-                                                        add("${contribution.label}: ${signed(contribution.value)}")
-                                                    }
-                                                    if (calc.unavailableReason.isNotBlank()) add(calc.unavailableReason)
-                                                }
+                                                val presentation = skillPresentations.getValue(skill.id)
                                                 DesktopSkillRow(
                                                     icon = skillIcon(skill.category),
                                                     title = skill.name,
                                                     rank = skill.rank,
-                                                    bonus = displayedBonus?.let(::signed) ?: "—",
-                                                    breakdownLines = breakdownLines,
+                                                    bonus = presentation.bonus,
+                                                    breakdownLines = presentation.breakdownLines,
                                                     onRoll = { onSkillRoll(skill) },
                                                     modifier = Modifier.fillMaxWidth(),
                                                 )
@@ -1142,8 +1202,12 @@ private fun SheetDevelopmentPanel(
     onNavigateDevelopment: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rules = DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
-    val developmentItems = rules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
+    val rules = remember(character.development, character.developmentOverrides, character.customDevelopmentEntries) {
+        DevelopmentRules(character, state.developmentCatalog, DevelopmentProgress(character.development))
+    }
+    val developmentItems = remember(rules) {
+        rules.ownedSheetSections().flatMap { it.items }.distinctBy { it.entry.id }
+    }
     val developmentDefaults = defaultDevelopmentGroups(character, state)
     val developmentGroups = SheetGroupingRules.normalize(
         extras.developmentGroups,
@@ -1185,7 +1249,11 @@ private fun SheetDevelopmentPanel(
                                 state.setDevelopmentGroups(SheetGroupingRules.toggleCollapsed(developmentGroups, group.id))
                             },
                         )
-                        if (!group.collapsed) {
+                        AnimatedVisibility(
+                            visible = !group.collapsed,
+                            enter = expandVertically(tween(FuryMotion.StandardMs)) + fadeIn(tween(FuryMotion.FastMs)),
+                            exit = shrinkVertically(tween(FuryMotion.StandardMs)) + fadeOut(tween(FuryMotion.FastMs)),
+                        ) {
                             val groupIds = groupItems.map { it.entry.id }
                             val blocks = SheetGroupingRules.hierarchyBlocks(groupIds, parentById)
                                 .map { ids -> ids.mapNotNull(developmentById::get) }
@@ -2133,7 +2201,12 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                                 }
                             }
 
-                            if (!group.collapsed) {
+                            AnimatedVisibility(
+                                visible = !group.collapsed,
+                                enter = expandVertically(tween(FuryMotion.StandardMs)) + fadeIn(tween(FuryMotion.FastMs)),
+                                exit = shrinkVertically(tween(FuryMotion.StandardMs)) + fadeOut(tween(FuryMotion.FastMs)),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 if (group.itemIds.isEmpty()) {
                                     Text(
                                         "Пустая группа — перетащите сюда элемент.",
@@ -2157,6 +2230,7 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
                                         onDropWindowY = { y -> moveBlockAt(block, y); hoveredGroupId = null },
                                         onDragCancel = { hoveredGroupId = null },
                                     )
+                                }
                                 }
                             }
                         }
