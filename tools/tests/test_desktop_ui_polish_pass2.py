@@ -90,3 +90,9 @@ def test_conditions_dialog_uses_compact_condition_rows_with_active_highlight_and
     assert 'maxLines = 3' in row
     assert 'if (active)' in row
     assert 'Изменить' in row
+
+
+def test_character_sheet_imports_layout_size_when_modifier_size_is_used():
+    sheet = read(SHEET)
+    assert 'Modifier.size(' in sheet
+    assert 'import androidx.compose.foundation.layout.size' in sheet
