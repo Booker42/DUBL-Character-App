@@ -63,3 +63,8 @@ def test_release_workflow_invokes_apksigner_from_installed_build_tools():
     workflow = text(RELEASE)
     assert '"$ANDROID_SDK_ROOT/build-tools/37.0.0/apksigner" verify' in workflow
     assert '\n          apksigner verify' not in workflow
+
+
+def test_publish_job_tells_github_cli_which_repository_to_use_without_checkout():
+    workflow = text(RELEASE)
+    assert 'GH_REPO: ${{ github.repository }}' in workflow
