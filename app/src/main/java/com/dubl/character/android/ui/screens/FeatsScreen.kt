@@ -383,6 +383,7 @@ fun FeatsScreen(controller: CharacterController) {
                         rules = rules,
                         progress = progress,
                         planned = entry.id in plannedDevelopmentIds,
+                        unlocksCount = planner.unlocks(entry.id).size,
                         onClick = { selectedEntryId = entry.id },
                     )
                 }
@@ -489,6 +490,7 @@ fun FeatsScreen(controller: CharacterController) {
                             rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
+                            unlocksCount = planner.unlocks(entry.id).size,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -515,6 +517,7 @@ fun FeatsScreen(controller: CharacterController) {
                             rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
+                            unlocksCount = planner.unlocks(entry.id).size,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -533,6 +536,7 @@ fun FeatsScreen(controller: CharacterController) {
                                 rules = rules,
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
+                                unlocksCount = planner.unlocks(entry.id).size,
                                 onClick = { selectedEntryId = entry.id },
                             )
                         }
@@ -807,18 +811,18 @@ private fun DevelopmentBudgetCard(economy: CharacterEconomyBreakdown) {
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "Опыт",
+                        "Осталось XP",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "${economy.spentXp} XP потрачено",
+                        "${economy.remainingXp} / ${economy.totalExperience}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (economy.overspentXp) DublDanger else MaterialTheme.colorScheme.onSurface,
+                        color = if (economy.overspentXp) DublDanger else DublGold,
                     )
                     Text(
-                        "${economy.remainingXp} осталось из ${economy.totalExperience}",
+                        "${economy.spentXp} XP потрачено",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (economy.overspentXp) DublDanger else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -828,18 +832,18 @@ private fun DevelopmentBudgetCard(economy: CharacterEconomyBreakdown) {
                     horizontalAlignment = Alignment.End,
                 ) {
                     Text(
-                        "Очки способностей",
+                        "ОС",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "${economy.abilityPointsSpent} / ${economy.abilityPointsBudget} ОС",
+                        "${economy.abilityPointsRemaining} свободно из ${economy.abilityPointsBudget}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (economy.overspentAbilityPoints) DublDanger else DublGold,
                     )
                     Text(
-                        "${economy.abilityPointsRemaining} доступно",
+                        "${economy.abilityPointsSpent} ОС потрачено",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (economy.overspentAbilityPoints) DublDanger else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1207,18 +1211,48 @@ private fun OwnedDevelopmentRow(
     }
 }
 
+private fun developmentRequirementNeedLabel(text: String): String {
+    val match = Regex("^(.+?):\\s*(\\d+)\\s*/\\s*(\\d+)$").matchEntire(text.trim())
+    if (match != null) {
+        val (label, _, need) = match.destructured
+        return "${label.trim()} $need"
+    }
+    return text.substringBefore(':').trim().ifBlank { text.trim() }
+}
+
+private fun developmentRequirementDisplay(text: String): Pair<String, String?> {
+    val match = Regex("^(.+?):\\s*(\\d+)\\s*/\\s*(\\d+)$").matchEntire(text.trim())
+    if (match != null) {
+        val (label, actual, need) = match.destructured
+        return "${label.trim()} $need" to "сейчас: $actual"
+    }
+    return text.trim() to null
+}
+
+private fun developmentCostLabel(xp: Int, ability: Int): String = buildString {
+    if (xp > 0) append("$xp XP")
+    if (ability > 0) {
+        if (isNotEmpty()) append(" + ")
+        append("$ability ОС")
+    }
+    if (isEmpty()) append("без затрат")
+}
+
 @Composable
 private fun DevelopmentRow(
     entry: DevelopmentEntry,
     rules: DevelopmentRules,
     progress: DevelopmentProgress,
     planned: Boolean = false,
+    unlocksCount: Int = 0,
     onClick: () -> Unit,
 ) {
     val availability = remember(entry.id, rules) { rules.availability(entry) }
     val rank = progress.rank(entry.id)
     val owned = rank > 0
-    val invalidOwned = owned && availability.checks.any { it.status != RequirementStatus.OK }
+    val failedChecks = availability.checks.filter { it.status == RequirementStatus.FAIL }
+    val manualChecks = availability.checks.filter { it.status == RequirementStatus.MANUAL }
+    val invalidOwned = owned && (failedChecks.isNotEmpty() || manualChecks.isNotEmpty())
     val accent = when {
         invalidOwned -> DublDanger
         owned -> DublGold
@@ -1231,8 +1265,13 @@ private fun DevelopmentRow(
         owned && entry.isAbility -> "✓ Открыта"
         owned -> "✓ $rank/${entry.maxRank}"
         availability.canIncrease && entry.isAbility -> "Открыть"
-        availability.canIncrease -> "Доступно"
-        availability.checks.any { it.status == RequirementStatus.MANUAL } -> "Проверить"
+        availability.canIncrease -> "✓ Доступно"
+        manualChecks.isNotEmpty() -> "? Проверить"
+        failedChecks.size == 1 -> "⚠ Нужна ${developmentRequirementNeedLabel(failedChecks.first().text)}"
+        failedChecks.isNotEmpty() -> {
+            val failedCount = failedChecks.size
+            "⚠ Не хватает $failedCount требований"
+        }
         else -> "Закрыто"
     }
 
@@ -1244,76 +1283,83 @@ private fun DevelopmentRow(
         color = if (owned || availability.canIncrease) accent.copy(alpha = 0.035f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, accent.copy(alpha = if (owned || availability.canIncrease) 0.42f else 0.20f)),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = 11.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Surface(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(38.dp),
-                shape = RoundedCornerShape(999.dp),
-                color = accent.copy(alpha = if (owned || availability.canIncrease) 0.9f else 0.34f),
-            ) {}
-            Spacer(Modifier.width(9.dp))
-            Column(Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
                 Text(
                     entry.name,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (owned || availability.canIncrease) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color = if (owned || availability.canIncrease) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    buildString {
-                        append(
-                            when {
-                                entry.isAbility -> "Доступ к спец. ветке"
-                                entry.isSpecialDevelopment -> "Спец. навык"
-                                else -> "Навык"
-                            }
-                        )
-                        append(" · ")
-                        if (entry.isAbility) {
-                            if (entry.abilityOptions.isNotEmpty()) {
-                                val values = entry.abilityOptions.map { it.value }.distinct().sorted()
-                                append(values.joinToString("–"))
-                                append(" ОС")
-                            } else {
-                                append(entry.cost).append(" ОС")
-                            }
-                        } else {
-                            append(entry.cost).append(" опыта")
-                        }
-                        if (entry.maxRank > 1) append(" · до ${entry.maxRank} ранга")
-                    },
+                    "$rank/${entry.maxRank}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (owned || availability.canIncrease) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (entry.isAbility) {
+                        if (entry.abilityOptions.isNotEmpty()) {
+                            val values = entry.abilityOptions.map { it.value }.distinct().sorted()
+                            values.joinToString("–") + " ОС"
+                        } else "${entry.cost} ОС"
+                    } else "${entry.cost} XP",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                )
+                Text(
+                    status,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        planned -> DublGold
+                        invalidOwned -> DublDanger
+                        availability.canIncrease || owned -> accent
+                        failedChecks.isNotEmpty() -> DublGold
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (entry.isSpecialDevelopment && !entry.isAbility) {
-                    Text(
-                        "Ветка: ${entry.category}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-            Spacer(Modifier.width(10.dp))
-            DevelopmentStatusPill(status = status, accent = accent)
+            val description = entry.benefit.ifBlank { entry.notes }
+            if (description.isNotBlank()) {
+                Text(
+                    description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (unlocksCount > 0) {
+                Text(
+                    "Открывает ${unlocksCount} навыков",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DublGold,
+                )
+            }
         }
     }
 }
-
 
 @Composable
 private fun DevelopmentStatusPill(
@@ -1334,6 +1380,178 @@ private fun DevelopmentStatusPill(
             color = accent,
             maxLines = 1,
         )
+    }
+}
+
+@Composable
+private fun DevelopmentRequirementsCard(
+    entry: DevelopmentEntry,
+    checks: List<RequirementCheck>,
+    missing: DevelopmentAcquisitionPlan,
+    onOpenEntry: (String) -> Unit,
+    onAcquireRequirements: () -> Unit,
+) {
+    val completed = checks.count { it.status == RequirementStatus.OK }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = DublAccent.copy(alpha = 0.035f),
+        border = BorderStroke(1.dp, DublAccent.copy(alpha = 0.22f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(11.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Требования", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    "$completed / ${checks.size}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (completed == checks.size) DublAccent else DublGold,
+                )
+            }
+            checks.forEach { check ->
+                val tint = when (check.status) {
+                    RequirementStatus.OK -> DublAccent
+                    RequirementStatus.FAIL -> DublDanger
+                    RequirementStatus.MANUAL -> DublGold
+                }
+                val (label, current) = developmentRequirementDisplay(check.text)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = check.targetEntryId != null) {
+                            check.targetEntryId?.let(onOpenEntry)
+                        },
+                    shape = RoundedCornerShape(8.dp),
+                    color = tint.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, tint.copy(alpha = 0.18f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            when (check.status) {
+                                RequirementStatus.OK -> "✓"
+                                RequirementStatus.FAIL -> "✕"
+                                RequirementStatus.MANUAL -> "?"
+                            },
+                            color = tint,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            label,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        current?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (check.targetEntryId != null) {
+                            Spacer(Modifier.width(5.dp))
+                            Text("›", color = tint, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+            if (entry.requirements.isNotBlank()) {
+                Text(
+                    "По правилу: ${entry.requirements}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty()) {
+                Text("✓ Все требования выполнены", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DublAccent)
+            } else {
+                Text("Что нужно сделать", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                missing.steps.forEach { step ->
+                    Text(
+                        "• ${developmentAcquisitionStepText(step)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                missing.unresolvedRequirements.forEach { unresolved ->
+                    Text("• $unresolved", style = MaterialTheme.typography.bodySmall, color = DublDanger)
+                }
+                if (missing.steps.isNotEmpty()) {
+                    Text(
+                        "До выполнения требований: ${developmentCostLabel(missing.xpCost, missing.abilityCost)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = DublGold,
+                    )
+                    OutlinedButton(
+                        enabled = missing.unresolvedRequirements.isEmpty(),
+                        onClick = onAcquireRequirements,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Добрать требования · ${developmentCostLabel(missing.xpCost, missing.abilityCost)}") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentUnlocksCard(
+    unlocks: List<DevelopmentEntry>,
+    onOpenEntry: (String) -> Unit,
+) {
+    if (unlocks.isEmpty()) return
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = DublGold.copy(alpha = 0.03f),
+        border = BorderStroke(1.dp, DublGold.copy(alpha = 0.22f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(11.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Открывает", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("${unlocks.size}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = DublAccent)
+            }
+            unlocks.take(8).forEach { target ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable { onOpenEntry(target.id) },
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(target.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (target.isAbility) "Спец. ветка" else "${target.cost} XP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text("›", color = DublAccent, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            if (unlocks.size > 8) {
+                Text("И ещё ${unlocks.size - 8}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 
@@ -1361,18 +1579,31 @@ private fun DevelopmentDetailSheet(
 ) {
     val currentRank = progress.rank(entry.id)
     var optionIndex by remember(entry.id, currentRank) {
-        mutableStateOf(
-            if (currentRank > 0) progress.optionIndex(entry.id)
-            else 0
-        )
+        mutableStateOf(if (currentRank > 0) progress.optionIndex(entry.id) else 0)
     }
+    var advancedExpanded by remember(entry.id) { mutableStateOf(false) }
     val availability = rules.availability(entry, optionIndex)
     val missing = planner.plan(
         DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
     )
+    val acquirePlan = planner.plan(
+        DevelopmentAcquisitionRequest.single(
+            entryId = entry.id,
+            includeTarget = true,
+            optionIndex = optionIndex,
+            enforceBudget = false,
+        ),
+    )
     val unlocks = planner.unlocks(entry.id)
     val ownedInvalid = currentRank > 0 && availability.checks.any { it.status != RequirementStatus.OK }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val primaryActionLabel = when {
+        entry.isAbility && missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty() ->
+            "Открыть ветку · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+        missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty() ->
+            "Взять ранг · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+        else -> "Добрать и взять · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1382,11 +1613,11 @@ private fun DevelopmentDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 690.dp)
+                .heightIn(max = 720.dp)
                 .containSheetOverscroll()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 18.dp, end = 18.dp, bottom = 26.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1396,109 +1627,40 @@ private fun DevelopmentDetailSheet(
                 Column(Modifier.weight(1f)) {
                     Text(entry.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
-                        "${entry.section} · ${entry.category}",
+                        "${entry.category.ifBlank { entry.section }} · ранг $currentRank/${entry.maxRank}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (currentRank > 0) {
-                    Text(
-                        "Ранг $currentRank/${entry.maxRank}",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (ownedInvalid) DublDanger else DublGold,
-                    )
+                if (ownedInvalid) {
+                    Text("⚠", color = DublDanger, style = MaterialTheme.typography.titleLarge)
                 }
             }
 
-            FilterChip(
-                selected = planned,
-                onClick = onTogglePlanned,
-                label = { Text(if (planned) "★ В плане" else "☆ В план") },
-            )
-
-            if (entry.tags.isNotEmpty()) {
-                Text(
-                    entry.tags.joinToString(" · "),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DublGold,
-                )
-            }
-
-            if (entry.benefit.isNotBlank()) {
-                DetailBlock("Эффект", entry.benefit)
-            }
-            if (entry.notes.isNotBlank()) {
-                DetailBlock("Особое", entry.notes)
-            }
-            if (entry.conflictNote.isNotBlank()) {
-                DetailBlock("Расхождение книги", entry.conflictNote)
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            Text("Требования", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            availability.checks.forEach { check ->
-                RequirementRow(check = check, onOpenEntry = onOpenEntry)
-            }
-
-            if (missing.steps.isNotEmpty() || missing.unresolvedRequirements.isNotEmpty()) {
-                Text("Что нужно сделать", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                missing.steps.forEach { step ->
-                    Text(
-                        "• ${developmentAcquisitionStepText(step)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                missing.unresolvedRequirements.forEach { unresolved ->
-                    Text("• $unresolved", style = MaterialTheme.typography.bodySmall, color = DublDanger)
-                }
-                Text(
-                    "Чтобы выполнить требования: ${missing.xpCost} XP${if (missing.abilityCost > 0) " · ${missing.abilityCost} ОС" else ""}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = DublGold,
-                )
-            } else {
-                Text("Все требования выполнены", style = MaterialTheme.typography.labelMedium, color = DublAccent)
-            }
-
-            if (ownedInvalid) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Surface(
-                    shape = RoundedCornerShape(9.dp),
-                    color = DublDanger.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, DublDanger.copy(alpha = 0.35f)),
+                    shape = RoundedCornerShape(8.dp),
+                    color = DublGold.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, DublGold.copy(alpha = 0.28f)),
                 ) {
                     Text(
-                        "Запись уже получена, но текущие требования не выполнены. Она не удаляется автоматически и останется помеченной, пока условия не будут соблюдены.",
-                        modifier = Modifier.padding(10.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DublDanger,
+                        if (entry.isAbility) "${availability.abilityCost} ОС" else "${entry.cost} XP / ранг",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = DublGold,
                     )
                 }
-            }
-
-            if (unlocks.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 Text(
-                    "Открывает ${unlocks.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    "После: ${acquirePlan.xpRemainingAfter} XP · ${acquirePlan.abilityRemainingAfter} ОС",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                unlocks.take(8).forEach { target ->
-                    TextButton(onClick = { onOpenEntry(target.id) }) {
-                        Text("→ ${target.name}", modifier = Modifier.fillMaxWidth())
-                    }
-                }
-                if (unlocks.size > 8) {
-                    Text(
-                        "И ещё ${unlocks.size - 8} записей",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
 
             if (entry.isAbility && entry.abilityOptions.isNotEmpty()) {
                 Text("Источник способности", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -1515,86 +1677,126 @@ private fun DevelopmentDetailSheet(
                 }
             }
 
-            Text(
-                if (entry.isAbility) {
-                    val cost = rules.abilityCost(entry, optionIndex)
-                    "Доступ к ветке: $cost ОС · доступно ${rules.abilityPointsAvailable()} ОС"
-                } else {
-                    "Стоимость следующего ранга: ${entry.cost} опыта"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = DublGold,
-            )
-
-            Row(
+            Button(
+                onClick = { onAcquireAll(optionIndex) },
+                enabled = currentRank < entry.maxRank,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    enabled = missing.steps.isNotEmpty(),
-                    onClick = onAcquireRequirements,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Добрать требования") }
-                Button(
-                    enabled = currentRank < entry.maxRank,
-                    onClick = { onAcquireAll(optionIndex) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Добрать и взять") }
+            ) { Text(primaryActionLabel) }
+
+            if (currentRank > 0) {
+                OutlinedButton(onClick = onDecrease, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        when {
+                            entry.isAbility -> "Закрыть доступ"
+                            currentRank == 1 -> "Убрать"
+                            else -> "− ранг"
+                        }
+                    )
+                }
             }
 
-            Row(
+            if (entry.benefit.isNotBlank()) {
+                DetailBlock("Что даёт", entry.benefit)
+            }
+            if (entry.notes.isNotBlank()) {
+                DetailBlock("Особое", entry.notes)
+            }
+            if (entry.conflictNote.isNotBlank()) {
+                DetailBlock("Расхождение книги", entry.conflictNote)
+            }
+
+            DevelopmentRequirementsCard(
+                entry = entry,
+                checks = availability.checks,
+                missing = missing,
+                onOpenEntry = onOpenEntry,
+                onAcquireRequirements = onAcquireRequirements,
+            )
+
+            if (ownedInvalid) {
+                Surface(
+                    shape = RoundedCornerShape(9.dp),
+                    color = DublDanger.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, DublDanger.copy(alpha = 0.35f)),
+                ) {
+                    Text(
+                        "Запись уже получена, но текущие требования не выполнены. Она не удаляется автоматически и останется помеченной, пока условия не будут соблюдены.",
+                        modifier = Modifier.padding(10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DublDanger,
+                    )
+                }
+            }
+
+            DevelopmentUnlocksCard(unlocks = unlocks, onOpenEntry = onOpenEntry)
+
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                shape = RoundedCornerShape(11.dp),
+                color = DublGold.copy(alpha = 0.035f),
+                border = BorderStroke(1.dp, DublGold.copy(alpha = 0.20f)),
             ) {
-                if (currentRank > 0) {
-                    OutlinedButton(
-                        onClick = onDecrease,
-                        modifier = Modifier.weight(1f),
-                    ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("План развития", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(
-                            when {
-                                entry.isAbility -> "Закрыть доступ"
-                                currentRank == 1 -> "Убрать"
-                                else -> "− ранг"
-                            }
+                            if (planned) "Цель уже добавлена в план" else "Сохранить цель без покупки",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    FilterChip(
+                        selected = planned,
+                        onClick = onTogglePlanned,
+                        label = { Text(if (planned) "★ В плане" else "☆ Добавить") },
+                    )
                 }
+            }
+
+            OutlinedButton(
+                onClick = { advancedExpanded = !advancedExpanded },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (advancedExpanded) "Дополнительно ▲" else "Дополнительно ▼") }
+
+            if (advancedExpanded) {
+                Text(
+                    "Ручное управление, локальные правки и принудительное добавление",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Button(
                     onClick = { onIncrease(optionIndex) },
                     enabled = availability.canIncrease || availability.canForceIncrease,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         when {
-                            availability.canIncrease && entry.isAbility -> "Открыть · ${availability.abilityCost} ОС"
-                            availability.canIncrease && currentRank > 0 -> "+ ранг · ${entry.cost} XP"
-                            availability.canIncrease -> "Получить · ${entry.cost} XP"
+                            availability.canIncrease && entry.isAbility -> "Открыть вручную · ${availability.abilityCost} ОС"
+                            availability.canIncrease && currentRank > 0 -> "+ ранг вручную · ${entry.cost} XP"
+                            availability.canIncrease -> "Получить вручную · ${entry.cost} XP"
                             availability.canForceIncrease && entry.isAbility -> "Открыть всё равно"
                             availability.canForceIncrease -> "Добавить всё равно"
                             else -> availability.reason
                         }
                     )
                 }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(onClick = onEditLocal, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onEditLocal, modifier = Modifier.fillMaxWidth()) {
                     Text("Локальная правка")
                 }
                 when {
-                    isCustom -> TextButton(onClick = onDeleteCustom) { Text("Удалить свою запись") }
-                    hasLocalOverride -> TextButton(onClick = onResetLocal) { Text("Сбросить к рулбуку") }
+                    isCustom -> TextButton(onClick = onDeleteCustom, modifier = Modifier.fillMaxWidth()) { Text("Удалить свою запись") }
+                    hasLocalOverride -> TextButton(onClick = onResetLocal, modifier = Modifier.fillMaxWidth()) { Text("Сбросить к рулбуку") }
                 }
             }
+
             Spacer(Modifier.height(8.dp))
         }
     }
 }
-
 
 private fun developmentAcquisitionStepText(step: DevelopmentAcquisitionStep): String = when (step) {
     is DevelopmentAcquisitionStep.Attribute -> "${step.label}: ${step.fromValue} → ${step.toValue} · ${step.xpCost} XP"

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.CharacterEconomy
+import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
 import com.dubl.character.android.model.DevelopmentAcquisitionChoice
 import com.dubl.character.android.model.DevelopmentAcquisitionPlan
@@ -58,6 +59,7 @@ import com.dubl.character.android.model.DevelopmentProgress
 import com.dubl.character.android.model.DevelopmentRules
 import com.dubl.character.android.model.MagicEquipmentRules
 import com.dubl.character.android.model.OwnedDevelopment
+import com.dubl.character.android.model.RequirementCheck
 import com.dubl.character.android.model.RequirementStatus
 import com.dubl.character.android.model.developmentNormalize
 import com.dubl.character.android.model.developmentRank
@@ -200,41 +202,61 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     )
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text(if (tab == DevelopmentTab.CHI) "Поиск развития или приёма ЦИ" else "Поиск по навыкам, веткам и стилям") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedButton(onClick = { creatingCustomDevelopment = true }) { Text("Своя запись") }
-            }
-            if (tab == DevelopmentTab.CHI) {
-                FilterChip(
-                    selected = availableOnly,
-                    onClick = { availableOnly = !availableOnly },
-                    label = { Text("Доступно сейчас") },
-                )
-            } else if (tab != DevelopmentTab.OWNED) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    DevelopmentBrowserFilter.entries.forEach { filter ->
-                        FilterChip(
-                            selected = browserFilter == filter,
-                            onClick = { browserFilter = filter },
-                            label = { Text(filter.title) },
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 920.dp) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f).widthIn(max = 820.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = search,
+                                    onValueChange = { search = it },
+                                    placeholder = { Text(when (tab) { DevelopmentTab.CHI -> "Поиск развития или приёма ЦИ"; else -> "Поиск по навыкам, веткам и стилям" }) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                OutlinedButton(onClick = { creatingCustomDevelopment = true }) { Text("Своя запись") }
+                            }
+                            DevelopmentFilterControls(
+                                tab = tab,
+                                availableOnly = availableOnly,
+                                browserFilter = browserFilter,
+                                onToggleAvailableOnly = { availableOnly = !availableOnly },
+                                onBrowserFilter = { browserFilter = it },
+                            )
+                        }
+                        Spacer(Modifier.weight(0.18f))
+                        DevelopmentBudgetPanel(economy)
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = search,
+                                onValueChange = { search = it },
+                                placeholder = { Text(when (tab) { DevelopmentTab.CHI -> "Поиск развития или приёма ЦИ"; else -> "Поиск по навыкам, веткам и стилям" }) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedButton(onClick = { creatingCustomDevelopment = true }) { Text("Своя запись") }
+                        }
+                        DevelopmentFilterControls(
+                            tab = tab,
+                            availableOnly = availableOnly,
+                            browserFilter = browserFilter,
+                            onToggleAvailableOnly = { availableOnly = !availableOnly },
+                            onBrowserFilter = { browserFilter = it },
                         )
+                        DevelopmentBudgetPanel(economy, Modifier.fillMaxWidth())
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                Text("Осталось XP: ${economy.remainingXp} / ${economy.totalExperience}", color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DublGold)
-                Text("ОС: ${economy.abilityPointsRemaining} свободно из ${economy.abilityPointsBudget}", color = DublFocus)
-            }
-            Text(
-                "Потрачено: характеристики ${economy.attributeXp} · умения ${economy.skillXp} · навыки ${economy.developmentXp} · ЦИ ${economy.chiXp} · магия ${economy.manaXp + economy.magicSchoolXp + economy.spellXp}",
-                color = DublMuted,
-            )
             plannedSummary?.let { summary ->
                 Surface(
                     shape = RoundedCornerShape(9.dp),
@@ -283,6 +305,8 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                                 rules = rules,
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
+                                selected = selectedEntryId == entry.id,
+                                unlocksCount = planner.unlocks(entry.id).size,
                                 onSelect = { selectedEntryId = if (selectedEntryId == entry.id) null else entry.id },
                             )
                         }
@@ -349,6 +373,8 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                                         rules = rules,
                                         progress = progress,
                                         planned = entry.id in plannedDevelopmentIds,
+                                        selected = selectedEntryId == entry.id,
+                                        unlocksCount = planner.unlocks(entry.id).size,
                                         onSelect = { selectedEntryId = if (selectedEntryId == entry.id) null else entry.id },
                                     )
                                 }
@@ -442,54 +468,317 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun DevelopmentFilterControls(
+    tab: DevelopmentTab,
+    availableOnly: Boolean,
+    browserFilter: DevelopmentBrowserFilter,
+    onToggleAvailableOnly: () -> Unit,
+    onBrowserFilter: (DevelopmentBrowserFilter) -> Unit,
+) {
+    if (tab == DevelopmentTab.CHI) {
+        FilterChip(
+            selected = availableOnly,
+            onClick = onToggleAvailableOnly,
+            label = { Text("Доступно сейчас") },
+        )
+    } else if (tab != DevelopmentTab.OWNED) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DevelopmentBrowserFilter.entries.forEach { filter ->
+                FilterChip(
+                    selected = browserFilter == filter,
+                    onClick = { onBrowserFilter(filter) },
+                    label = { Text(filter.title) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentBudgetPanel(
+    economy: CharacterEconomyBreakdown,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.widthIn(min = 360.dp, max = 430.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = DublGold.copy(alpha = 0.045f),
+        border = BorderStroke(1.dp, DublGold.copy(alpha = 0.24f)),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Осталось XP", color = DublMuted, style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "${economy.remainingXp} / ${economy.totalExperience}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (economy.overspentXp) MaterialTheme.colorScheme.error else DublGold,
+                    )
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                    Text("ОС", color = DublMuted, style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "${economy.abilityPointsRemaining} свободно из ${economy.abilityPointsBudget}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (economy.overspentAbilityPoints) MaterialTheme.colorScheme.error else DublFocus,
+                    )
+                }
+            }
+            Text(
+                "Потрачено: характеристики ${economy.attributeXp} · умения ${economy.skillXp} · навыки ${economy.developmentXp} · ЦИ ${economy.chiXp} · магия ${economy.manaXp + economy.magicSchoolXp + economy.spellXp}",
+                color = DublMuted,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+private fun developmentRequirementNeedLabel(text: String): String {
+    val match = Regex("^(.+?):\\s*(\\d+)\\s*/\\s*(\\d+)$").matchEntire(text.trim())
+    if (match != null) {
+        val (label, _, need) = match.destructured
+        return "${label.trim()} $need"
+    }
+    return text.substringBefore(':').trim().ifBlank { text.trim() }
+}
+
+private fun developmentRequirementDisplay(text: String): Pair<String, String?> {
+    val match = Regex("^(.+?):\\s*(\\d+)\\s*/\\s*(\\d+)$").matchEntire(text.trim())
+    if (match != null) {
+        val (label, actual, need) = match.destructured
+        return "${label.trim()} $need" to "сейчас: $actual"
+    }
+    return text.trim() to null
+}
+
+private fun developmentCostLabel(xp: Int, ability: Int): String = buildString {
+    if (xp > 0) append("$xp XP")
+    if (ability > 0) {
+        if (isNotEmpty()) append(" + ")
+        append("$ability ОС")
+    }
+    if (isEmpty()) append("без затрат")
+}
+
+@Composable
 private fun DevelopmentCompactCard(
     entry: DevelopmentEntry,
     rules: DevelopmentRules,
     progress: DevelopmentProgress,
     planned: Boolean,
+    selected: Boolean,
+    unlocksCount: Int,
     onSelect: () -> Unit,
 ) {
     val rank = progress.rank(entry.id)
     val availability = rules.availability(entry)
-    val hasManual = availability.checks.any { it.status == RequirementStatus.MANUAL }
+    val failedChecks = availability.checks.filter { it.status == RequirementStatus.FAIL }
+    val manualChecks = availability.checks.filter { it.status == RequirementStatus.MANUAL }
     val accent = when {
+        selected -> DublFocus
         rank > 0 -> DublGold
         availability.canIncrease -> DublFocus
         else -> MaterialTheme.colorScheme.outline
     }
+    val status = when {
+        planned -> "★ В плане"
+        rank > 0 && (failedChecks.isNotEmpty() || manualChecks.isNotEmpty()) -> "⚠ Требования"
+        rank > 0 -> "✓ Взято"
+        availability.canIncrease -> "✓ Доступно"
+        manualChecks.isNotEmpty() -> "? Проверить"
+        failedChecks.size == 1 -> "⚠ Нужна ${developmentRequirementNeedLabel(failedChecks.first().text)}"
+        failedChecks.isNotEmpty() -> {
+            val failedCount = failedChecks.size
+            "⚠ Не хватает $failedCount требований"
+        }
+        else -> availability.reason.ifBlank { "Закрыто" }
+    }
     Surface(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 112.dp).clickable(onClick = onSelect),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 116.dp).clickable(onClick = onSelect),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, accent.copy(alpha = if (rank > 0 || availability.canIncrease || planned) 0.45f else 0.22f)),
+        color = if (selected) DublFocus.copy(alpha = 0.075f) else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            accent.copy(alpha = if (selected) 0.78f else if (rank > 0 || availability.canIncrease || planned) 0.45f else 0.22f),
+        ),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Text(entry.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    entry.name,
+                    modifier = Modifier.weight(1f),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text("$rank/${entry.maxRank}", color = DublFocus, fontWeight = FontWeight.Bold)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(if (entry.isAbility) "${availability.abilityCost} ОС" else "${entry.cost} XP", color = DublMuted)
                 Text(
-                    when {
-                        planned -> "★ В плане"
-                        rank > 0 && availability.checks.any { it.status != RequirementStatus.OK } -> "⚠ Требования"
-                        rank > 0 -> "✓ Взято"
-                        availability.canIncrease -> "✓ Доступно"
-                        hasManual -> "? Проверить"
-                        else -> "Не хватает требований"
-                    },
+                    status,
                     color = when {
                         planned -> DublGold
                         availability.canIncrease || rank > 0 -> DublFocus
+                        failedChecks.isNotEmpty() -> DublGold
                         else -> DublMuted
                     },
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (entry.benefit.isNotBlank()) {
                 Text(entry.benefit, color = DublMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
+            if (unlocksCount > 0) {
+                Text(
+                    "Открывает ${unlocksCount} навыков",
+                    color = DublGold,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentRequirementsCard(
+    entry: DevelopmentEntry,
+    checks: List<RequirementCheck>,
+    missing: DevelopmentAcquisitionPlan,
+    onOpenEntry: (String) -> Unit,
+    onAcquireRequirements: () -> Unit,
+) {
+    val completed = checks.count { it.status == RequirementStatus.OK }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(11.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+        border = BorderStroke(1.dp, DublFocus.copy(alpha = 0.28f)),
+    ) {
+        Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Требования", fontWeight = FontWeight.Bold)
+                Text("$completed / ${checks.size}", color = if (completed == checks.size) DublFocus else DublGold, fontWeight = FontWeight.Bold)
+            }
+            checks.forEach { check ->
+                val tint = when (check.status) {
+                    RequirementStatus.OK -> DublFocus
+                    RequirementStatus.MANUAL -> DublGold
+                    RequirementStatus.FAIL -> MaterialTheme.colorScheme.error
+                }
+                val (label, current) = developmentRequirementDisplay(check.text)
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = check.targetEntryId != null) {
+                        check.targetEntryId?.let(onOpenEntry)
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    color = tint.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, tint.copy(alpha = 0.18f)),
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            when (check.status) {
+                                RequirementStatus.OK -> "✓"
+                                RequirementStatus.FAIL -> "✕"
+                                RequirementStatus.MANUAL -> "?"
+                            },
+                            color = tint,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(label, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        current?.let { Text(it, color = DublMuted, style = MaterialTheme.typography.labelSmall) }
+                        if (check.targetEntryId != null) Text("›", color = tint)
+                    }
+                }
+            }
+            if (entry.requirements.isNotBlank()) {
+                Text("По правилу: ${entry.requirements}", color = DublMuted, style = MaterialTheme.typography.labelSmall)
+            }
+            if (missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty()) {
+                Text("✓ Все требования выполнены", color = DublFocus, fontWeight = FontWeight.SemiBold)
+            } else {
+                Text("Что нужно сделать", fontWeight = FontWeight.SemiBold)
+                missing.steps.forEach { step ->
+                    Text("• ${developmentAcquisitionStepText(step)}", color = DublMuted, style = MaterialTheme.typography.bodySmall)
+                }
+                missing.unresolvedRequirements.forEach { unresolved ->
+                    Text("• $unresolved", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                if (missing.steps.isNotEmpty()) {
+                    Text(
+                        "До выполнения требований: ${developmentCostLabel(missing.xpCost, missing.abilityCost)}",
+                        color = DublGold,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    OutlinedButton(
+                        enabled = missing.unresolvedRequirements.isEmpty(),
+                        onClick = onAcquireRequirements,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Добрать требования · ${developmentCostLabel(missing.xpCost, missing.abilityCost)}") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentUnlocksCard(
+    unlocks: List<DevelopmentEntry>,
+    onOpenEntry: (String) -> Unit,
+) {
+    if (unlocks.isEmpty()) return
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(11.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.14f),
+        border = BorderStroke(1.dp, DublGold.copy(alpha = 0.24f)),
+    ) {
+        Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Открывает", fontWeight = FontWeight.Bold)
+                Text("${unlocks.size}", color = DublFocus, fontWeight = FontWeight.Bold)
+            }
+            unlocks.take(8).forEach { target ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable { onOpenEntry(target.id) },
+                    shape = RoundedCornerShape(7.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.36f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(target.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (target.isAbility) "Спец. ветка" else "${target.cost} XP",
+                                color = DublMuted,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        Text("›", color = DublFocus, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            if (unlocks.size > 8) Text("И ещё ${unlocks.size - 8}", color = DublMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -516,21 +805,37 @@ private fun DevelopmentInspector(
     var optionIndex by remember(entry.id, rank) {
         mutableStateOf(if (rank > 0) character.development[entry.id]?.optionIndex ?: 0 else 0)
     }
+    var advancedExpanded by remember(entry.id) { mutableStateOf(false) }
     val availability = rules.availability(entry, optionIndex)
     val missing = planner.plan(DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false))
+    val acquirePlan = planner.plan(
+        DevelopmentAcquisitionRequest.single(
+            entryId = entry.id,
+            includeTarget = true,
+            optionIndex = optionIndex,
+            enforceBudget = false,
+        ),
+    )
     val unlocks = planner.unlocks(entry.id)
     val hasLocalOverride = character.developmentOverrides.containsKey(entry.id)
     val isCustom = character.customDevelopmentEntries.any { it.id == entry.id }
+    val primaryActionLabel = when {
+        entry.isAbility && missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty() ->
+            "Открыть ветку · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+        missing.steps.isEmpty() && missing.unresolvedRequirements.isEmpty() ->
+            "Взять ранг · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+        else -> "Добрать и взять · ${developmentCostLabel(acquirePlan.xpCost, acquirePlan.abilityCost)}"
+    }
 
     Surface(
-        modifier = Modifier.widthIn(min = 340.dp, max = 410.dp).fillMaxSize(),
+        modifier = Modifier.widthIn(min = 360.dp, max = 430.dp).fillMaxSize(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
     ) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
@@ -539,43 +844,25 @@ private fun DevelopmentInspector(
                 }
                 TextButton(onClick = onClose) { Text("×") }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = planned, onClick = onTogglePlanned, label = { Text(if (planned) "★ В плане" else "☆ В план") })
-                Text(if (entry.isAbility) "${availability.abilityCost} ОС" else "${entry.cost} XP / ранг", color = DublGold)
-            }
-            if (entry.benefit.isNotBlank()) {
-                Text("Что даёт", fontWeight = FontWeight.Bold)
-                Text(entry.benefit)
-            }
-            if (entry.notes.isNotBlank()) Text(entry.notes, color = DublMuted)
 
-            Text("Требования", fontWeight = FontWeight.Bold)
-            availability.checks.forEach { check ->
-                val tint = when (check.status) {
-                    RequirementStatus.OK -> DublFocus
-                    RequirementStatus.MANUAL -> DublGold
-                    RequirementStatus.FAIL -> MaterialTheme.colorScheme.error
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = DublGold.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, DublGold.copy(alpha = 0.28f)),
+                ) {
+                    Text(
+                        if (entry.isAbility) "${availability.abilityCost} ОС" else "${entry.cost} XP / ранг",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        color = DublGold,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
-                check.targetEntryId?.let { id ->
-                    TextButton(onClick = { onOpenEntry(id) }) { Text("${if (check.status == RequirementStatus.OK) "✓" else "✕"} ${check.text} →", color = tint) }
-                } ?: Text("${if (check.status == RequirementStatus.OK) "✓" else if (check.status == RequirementStatus.MANUAL) "?" else "✕"} ${check.text}", color = tint)
-            }
-
-            if (missing.steps.isNotEmpty() || missing.unresolvedRequirements.isNotEmpty()) {
-                Text("Что нужно сделать", fontWeight = FontWeight.Bold)
-                missing.steps.forEach { step -> Text("• ${developmentAcquisitionStepText(step)}", color = DublMuted) }
-                missing.unresolvedRequirements.forEach { Text("• $it", color = MaterialTheme.colorScheme.error) }
-                Text("Требования: ${missing.xpCost} XP${if (missing.abilityCost > 0) " · ${missing.abilityCost} ОС" else ""}", color = DublGold)
-            } else {
-                Text("Все требования уже выполнены", color = DublFocus)
-            }
-
-            if (unlocks.isNotEmpty()) {
-                Text("Открывает", fontWeight = FontWeight.Bold)
-                unlocks.take(10).forEach { target ->
-                    TextButton(onClick = { onOpenEntry(target.id) }) { Text("→ ${target.name}") }
-                }
-                if (unlocks.size > 10) Text("И ещё ${unlocks.size - 10}", color = DublMuted)
+                Text(
+                    "После покупки: ${acquirePlan.xpRemainingAfter} XP · ${acquirePlan.abilityRemainingAfter} ОС",
+                    color = DublMuted,
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
 
             if (entry.isAbility && entry.abilityOptions.isNotEmpty()) {
@@ -590,32 +877,68 @@ private fun DevelopmentInspector(
                         )
                     }
                 }
-                Text("Доступ к ветке: ${rules.abilityCost(entry, optionIndex)} ОС · доступно ${rules.abilityPointsAvailable()} ОС", color = DublGold)
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    enabled = missing.steps.isNotEmpty(),
-                    onClick = onAcquireRequirements,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Добрать требования") }
-                Button(
-                    enabled = rank < entry.maxRank,
-                    onClick = { onAcquireAll(optionIndex) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Добрать и взять") }
-            }
+            Button(
+                enabled = rank < entry.maxRank,
+                onClick = { onAcquireAll(optionIndex) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(primaryActionLabel) }
+
             if (rank > 0) {
                 OutlinedButton(
                     onClick = { state.setDevelopmentRank(entry.id, rank - 1, state.activeCharacter.development[entry.id]?.optionIndex ?: 0) },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(if (rank == 1) "Убрать" else "− ранг") }
             }
-            TextButton(onClick = onManual) { Text("Ручное управление / принудительное добавление") }
-            OutlinedButton(onClick = onEditLocal, modifier = Modifier.fillMaxWidth()) { Text("Локальная правка") }
-            when {
-                isCustom -> TextButton(onClick = onDeleteCustom) { Text("Удалить свою запись") }
-                hasLocalOverride -> TextButton(onClick = onResetLocal) { Text("Сбросить к рулбуку") }
+
+            if (entry.benefit.isNotBlank()) {
+                Text("Что даёт", fontWeight = FontWeight.Bold)
+                Text(entry.benefit)
+            }
+            if (entry.notes.isNotBlank()) Text(entry.notes, color = DublMuted)
+
+            DevelopmentRequirementsCard(
+                entry = entry,
+                checks = availability.checks,
+                missing = missing,
+                onOpenEntry = onOpenEntry,
+                onAcquireRequirements = onAcquireRequirements,
+            )
+
+            DevelopmentUnlocksCard(unlocks = unlocks, onOpenEntry = onOpenEntry)
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                color = DublGold.copy(alpha = 0.04f),
+                border = BorderStroke(1.dp, DublGold.copy(alpha = 0.20f)),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("План развития", fontWeight = FontWeight.Bold)
+                        Text(if (planned) "Цель уже добавлена в план" else "Сохранить цель без покупки", color = DublMuted, style = MaterialTheme.typography.labelSmall)
+                    }
+                    FilterChip(selected = planned, onClick = onTogglePlanned, label = { Text(if (planned) "★ В плане" else "☆ Добавить") })
+                }
+            }
+
+            OutlinedButton(
+                onClick = { advancedExpanded = !advancedExpanded },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (advancedExpanded) "Дополнительно ▲" else "Дополнительно ▼") }
+            if (advancedExpanded) {
+                Text("Ручное управление, локальные правки и принудительное добавление", color = DublMuted, style = MaterialTheme.typography.labelSmall)
+                TextButton(onClick = onManual, modifier = Modifier.fillMaxWidth()) { Text("Ручное управление / принудительное добавление") }
+                OutlinedButton(onClick = onEditLocal, modifier = Modifier.fillMaxWidth()) { Text("Локальная правка") }
+                when {
+                    isCustom -> TextButton(onClick = onDeleteCustom, modifier = Modifier.fillMaxWidth()) { Text("Удалить свою запись") }
+                    hasLocalOverride -> TextButton(onClick = onResetLocal, modifier = Modifier.fillMaxWidth()) { Text("Сбросить к рулбуку") }
+                }
             }
         }
     }
