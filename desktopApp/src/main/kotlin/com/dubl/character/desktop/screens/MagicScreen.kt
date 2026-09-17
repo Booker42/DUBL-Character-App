@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -161,7 +160,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     if (addCustomSpell) SpellDialog(state, null, onDelete = {}, onDismiss = { addCustomSpell = false })
     catalogDetails?.let { spell -> CatalogSpellDialog(state, spell, onDismiss = { catalogDetails = null }) }
     schoolError?.let { message ->
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { schoolError = null },
             title = { Text("Не удалось сохранить школу") },
             text = { Text(message) },
@@ -171,7 +170,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 
     pendingDeleteSpellUid?.let { uid ->
         val spellName = state.activeCharacter.magic.spells.firstOrNull { it.uid == uid }?.name ?: "заклинание"
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { pendingDeleteSpellUid = null },
             title = { Text("Удалить заклинание?") },
             text = { Text("«$spellName» будет удалено из книги персонажа.") },
@@ -183,7 +182,7 @@ fun MagicScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     }
     pendingDeleteSchoolIndex?.let { index ->
         val schoolName = state.activeCharacter.magic.schools.getOrNull(index)?.name ?: "школа"
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { pendingDeleteSchoolIndex = null },
             title = { Text("Удалить школу?") },
             text = { Text("«$schoolName» будет удалена у персонажа. Заклинания из книги не удаляются автоматически.") },
@@ -203,7 +202,7 @@ private fun AddSchoolDialog(state: DesktopAppState, onError: (String) -> Unit, o
     var rank by remember { mutableStateOf("1") }
     var note by remember { mutableStateOf("") }
     var menu by remember { mutableStateOf(false) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Добавить школу") },
         text = {
@@ -236,7 +235,7 @@ private fun SchoolDialog(state: DesktopAppState, school: String, onError: (Strin
     val existing = state.activeCharacter.magic.schools.getOrNull(existingIndex)
     var rank by remember(school) { mutableStateOf((existing?.rank ?: 0).toString()) }
     var note by remember(school) { mutableStateOf(existing?.note.orEmpty()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(school) },
         text = {
@@ -280,7 +279,7 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
     var learned by remember(spell?.uid) { mutableStateOf(spell?.learned ?: true) }
     var xp by remember(spell?.uid) { mutableStateOf(spell?.xpOverride?.toString().orEmpty()) }
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (spell == null) "Своё заклинание" else spell.name) },
         text = {
@@ -325,7 +324,7 @@ private fun SpellDialog(state: DesktopAppState, spell: KnownSpell?, onDelete: (S
 @Composable
 private fun CatalogSpellDialog(state: DesktopAppState, spell: SpellCatalogEntry, onDismiss: () -> Unit) {
     val usability = MagicEquipmentRules.spellUsability(state.activeCharacter, spell)
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(spell.name) },
         text = {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -133,7 +132,7 @@ fun SkillsScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     if (showSpecialized) SpecializedSkillDialog(state, onError = { customError = it }, onDismiss = { showSpecialized = false })
 
     customError?.let { message ->
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { customError = null },
             title = { Text("Не удалось добавить умение") },
             text = { Text(message) },
@@ -157,7 +156,7 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
     val configurableEffects = remember(state.activeCharacter, skill.id, state.developmentCatalog, state.skillEffectCatalog) {
         SkillEffectRules(state.activeCharacter, state.developmentCatalog, state.skillEffectCatalog).configuredForSkill(skill)
     }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(skill.name) },
         text = {
@@ -260,7 +259,7 @@ private fun SkillSettingsDialog(state: DesktopAppState, initial: ResolvedSkill, 
 @Composable
 private fun HiddenSkillsDialog(state: DesktopAppState, onDismiss: () -> Unit) {
     val hidden = state.activeCharacter.resolvedSkills(includeHidden = true).filter { it.id in state.activeCharacter.hiddenSkillIds }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Скрытые умения") },
         text = {
@@ -284,7 +283,7 @@ private fun SpecializedSkillDialog(state: DesktopAppState, onError: (String) -> 
     var specialization by remember { mutableStateOf("") }
     var template by remember { mutableStateOf(SkillCatalog.templates.first()) }
     var expanded by remember { mutableStateOf(false) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Добавить специализацию") },
         text = {
@@ -311,7 +310,7 @@ private fun CustomSkillDialog(state: DesktopAppState, onError: (String) -> Unit,
     var attributes by remember { mutableStateOf(setOf(AttributeId.INTELLIGENCE)) }
     var untrained by remember { mutableStateOf(UntrainedRule.YES) }
     var untrainedMenu by remember { mutableStateOf(false) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Своё умение") },
         text = {

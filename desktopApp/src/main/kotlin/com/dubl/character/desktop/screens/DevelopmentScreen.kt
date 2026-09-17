@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -318,7 +317,7 @@ internal fun DevelopmentDetailsDialog(
     var pendingRequirementOverride by remember(entry.id) { mutableStateOf(false) }
     var pendingAbilityPurchase by remember(entry.id) { mutableStateOf(false) }
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(entry.name) },
         text = {
@@ -389,7 +388,7 @@ internal fun DevelopmentDetailsDialog(
 
     if (pendingRequirementOverride) {
         val failedChecks = availability.checks.filter { it.status != RequirementStatus.OK }
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { pendingRequirementOverride = false },
             title = { Text("Требования не выполнены") },
             text = {
@@ -416,7 +415,7 @@ internal fun DevelopmentDetailsDialog(
 
     if (pendingAbilityPurchase) {
         val cost = rules.abilityCost(entry, optionIndex)
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { pendingAbilityPurchase = false },
             title = { Text("Открыть спец. ветку?") },
             text = {
@@ -484,7 +483,7 @@ internal fun DevelopmentLocalEditDialog(
     var repeatable by remember(initial.id) { mutableStateOf(initial.repeatable) }
     var perfectRoot by remember(initial.id) { mutableStateOf(initial.perfectRoot) }
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {

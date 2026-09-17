@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
@@ -125,7 +124,7 @@ fun EquipmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
 
     pendingDeleteUid?.let { uid ->
         val itemName = state.activeCharacter.gear.items.firstOrNull { it.uid == uid }?.name ?: "предмет"
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { pendingDeleteUid = null },
             title = { Text("Удалить предмет?") },
             text = { Text("«$itemName» будет удалён из инвентаря персонажа.") },
@@ -144,7 +143,7 @@ private fun GearDialog(state: DesktopAppState, item: GearItem?, onDelete: (Strin
     var category by remember(item?.uid) { mutableStateOf(item?.category ?: "Снаряжение") }
     var section by remember(item?.uid) { mutableStateOf(item?.section ?: "Предметы") }
     var description by remember(item?.uid) { mutableStateOf(item?.description.orEmpty()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (item == null) "Свой предмет" else item.name) },
         text = {
@@ -182,7 +181,7 @@ private fun GearDialog(state: DesktopAppState, item: GearItem?, onDelete: (Strin
 
 @Composable
 private fun CatalogGearDialog(state: DesktopAppState, entry: GearCatalogEntry, onDismiss: () -> Unit) {
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(entry.name) },
         text = {

@@ -193,6 +193,7 @@ tools/tests/test_desktop_catalogs.py
 tools/tests/test_desktop_character_sheet_workflow.py
 tools/tests/test_desktop_persistence.py
 tools/tests/test_desktop_ui_structural_redesign.py
+tools/tests/test_desktop_polish_dialogs.py
 tools/tests/test_import_android_0_4_archmage.py
 tools/tests/test_import_android_0_5_chi.py
 tools/tests/test_import_android_0_5_skill_effects.py

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,7 +51,7 @@ fun SkillAttributeChoiceDialog(
     var selectedAttribute by remember(skill.id) { mutableStateOf(skill.stockAttribute) }
     val calculation = character.skillCalculationForRoll(skill, selectedAttribute)
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("${skill.name}: характеристика") },
         text = {
@@ -109,7 +108,7 @@ fun SkillRollDialog(
     val effects = SkillEffectRules(character, developmentCatalog, effectCatalog).forSkill(skill)
     val calculation = character.skillCalculationForRoll(skill, attribute)
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Бросок: ${skill.name}") },
         text = {
@@ -234,7 +233,7 @@ fun ContextRollDialog(
         .forContext(context)
         .filterNot { developmentNormalize(it.sourceName) in alreadyAppliedLabels }
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(context.title) },
         text = {

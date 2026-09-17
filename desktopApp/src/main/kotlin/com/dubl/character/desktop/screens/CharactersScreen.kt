@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -115,7 +114,7 @@ fun CharactersScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     }
 
     if (confirmDelete) {
-        AlertDialog(
+        FuryDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Удалить персонажа?") },
             text = { Text("${state.activeCharacter.name} будет удалён вместе с desktop-настройками листа. Это действие нельзя отменить.") },

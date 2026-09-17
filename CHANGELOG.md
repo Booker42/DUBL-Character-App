@@ -6,6 +6,7 @@
 - Added a single `FURY Release` workflow that validates the tag, builds all three platforms, and publishes one GitHub Release only after every platform job succeeds.
 - Normalized public `0.5` to `0.5.0` only where native desktop packaging requires three numeric components.
 - Moved Android version codes into a higher FURY range (`105000000` for 0.5) so installs can upgrade from the older Android 0.6.2 build line.
+- Desktop polish pass: stabilized skill bonus breakdown hover/click behavior and replaced scattered Material alert dialogs with a shared FURY-styled modal surface for rolls, notes, resources, conditions, skills, development, magic, equipment, and character management.
 
 ## Desktop 0.2.0 — Android 0.6.2 functional parity (Compose Desktop)
 

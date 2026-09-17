@@ -3,6 +3,8 @@ package com.dubl.character.desktop.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -11,19 +13,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -39,7 +48,10 @@ import androidx.compose.ui.input.pointer.pointerMoveFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 
 // Desktop-only palette.  The shared Android palette intentionally stays unchanged;
 // these values target the darker, higher-contrast desktop reference UI.
@@ -57,6 +69,85 @@ internal val DesktopHealth = Color(0xFFF05B70)
 internal val DesktopStamina = Color(0xFFE8BA60)
 internal val DesktopMana = Color(0xFF66A7FF)
 internal val DesktopCustomResource = Color(0xFF70C3AE)
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FuryDialog(
+    onDismissRequest: () -> Unit,
+    title: @Composable () -> Unit,
+    text: @Composable () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    dismissButton: (@Composable () -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val contentScroll = rememberScrollState()
+    BasicAlertDialog(
+        onDismissRequest = onDismissRequest,
+        modifier = modifier,
+    ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(min = 360.dp, max = 620.dp)
+                .heightIn(max = 680.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = DesktopSurfaceRaised,
+            border = BorderStroke(1.dp, DesktopBorder.copy(alpha = 0.95f)),
+            shadowElevation = 18.dp,
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DesktopSurfaceInset.copy(alpha = 0.76f))
+                        .padding(start = 18.dp, end = 10.dp, top = 13.dp, bottom = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        CompositionLocalProvider(LocalContentColor provides DesktopText) {
+                            ProvideTextStyle(MaterialTheme.typography.titleLarge) { title() }
+                        }
+                    }
+                    Text(
+                        "×",
+                        color = DesktopMuted,
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier
+                            .clickable(onClick = onDismissRequest)
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+                HorizontalDivider(color = DesktopBorder.copy(alpha = 0.82f))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .verticalScroll(contentScroll)
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides DesktopText) {
+                        ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() }
+                    }
+                }
+                HorizontalDivider(color = DesktopBorder.copy(alpha = 0.72f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (dismissButton != null) {
+                        dismissButton()
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    confirmButton()
+                }
+            }
+        }
+    }
+}
 
 @Composable
 internal fun DesktopPanel(
@@ -585,39 +676,87 @@ internal fun DesktopSkillRow(
     onRoll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showBreakdown by remember(title, bonus, breakdownLines) { mutableStateOf(false) }
+    var breakdownHovered by remember(title, bonus, breakdownLines) { mutableStateOf(false) }
+    var breakdownPinned by remember(title, bonus, breakdownLines) { mutableStateOf(false) }
+    val showBreakdown = breakdownLines.isNotEmpty() && (breakdownHovered || breakdownPinned)
+
     Surface(modifier, RoundedCornerShape(8.dp), DesktopSurfaceInset.copy(alpha=.72f), border=BorderStroke(1.dp,DesktopBorder.copy(alpha=.68f))) {
         Row(Modifier.fillMaxWidth().padding(horizontal=11.dp, vertical=6.dp), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             DesktopIcon(icon, tint=DesktopMuted, size=20.dp)
             Text(title, modifier=Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis)
             Text("Ранг $rank", color=DesktopMuted, style=MaterialTheme.typography.labelMedium, fontWeight=FontWeight.SemiBold)
             Box {
-                Text(
-                    bonus,
-                    color=DesktopAccent,
-                    fontWeight=FontWeight.Bold,
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (showBreakdown) DesktopAccentSoft.copy(alpha = 0.72f) else Color.Transparent,
                     modifier = Modifier
                         .pointerMoveFilter(
-                            onEnter = { showBreakdown = breakdownLines.isNotEmpty(); false },
-                            onExit = { showBreakdown = false; false },
+                            onEnter = { breakdownHovered = breakdownLines.isNotEmpty(); false },
+                            onExit = { breakdownHovered = false; false },
                         )
-                        .clickable(enabled = breakdownLines.isNotEmpty()) { showBreakdown = !showBreakdown }
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                )
-                DropdownMenu(
-                    expanded = showBreakdown && breakdownLines.isNotEmpty(),
-                    onDismissRequest = { showBreakdown = false },
-                    modifier = Modifier.widthIn(min = 230.dp, max = 340.dp),
-                ) {
-                    Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text("Итоговый бонус $bonus", fontWeight = FontWeight.Bold, color = DesktopText)
-                        breakdownLines.forEach { line ->
-                            Text(line, color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
+                        .clickable(enabled = breakdownLines.isNotEmpty()) {
+                            if (breakdownPinned) {
+                                breakdownPinned = false
+                                breakdownHovered = false
+                            } else {
+                                breakdownPinned = true
+                            }
                         }
-                    }
+                ) {
+                    Text(
+                        bonus,
+                        color=DesktopAccent,
+                        fontWeight=FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                    )
+                }
+                if (showBreakdown) {
+                    FuryBreakdownPopover(
+                        bonus = bonus,
+                        lines = breakdownLines,
+                        pinned = breakdownPinned,
+                        onDismiss = { breakdownPinned = false; breakdownHovered = false },
+                    )
                 }
             }
             DesktopIconButton(DesktopIconKind.DICE, onRoll)
+        }
+    }
+}
+
+@Composable
+private fun FuryBreakdownPopover(
+    bonus: String,
+    lines: List<String>,
+    pinned: Boolean,
+    onDismiss: () -> Unit,
+) {
+    val density = LocalDensity.current
+    Popup(
+        alignment = Alignment.TopStart,
+        offset = IntOffset(0, with(density) { 34.dp.roundToPx() }),
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = pinned),
+    ) {
+        Surface(
+            modifier = Modifier.widthIn(min = 240.dp, max = 360.dp),
+            shape = RoundedCornerShape(10.dp),
+            color = DesktopSurfaceRaised,
+            border = BorderStroke(1.dp, DesktopBorder.copy(alpha = 0.95f)),
+            shadowElevation = 12.dp,
+        ) {
+            Column(
+                Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text("Итоговый бонус $bonus", fontWeight = FontWeight.Bold, color = DesktopText)
+                lines.forEach { line ->
+                    Text(line, color = DesktopMuted, style = MaterialTheme.typography.bodySmall)
+                }
+                if (pinned) {
+                    Text("Закреплено · кликните по бонусу или вне окна, чтобы закрыть", color = DesktopMuted, style = MaterialTheme.typography.labelMedium)
+                }
+            }
         }
     }
 }

@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -1271,7 +1270,7 @@ private fun NoteEditorDialog(
 ) {
     var noteTitle by remember(initial?.id) { mutableStateOf(initial?.title.orEmpty()) }
     var body by remember(initial?.id) { mutableStateOf(initial?.body.orEmpty()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -1313,7 +1312,7 @@ private fun HealthControlDialog(
 ) {
     var amountText by remember(current, maximum) { mutableStateOf("1") }
     val amount = amountText.toIntOrNull()?.coerceAtLeast(0) ?: 0
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Здоровье · $current / $maximum") },
         text = {
@@ -1364,7 +1363,7 @@ private fun IdentityDialog(state: DesktopAppState, character: DublCharacter, onD
     var size by remember(character.id) { mutableStateOf(character.size.toString()) }
     var legs by remember(character.id) { mutableStateOf(character.legs.toString()) }
     var manaEnabled by remember(character.id) { mutableStateOf(character.manaEnabled) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Персонаж") },
         text = {
@@ -1401,7 +1400,7 @@ private fun EconomyDialog(state: DesktopAppState, onDismiss: () -> Unit) {
     var creation by remember(character.id) { mutableStateOf(character.effectiveCreationExperience.toString()) }
     var adjustment by remember(character.id) { mutableStateOf(character.xpAdjustment.toString()) }
     var abilityOverride by remember(character.id) { mutableStateOf(character.abilityPointsOverride?.toString().orEmpty()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Опыт и создание") },
         text = {
@@ -1441,7 +1440,7 @@ private fun MaximumDialog(state: DesktopAppState, resource: CharacterSheetResour
         CharacterSheetResourceId.CHI -> character.chiMaximum
     }
     var text by remember(resource) { mutableStateOf(current.toString()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Максимум: ${resource.title}") },
         text = { OutlinedTextField(text, { text = it.filter(Char::isDigit).take(5) }, label = { Text("Ручной максимум") }) },
@@ -1459,7 +1458,7 @@ private fun CustomResourceDialog(state: DesktopAppState, resource: CustomResourc
     var name by remember(resource?.uid) { mutableStateOf(resource?.name.orEmpty()) }
     var current by remember(resource?.uid) { mutableStateOf((resource?.current ?: 0).toString()) }
     var maximum by remember(resource?.uid) { mutableStateOf((resource?.maximum ?: 1).toString()) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (resource == null) "Новый ресурс" else resource.name) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(7.dp)) { OutlinedTextField(name, { name = it }, label = { Text("Название") }); OutlinedTextField(current, { current = it.filter(Char::isDigit) }, label = { Text("Текущее") }); OutlinedTextField(maximum, { maximum = it.filter(Char::isDigit) }, label = { Text("Максимум") }) } },
@@ -1474,7 +1473,7 @@ private fun ConditionsDialog(state: DesktopAppState, onDismiss: () -> Unit, onCh
     var editCondition by remember { mutableStateOf<CharacterConditionId?>(null) }
     var editCustomId by remember { mutableStateOf<String?>(null) }
     var createCustom by remember { mutableStateOf(false) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Состояния") },
         text = {
@@ -1581,7 +1580,7 @@ private fun ConditionOverrideDialog(
 ) {
     var localTitle by remember(title) { mutableStateOf(title) }
     var localDescription by remember(description) { mutableStateOf(description) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Локальная правка состояния") },
         text = {
@@ -1613,7 +1612,7 @@ private fun CustomConditionDialog(
     var title by remember(condition?.id) { mutableStateOf(condition?.title.orEmpty()) }
     var description by remember(condition?.id) { mutableStateOf(condition?.description.orEmpty()) }
     var active by remember(condition?.id) { mutableStateOf(condition?.active ?: false) }
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (condition == null) "Добавить своё состояние" else "Изменить своё состояние") },
         text = {
@@ -1638,7 +1637,7 @@ private fun CustomConditionDialog(
 
 @Composable
 private fun ResourceVisibilityDialog(state: DesktopAppState, onDismiss: () -> Unit) {
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Видимость ресурсов") },
         text = { Column { CharacterSheetResourceId.entries.forEach { resource -> Row(verticalAlignment = Alignment.CenterVertically) { val hidden = resource in state.extras.hiddenResourceIds; Checkbox(!hidden, { visible -> state.setResourceHidden(resource, !visible) }); Text(resource.title) } } } },
@@ -1745,7 +1744,7 @@ private fun GroupingManagerDialog(state: DesktopAppState, kind: GroupingKind, on
         persist(SheetGroupingRules.moveGroupToIndex(visualGroups, groupId, insertion))
     }
 
-    AlertDialog(
+    FuryDialog(
         onDismissRequest = onDismiss,
         title = { Text("Группы · ${kind.title}") },
         text = {
