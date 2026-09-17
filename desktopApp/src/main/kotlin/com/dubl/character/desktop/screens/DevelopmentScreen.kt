@@ -84,6 +84,7 @@ private data class DevelopmentGridSection(
 fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
     val character = state.activeCharacter
     var tab by remember(character.id) { mutableStateOf(DevelopmentTab.REGULAR) }
+    var availableOnly by remember(character.id) { mutableStateOf(false) }
     var browserFilter by remember(character.id) { mutableStateOf(DevelopmentBrowserFilter.ALL) }
     var search by remember(character.id) { mutableStateOf("") }
     var selectedEntryId by remember(character.id) { mutableStateOf<String?>(null) }
@@ -131,16 +132,19 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
             ).contains(needle)
         }
         .filter { entry ->
-            if (tab == DevelopmentTab.OWNED) return@filter true
-            val availability = rules.availability(entry)
-            when (browserFilter) {
-                DevelopmentBrowserFilter.ALL -> true
-                DevelopmentBrowserFilter.AVAILABLE -> availability.canIncrease
-                DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
-                DevelopmentBrowserFilter.ALMOST -> {
-                    if (availability.canIncrease) false else {
-                        val missing = prerequisitePlan(entry)
-                        missing.unresolvedRequirements.isEmpty() && missing.steps.size == 1
+            if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
+                tab == DevelopmentTab.OWNED || !availableOnly || rules.availability(entry).canIncrease
+            } else {
+                val availability = rules.availability(entry)
+                when (browserFilter) {
+                    DevelopmentBrowserFilter.ALL -> true
+                    DevelopmentBrowserFilter.AVAILABLE -> availability.canIncrease
+                    DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
+                    DevelopmentBrowserFilter.ALMOST -> {
+                        if (availability.canIncrease) false else {
+                            val missing = prerequisitePlan(entry)
+                            missing.unresolvedRequirements.isEmpty() && missing.steps.size == 1
+                        }
                     }
                 }
             }
@@ -189,6 +193,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                         onClick = {
                             tab = target
                             search = ""
+                            availableOnly = false
                             browserFilter = DevelopmentBrowserFilter.ALL
                         },
                         label = { Text(target.title) },
@@ -205,7 +210,13 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                 )
                 OutlinedButton(onClick = { creatingCustomDevelopment = true }) { Text("Своя запись") }
             }
-            if (tab != DevelopmentTab.OWNED) {
+            if (tab == DevelopmentTab.CHI) {
+                FilterChip(
+                    selected = availableOnly,
+                    onClick = { availableOnly = !availableOnly },
+                    label = { Text("Доступно сейчас") },
+                )
+            } else if (tab != DevelopmentTab.OWNED) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     DevelopmentBrowserFilter.entries.forEach { filter ->
                         FilterChip(
@@ -258,7 +269,7 @@ fun DevelopmentScreen(state: DesktopAppState, modifier: Modifier = Modifier) {
                     val matches = needle.isBlank() || developmentNormalize(
                         listOf(technique.name, technique.school, technique.action, technique.effect, technique.requirements).joinToString(" "),
                     ).contains(needle)
-                    matches && (browserFilter != DevelopmentBrowserFilter.AVAILABLE || chiRules.availability(technique).unlocked)
+                    matches && (!availableOnly || chiRules.availability(technique).unlocked)
                 }
                 .sortedWith(compareBy({ developmentNormalize(it.school) }, { developmentNormalize(it.name) }))
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
