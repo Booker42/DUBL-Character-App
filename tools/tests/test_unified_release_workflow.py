@@ -25,6 +25,13 @@ def test_v_tag_drives_one_fury_release_workflow_for_all_platforms():
     assert '--title "FURY $VERSION"' in workflow
 
 
+def test_release_workflow_installs_the_versioned_android_17_sdk_package():
+    workflow = text(RELEASE)
+    assert "platforms;android-37.0" in workflow
+    assert "build-tools;37.0.0" in workflow
+    assert "platforms;android-37 " not in workflow
+
+
 def test_release_workflow_normalizes_public_0_5_for_native_desktop_packages():
     workflow = text(RELEASE)
     assert 'NATIVE_VERSION="${VERSION}.0"' in workflow
