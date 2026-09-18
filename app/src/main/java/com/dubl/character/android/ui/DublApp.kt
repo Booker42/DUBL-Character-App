@@ -16,16 +16,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -68,14 +71,32 @@ fun DublApp() {
         CharacterController(CharacterRepository(appContext), CharacterSheetExtrasRepository(appContext))
     }
     var selected by rememberSaveable { mutableStateOf(AppSection.OVERVIEW) }
+    var pendingSection by remember { mutableStateOf<AppSection?>(null) }
+
+    LaunchedEffect(pendingSection) {
+        if (pendingSection == AppSection.FEATS) {
+            // Commit at least one lightweight frame before mounting the heavy development screen.
+            withFrameNanos { }
+            withFrameNanos { }
+            selected = AppSection.FEATS
+            pendingSection = null
+        }
+    }
 
     Scaffold(
         modifier = Modifier.dismissKeyboardOnPointerDown(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             DublBottomBar(
-                selected = selected,
-                onSelected = { selected = it },
+                selected = pendingSection ?: selected,
+                onSelected = { target ->
+                    if (pendingSection == null && target != selected) {
+                        when (target) {
+                            AppSection.FEATS -> pendingSection = AppSection.FEATS
+                            else -> selected = target
+                        }
+                    }
+                },
             )
         },
     ) { innerPadding ->
@@ -84,13 +105,57 @@ fun DublApp() {
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            when (selected) {
-                AppSection.OVERVIEW -> OverviewScreen(controller)
-                AppSection.SKILLS -> SkillsScreen(controller)
-                AppSection.FEATS -> FeatsScreen(controller)
-                AppSection.MAGIC -> MagicScreen(controller)
-                AppSection.INVENTORY -> EquipmentScreen(controller)
-                AppSection.MORE -> CharactersScreen(controller)
+            if (pendingSection == AppSection.FEATS) {
+                DevelopmentNavigationLoadingScreen()
+            } else {
+                when (selected) {
+                    AppSection.OVERVIEW -> OverviewScreen(controller)
+                    AppSection.SKILLS -> SkillsScreen(controller)
+                    AppSection.FEATS -> FeatsScreen(controller)
+                    AppSection.MAGIC -> MagicScreen(controller)
+                    AppSection.INVENTORY -> EquipmentScreen(controller)
+                    AppSection.MORE -> CharactersScreen(controller)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DevelopmentNavigationLoadingScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = DublSurfaceInset,
+            border = BorderStroke(1.dp, DublFocus.copy(alpha = 0.24f)),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(34.dp),
+                    color = DublFocus,
+                    strokeWidth = 3.dp,
+                )
+                Text(
+                    text = "Подготавливаем навыки",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Загружаем каталог, требования и зависимости…",
+                    fontSize = 13.sp,
+                    color = DublMuted,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
