@@ -67,8 +67,12 @@ import com.dubl.character.android.model.DevelopmentAcquisitionStep
 import com.dubl.character.android.model.DevelopmentAcquisitionTarget
 import com.dubl.character.android.model.DevelopmentEffectIds
 import com.dubl.character.android.model.DevelopmentEntry
+import com.dubl.character.android.model.DevelopmentEntryKind
 import com.dubl.character.android.model.DevelopmentProgress
 import com.dubl.character.android.model.DevelopmentRules
+import com.dubl.character.android.model.DevelopmentScreenIndex
+import com.dubl.character.android.model.DublCharacter
+import com.dubl.character.android.model.IndexedDevelopmentEntry
 import com.dubl.character.android.model.MagicEquipmentRules
 import com.dubl.character.android.model.RequirementCheck
 import com.dubl.character.android.model.RequirementStatus
@@ -79,6 +83,7 @@ import com.dubl.character.android.ui.components.containSheetOverscroll
 import com.dubl.character.android.ui.components.DublCard
 import com.dubl.character.android.ui.components.DublScreenHeader
 import com.dubl.character.android.ui.components.DublSwitch
+import com.dubl.character.android.ui.development.DevelopmentGroupVisibility
 import com.dubl.character.android.ui.theme.DublAccent
 import com.dubl.character.android.ui.theme.DublDanger
 import com.dubl.character.android.ui.theme.DublGold
@@ -115,8 +120,19 @@ private data class DevelopmentScreenPreparation(
     val catalog: DevelopmentCatalog,
     val chiCatalog: ChiCatalog,
     val economy: CharacterEconomyBreakdown,
-    val availabilityById: Map<String, DevelopmentAvailability>,
+    val availabilityById: RetainedPreparationCache<String, DevelopmentAvailability>,
+    val rules: DevelopmentRules,
+    val index: DevelopmentScreenIndex,
 )
+
+private data class DevelopmentPreparationKey(
+    val character: DublCharacter,
+    val catalogVersion: String,
+    val chiCatalogVersion: String,
+)
+
+private val developmentPreparationCache =
+    RetainedPreparationCache<DevelopmentPreparationKey, DevelopmentScreenPreparation>(maximumEntries = 2)
 
 @Composable
 fun FeatsScreen(controller: CharacterController) {
@@ -135,19 +151,22 @@ fun FeatsScreen(controller: CharacterController) {
                 ChiCatalogRepository(context.applicationContext).load()
         }
 
-        loadingStage = "Проверяем требования и доступность…"
+        loadingStage = "Готовим быстрый индекс навыков…"
         value = withContext(Dispatchers.Default) {
-            val effectiveCatalog = character.effectiveDevelopmentCatalog(loadedCatalogs.first)
-            val preparationProgress = DevelopmentProgress(character.development)
-            val preparationRules = DevelopmentRules(character, effectiveCatalog, preparationProgress)
-            val availabilityById = effectiveCatalog.entries
-                .associate { entry -> entry.id to preparationRules.availability(entry) }
-            DevelopmentScreenPreparation(
-                catalog = effectiveCatalog,
-                chiCatalog = loadedCatalogs.second,
-                economy = CharacterEconomy.breakdown(character, effectiveCatalog),
-                availabilityById = availabilityById,
-            )
+            val key = DevelopmentPreparationKey(character, loadedCatalogs.first.version, loadedCatalogs.second.version)
+            developmentPreparationCache.getOrPut(key) {
+                val effectiveCatalog = character.effectiveDevelopmentCatalog(loadedCatalogs.first)
+                val preparationProgress = DevelopmentProgress(character.development)
+                val preparationRules = DevelopmentRules(character, effectiveCatalog, preparationProgress)
+                DevelopmentScreenPreparation(
+                    catalog = effectiveCatalog,
+                    chiCatalog = loadedCatalogs.second,
+                    economy = CharacterEconomy.breakdown(character, effectiveCatalog),
+                    availabilityById = RetainedPreparationCache(maximumEntries = effectiveCatalog.entries.size),
+                    rules = preparationRules,
+                    index = DevelopmentScreenIndex(effectiveCatalog),
+                )
+            }
         }
     }
 
@@ -161,6 +180,7 @@ fun FeatsScreen(controller: CharacterController) {
     val chiCatalog = prepared.chiCatalog
     val economy = prepared.economy
     val availabilityById = prepared.availabilityById
+    val developmentIndex = prepared.index
     val progress = DevelopmentProgress(character.development)
     var query by remember(character.id) { mutableStateOf("") }
     var tab by remember(character.id) { mutableStateOf(DevelopmentTab.REGULAR) }
@@ -173,10 +193,9 @@ fun FeatsScreen(controller: CharacterController) {
     var pendingRequirementOverride by remember(character.id) { mutableStateOf<PendingRequirementOverride?>(null) }
     var editingDevelopment by remember(character.id) { mutableStateOf<DevelopmentEntry?>(null) }
     var creatingCustomDevelopment by remember(character.id) { mutableStateOf(false) }
+    var groupVisibility by remember(character.id) { mutableStateOf(DevelopmentGroupVisibility()) }
 
-    val rules = remember(character, progress, catalog) {
-        DevelopmentRules(character, catalog, progress)
-    }
+    val rules = prepared.rules
     val planner = remember(character, catalog) { DevelopmentAcquisitionPlanner(character, catalog) }
     val chiRules = remember(character, catalog) { ChiRules(character, catalog) }
 
@@ -212,6 +231,9 @@ fun FeatsScreen(controller: CharacterController) {
         else -> entry.category.ifBlank { entry.name }
     }
 
+    fun availabilityFor(entry: DevelopmentEntry): DevelopmentAvailability =
+        availabilityById.getOrPut(entry.id) { rules.availability(entry) }
+
     val filteredEntriesAsync by produceState<List<DevelopmentEntry>?>(
         null,
         query,
@@ -226,43 +248,34 @@ fun FeatsScreen(controller: CharacterController) {
         value = null
         value = withContext(Dispatchers.Default) {
             val needle = developmentNormalize(query)
-            catalog.entries
+            developmentIndex.all
                 .asSequence()
-                    .filterNot { it.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
-                .filter { entry ->
+                .filterNot { it.entry.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
+                .filter { indexed ->
+                    val entry = indexed.entry
                     when (tab) {
-                        DevelopmentTab.REGULAR -> entry.isRegularDevelopment
-                        DevelopmentTab.SPECIAL -> entry.isSpecialDevelopment
-                        DevelopmentTab.MARTIAL_ARTS -> entry.isMartialArt
-                        DevelopmentTab.CHI -> entry.isChiDevelopment
+                        DevelopmentTab.REGULAR -> indexed.kind == DevelopmentEntryKind.REGULAR
+                        DevelopmentTab.SPECIAL -> indexed.kind == DevelopmentEntryKind.SPECIAL
+                        DevelopmentTab.MARTIAL_ARTS -> indexed.kind == DevelopmentEntryKind.MARTIAL
+                        DevelopmentTab.CHI -> indexed.kind == DevelopmentEntryKind.CHI
                         DevelopmentTab.OWNED -> progress.rank(entry.id) > 0
                     }
                 }
-                .filter { entry ->
-                    if (needle.isBlank()) true else developmentNormalize(
-                        listOf(
-                            entry.name,
-                            branchName(entry),
-                            entry.category,
-                            entry.section,
-                            entry.requirements,
-                            entry.benefit,
-                            entry.notes,
-                            entry.tags.joinToString(" "),
-                        ).joinToString(" ")
-                    ).contains(needle)
+                .filter { indexed ->
+                    needle.isBlank() || indexed.searchText.contains(needle)
                 }
-                .filter { entry ->
+                .filter { indexed ->
+                    val entry = indexed.entry
                     if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
-                        tab == DevelopmentTab.OWNED || !availableOnly || availabilityById[entry.id]?.canIncrease == true
+                        tab == DevelopmentTab.OWNED || !availableOnly || availabilityFor(entry).canIncrease
                     } else {
                         when (browserFilter) {
                             DevelopmentBrowserFilter.ALL -> true
                             DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
-                            DevelopmentBrowserFilter.AVAILABLE -> availabilityById[entry.id]?.canIncrease == true
+                            DevelopmentBrowserFilter.AVAILABLE -> availabilityFor(entry).canIncrease
                             DevelopmentBrowserFilter.ALMOST -> {
-                                val availability = availabilityById[entry.id]
-                                if (availability?.canIncrease == true) false else {
+                                val availability = availabilityFor(entry)
+                                if (availability.canIncrease) false else {
                                     val missing = planner.plan(
                                         DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
                                     )
@@ -273,17 +286,24 @@ fun FeatsScreen(controller: CharacterController) {
                     }
                 }
                 .sortedWith(
-                    compareBy<DevelopmentEntry>(
-                        { if (tab == DevelopmentTab.SPECIAL || (tab == DevelopmentTab.OWNED && it.isSpecialDevelopment)) developmentNormalize(branchName(it)) else developmentNormalize(it.category) },
-                        { if (it.isAbility) 0 else 1 },
-                        { developmentNormalize(it.name) },
+                    compareBy<IndexedDevelopmentEntry>(
+                        { indexed -> if (tab == DevelopmentTab.SPECIAL || (tab == DevelopmentTab.OWNED && indexed.entry.isSpecialDevelopment)) developmentNormalize(indexed.groupName) else developmentNormalize(indexed.entry.category) },
+                        { indexed -> if (indexed.entry.isAbility) 0 else 1 },
+                        { indexed -> developmentNormalize(indexed.entry.name) },
                     )
                 )
+                .map { it.entry }
                 .toList()
         }
     }
     val filteredEntries = filteredEntriesAsync.orEmpty()
     val filteredEntriesPreparing = filteredEntriesAsync == null
+    val searchActive = query.isNotBlank()
+
+    fun groupId(prefix: String, name: String): String = "$prefix:$name"
+    fun toggleGroup(id: String) {
+        groupVisibility = groupVisibility.toggle(id)
+    }
 
     val selectedUnlocks by produceState<List<DevelopmentEntry>?>(
         initialValue = null,
@@ -449,29 +469,37 @@ fun FeatsScreen(controller: CharacterController) {
                 )
             }
             filteredEntries.groupBy { it.category.ifBlank { "Развитие ЦИ" } }.forEach { (category, entries) ->
+                val id = groupId("chi-development", category)
+                val expanded = groupVisibility.isExpanded(id, searchActive)
                 item(key = "chi-development-header-$category") {
-                    DevelopmentGroupHeader(category, entries.size)
+                    DevelopmentGroupHeader(category, entries.size, expanded = expanded, onToggle = { toggleGroup(id) })
                 }
-                items(entries, key = { "chi-development-${it.id}" }) { entry ->
-                    DevelopmentRow(
-                        entry = entry,
-                        availability = availabilityById.getValue(entry.id),
-                        progress = progress,
-                        planned = entry.id in plannedDevelopmentIds,
-                        onClick = { selectedEntryId = entry.id },
-                    )
+                if (expanded) {
+                    items(entries, key = { "chi-development-${it.id}" }) { entry ->
+                        DevelopmentRow(
+                            entry = entry,
+                            availability = availabilityFor(entry),
+                            progress = progress,
+                            planned = entry.id in plannedDevelopmentIds,
+                            onClick = { selectedEntryId = entry.id },
+                        )
+                    }
                 }
             }
             filteredChiTechniques.groupBy { it.school }.forEach { (school, techniques) ->
+                val id = groupId("chi-technique", school)
+                val expanded = groupVisibility.isExpanded(id, searchActive)
                 item(key = "chi-technique-header-$school") {
-                    DevelopmentGroupHeader(school, techniques.size, trailing = "Приёмы")
+                    DevelopmentGroupHeader(school, techniques.size, trailing = "Приёмы", expanded = expanded, onToggle = { toggleGroup(id) })
                 }
-                items(techniques, key = { "chi-technique-${it.id}" }) { technique ->
-                    ChiTechniqueCard(
-                        technique = technique,
-                        availability = chiRules.availability(technique),
-                        onUse = { controller.changeChi(-technique.chiCost) },
-                    )
+                if (expanded) {
+                    items(techniques, key = { "chi-technique-${it.id}" }) { technique ->
+                        ChiTechniqueCard(
+                            technique = technique,
+                            availability = chiRules.availability(technique),
+                            onUse = { controller.changeChi(-technique.chiCost) },
+                        )
+                    }
                 }
             }
         } else {
@@ -569,17 +597,21 @@ fun FeatsScreen(controller: CharacterController) {
                 DevelopmentTab.REGULAR -> {
                 val grouped = filteredEntries.groupBy { it.category.ifBlank { "Общие" } }
                 grouped.forEach { (category, entries) ->
+                    val id = groupId("regular", category)
+                    val expanded = groupVisibility.isExpanded(id, searchActive)
                     item(key = "regular-header-$category") {
-                        DevelopmentGroupHeader(category, entries.size)
+                        DevelopmentGroupHeader(category, entries.size, expanded = expanded, onToggle = { toggleGroup(id) })
                     }
-                    items(entries, key = { it.id }) { entry ->
-                        DevelopmentRow(
-                            entry = entry,
-                            availability = availabilityById.getValue(entry.id),
-                            progress = progress,
-                            planned = entry.id in plannedDevelopmentIds,
-                            onClick = { selectedEntryId = entry.id },
-                        )
+                    if (expanded) {
+                        items(entries, key = { it.id }) { entry ->
+                            DevelopmentRow(
+                                entry = entry,
+                                availability = availabilityFor(entry),
+                                progress = progress,
+                                planned = entry.id in plannedDevelopmentIds,
+                                onClick = { selectedEntryId = entry.id },
+                            )
+                        }
                     }
                 }
             }
@@ -587,25 +619,32 @@ fun FeatsScreen(controller: CharacterController) {
                 DevelopmentTab.SPECIAL -> {
                 val grouped = filteredEntries.groupBy(::branchName)
                 grouped.forEach { (branch, branchEntries) ->
+                    val id = groupId("special", branch)
+                    val expanded = groupVisibility.isExpanded(id, searchActive)
                     val access = branchEntries.firstOrNull { it.isAbility }
                         ?: catalog.entries.firstOrNull { it.isAbility && developmentNormalize(it.name) == developmentNormalize(branch) }
                     item(key = "special-header-$branch") {
-                        SpecialBranchHeader(
-                            title = branch,
-                            entriesCount = branchEntries.count { !it.isAbility },
-                            access = access,
-                            progress = progress,
-                            rules = rules,
-                        )
+                        Column(Modifier.clickable { toggleGroup(id) }) {
+                            SpecialBranchHeader(
+                                title = branch,
+                                entriesCount = branchEntries.count { !it.isAbility },
+                                access = access,
+                                progress = progress,
+                                rules = rules,
+                                expanded = expanded,
+                            )
+                        }
                     }
-                    items(branchEntries.sortedWith(compareBy<DevelopmentEntry>({ if (it.isAbility) 0 else 1 }, { developmentNormalize(it.name) })), key = { it.id }) { entry ->
-                        DevelopmentRow(
-                            entry = entry,
-                            availability = availabilityById.getValue(entry.id),
-                            progress = progress,
-                            planned = entry.id in plannedDevelopmentIds,
-                            onClick = { selectedEntryId = entry.id },
-                        )
+                    if (expanded) {
+                        items(branchEntries.sortedWith(compareBy<DevelopmentEntry>({ if (it.isAbility) 0 else 1 }, { developmentNormalize(it.name) })), key = { it.id }) { entry ->
+                            DevelopmentRow(
+                                entry = entry,
+                                availability = availabilityFor(entry),
+                                progress = progress,
+                                planned = entry.id in plannedDevelopmentIds,
+                                onClick = { selectedEntryId = entry.id },
+                            )
+                        }
                     }
                 }
             }
@@ -613,17 +652,21 @@ fun FeatsScreen(controller: CharacterController) {
                 DevelopmentTab.MARTIAL_ARTS -> {
                     val grouped = filteredEntries.groupBy { it.category.ifBlank { "Боевые искусства" } }
                     grouped.forEach { (category, entries) ->
+                        val id = groupId("martial", category)
+                        val expanded = groupVisibility.isExpanded(id, searchActive)
                         item(key = "martial-header-$category") {
-                            DevelopmentGroupHeader(category, entries.size)
+                            DevelopmentGroupHeader(category, entries.size, expanded = expanded, onToggle = { toggleGroup(id) })
                         }
-                        items(entries, key = { it.id }) { entry ->
-                            DevelopmentRow(
-                                entry = entry,
-                                availability = availabilityById.getValue(entry.id),
-                                progress = progress,
-                                planned = entry.id in plannedDevelopmentIds,
-                                onClick = { selectedEntryId = entry.id },
-                            )
+                        if (expanded) {
+                            items(entries, key = { it.id }) { entry ->
+                                DevelopmentRow(
+                                    entry = entry,
+                                    availability = availabilityFor(entry),
+                                    progress = progress,
+                                    planned = entry.id in plannedDevelopmentIds,
+                                    onClick = { selectedEntryId = entry.id },
+                                )
+                            }
                         }
                     }
                 }
@@ -644,7 +687,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = availabilityById.getValue(entry.id),
+                            availability = availabilityFor(entry),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -658,7 +701,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = availabilityById.getValue(entry.id),
+                            availability = availabilityFor(entry),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -672,7 +715,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = availabilityById.getValue(entry.id),
+                            availability = availabilityFor(entry),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -686,7 +729,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = availabilityById.getValue(entry.id),
+                            availability = availabilityFor(entry),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -1167,10 +1210,13 @@ private fun DevelopmentGroupHeader(
     title: String,
     count: Int,
     trailing: String? = null,
+    expanded: Boolean? = null,
+    onToggle: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onToggle != null) Modifier.clickable(onClick = onToggle) else Modifier)
             .padding(top = 11.dp, bottom = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -1186,7 +1232,7 @@ private fun DevelopmentGroupHeader(
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            trailing?.let { "$it · $count" } ?: count.toString(),
+            listOfNotNull(trailing, count.toString(), expanded?.let { if (it) "▲" else "▼" }).joinToString(" · "),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
         )
@@ -1200,6 +1246,7 @@ private fun SpecialBranchHeader(
     access: DevelopmentEntry?,
     progress: DevelopmentProgress,
     rules: DevelopmentRules,
+    expanded: Boolean,
 ) {
     val accessRank = access?.let { progress.rank(it.id) } ?: 0
     val accessLabel = when {
@@ -1246,7 +1293,7 @@ private fun SpecialBranchHeader(
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                "$entriesCount XP-навык${if (entriesCount == 1) "" else "ов"}",
+                "$entriesCount XP-навык${if (entriesCount == 1) "" else "ов"} · ${if (expanded) "▲" else "▼"}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

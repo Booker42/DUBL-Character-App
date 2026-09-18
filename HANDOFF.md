@@ -98,4 +98,10 @@ The sandbox does not currently have a Gradle distribution or Compose/Maven depen
 3. Continue future rulebook-import work by extending the ruleset boundary rather than reintroducing Android/Desktop catalog or formula copies.
 4. Defer server/remote repository and generic rule scripting until a real second ruleset/server milestone exists; the schema-8 ruleset identity and repository boundary are the compatibility hooks for that future work.
 
+## Development screen performance pass
+
+Android now retains prepared development catalog/index state across navigation and evaluates requirement availability only when an expanded group or active availability filter needs it. Android and Desktop share collapsed-by-default group semantics; active search reveals matching groups without replacing the user's manual expansion state, and Owned remains immediately visible. Desktop also memoizes availability and unlock-count work that previously repeated during recomposition.
+
+The required networked verification commands are `:shared:desktopTest`, `:app:testDebugUnitTest`, `:app:compileDebugKotlin`, and `:desktopApp:compileKotlin`. This sandbox downloaded Gradle 9.7 successfully but could not resolve Android Gradle Plugin 9.3.0 from the configured Google/Maven repositories, so GitHub Actions remains the authoritative full compile gate for this pass.
+
 See `docs/DESKTOP_0_2_PARITY.md` and `docs/superpowers/plans/2026-09-15-desktop-0.2-android-parity.md`.

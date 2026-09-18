@@ -22,6 +22,7 @@ The Compose desktop frontend is wired to the real desktop stores, shared `Charac
 - Character Sheet: identity, XP/creation economy, attributes, resources/overrides, portrait, conditions, derived details, quick checks, recent-change Undo, learned summaries, and persistent grouping/order;
 - Skills/Rolls: search/filter, ranks/XP, multiple attributes, preferred attribute, modifiers/notes, hide/restore, custom/specialized skills, and rule-aware roll modes/follow-up;
 - Development: regular/special progression, prerequisites, force availability, branches, martial arts, Chi resource/techniques, XP/AP economy;
+- Development browser performance: grouped catalogs start collapsed on Android/Desktop, search reveals matching groups temporarily, and requirement evaluation is lazy and memoized;
 - Magic: mana progression/recovery, schools, power, spellbook/catalog, custom spells, learned state and XP overrides;
 - Equipment: catalog/custom gear, quantity, carried state, automatic/manual load, capacity and burden;
 - Characters: create, list, switch active character, delete, and persistent roster state.

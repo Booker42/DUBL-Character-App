@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Development screen performance
+
+- Retained Android development preparation across navigation instead of rebuilding the effective catalog and index on every visit.
+- Made requirement availability lazy and memoized so closed groups do not trigger catalog-wide rule evaluation.
+- Added shared pre-normalized development search/group metadata for Android and Desktop.
+- Made regular, special, martial-art, and Chi groups collapsed by default on both platforms; search temporarily reveals matching groups without changing manual expansion state.
+- Kept the Owned view immediately visible and uncollapsed.
+- Memoized Desktop availability and unlock-count calculations to prevent repeated work during recomposition and scrolling.
+
 ## FURY 0.5 — unified product release
 
 - Unified Android, Linux, and Windows under one FURY product version and one `v0.5` release tag.
