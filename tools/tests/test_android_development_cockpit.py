@@ -13,7 +13,8 @@ def test_android_has_same_build_filters_and_plan_workflow():
 
 def test_android_detail_sheet_surfaces_missing_requirements_unlocks_and_auto_acquire():
     assert 'DevelopmentDetailSheet(' in FEATS
-    assert '.unlocks(entry.id)' in FEATS
+    assert 'developmentUnlockIndex?.entriesBySource?.get(entry.id).orEmpty()' in FEATS
+    assert 'unlocks: List<DevelopmentEntry>' in FEATS
     assert 'Что нужно сделать' in FEATS
     assert 'Открывает' in FEATS
     assert 'Добрать требования' in FEATS

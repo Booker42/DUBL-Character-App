@@ -52,6 +52,7 @@ import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.ChiCatalog
 import com.dubl.character.android.model.effectiveDevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentCostType
+import com.dubl.character.android.model.DevelopmentAvailability
 import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
@@ -81,6 +82,7 @@ import com.dubl.character.android.ui.theme.DublAccent
 import com.dubl.character.android.ui.theme.DublDanger
 import com.dubl.character.android.ui.theme.DublGold
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private enum class DevelopmentTab(val title: String) {
@@ -107,6 +109,11 @@ private data class PendingRequirementOverride(
     val entry: DevelopmentEntry,
     val optionIndex: Int,
     val failedChecks: List<RequirementCheck>,
+)
+
+private data class DevelopmentUnlockUiIndex(
+    val counts: Map<String, Int>,
+    val entriesBySource: Map<String, List<DevelopmentEntry>>,
 )
 
 @Composable
@@ -166,9 +173,6 @@ fun FeatsScreen(controller: CharacterController) {
         DevelopmentRules(character, catalog, progress)
     }
     val planner = remember(character, catalog) { DevelopmentAcquisitionPlanner(character, catalog) }
-    val developmentUnlockCounts by produceState<Map<String, Int>>(emptyMap(), planner) {
-        value = withContext(Dispatchers.Default) { planner.unlockCounts() }
-    }
     val economy = remember(character, catalog) { CharacterEconomy.breakdown(character, catalog) }
     val chiRules = remember(character, catalog) { ChiRules(character, catalog) }
 
@@ -204,64 +208,117 @@ fun FeatsScreen(controller: CharacterController) {
         else -> entry.category.ifBlank { entry.name }
     }
 
-    val filteredEntries = remember(query, tab, availableOnly, browserFilter, plannedDevelopmentIds, character, progress, catalog) {
-        val localRules = DevelopmentRules(character, catalog, progress)
-        val needle = developmentNormalize(query)
-        catalog.entries
-            .asSequence()
-                .filterNot { it.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
-            .filter { entry ->
-                when (tab) {
-                    DevelopmentTab.REGULAR -> entry.isRegularDevelopment
-                    DevelopmentTab.SPECIAL -> entry.isSpecialDevelopment
-                    DevelopmentTab.MARTIAL_ARTS -> entry.isMartialArt
-                    DevelopmentTab.CHI -> entry.isChiDevelopment
-                    DevelopmentTab.OWNED -> progress.rank(entry.id) > 0
+    val filteredEntriesAsync by produceState<List<DevelopmentEntry>?>(
+        null,
+        query,
+        tab,
+        availableOnly,
+        browserFilter,
+        plannedDevelopmentIds,
+        character,
+        catalog,
+    ) {
+        value = null
+        value = withContext(Dispatchers.Default) {
+            val localRules = DevelopmentRules(character, catalog, progress)
+            val needle = developmentNormalize(query)
+            catalog.entries
+                .asSequence()
+                    .filterNot { it.id == MagicEquipmentRules.BASE_MANA_ENTRY_ID }
+                .filter { entry ->
+                    when (tab) {
+                        DevelopmentTab.REGULAR -> entry.isRegularDevelopment
+                        DevelopmentTab.SPECIAL -> entry.isSpecialDevelopment
+                        DevelopmentTab.MARTIAL_ARTS -> entry.isMartialArt
+                        DevelopmentTab.CHI -> entry.isChiDevelopment
+                        DevelopmentTab.OWNED -> progress.rank(entry.id) > 0
+                    }
                 }
-            }
-            .filter { entry ->
-                if (needle.isBlank()) true else developmentNormalize(
-                    listOf(
-                        entry.name,
-                        branchName(entry),
-                        entry.category,
-                        entry.section,
-                        entry.requirements,
-                        entry.benefit,
-                        entry.notes,
-                        entry.tags.joinToString(" "),
-                    ).joinToString(" ")
-                ).contains(needle)
-            }
-            .filter { entry ->
-                if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
-                    tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
-                } else {
-                    when (browserFilter) {
-                        DevelopmentBrowserFilter.ALL -> true
-                        DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
-                        DevelopmentBrowserFilter.AVAILABLE -> localRules.availability(entry).canIncrease
-                        DevelopmentBrowserFilter.ALMOST -> {
-                            val availability = localRules.availability(entry)
-                            if (availability.canIncrease) false else {
-                                val missing = planner.plan(
-                                    DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
-                                )
-                                missing.unresolvedRequirements.isEmpty() && missing.steps.size == 1
+                .filter { entry ->
+                    if (needle.isBlank()) true else developmentNormalize(
+                        listOf(
+                            entry.name,
+                            branchName(entry),
+                            entry.category,
+                            entry.section,
+                            entry.requirements,
+                            entry.benefit,
+                            entry.notes,
+                            entry.tags.joinToString(" "),
+                        ).joinToString(" ")
+                    ).contains(needle)
+                }
+                .filter { entry ->
+                    if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
+                        tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
+                    } else {
+                        when (browserFilter) {
+                            DevelopmentBrowserFilter.ALL -> true
+                            DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
+                            DevelopmentBrowserFilter.AVAILABLE -> localRules.availability(entry).canIncrease
+                            DevelopmentBrowserFilter.ALMOST -> {
+                                val availability = localRules.availability(entry)
+                                if (availability.canIncrease) false else {
+                                    val missing = planner.plan(
+                                        DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
+                                    )
+                                    missing.unresolvedRequirements.isEmpty() && missing.steps.size == 1
+                                }
                             }
                         }
                     }
                 }
-            }
-            .sortedWith(
-                compareBy<DevelopmentEntry>(
-                    { if (tab == DevelopmentTab.SPECIAL || (tab == DevelopmentTab.OWNED && it.isSpecialDevelopment)) developmentNormalize(branchName(it)) else developmentNormalize(it.category) },
-                    { if (it.isAbility) 0 else 1 },
-                    { developmentNormalize(it.name) },
+                .sortedWith(
+                    compareBy<DevelopmentEntry>(
+                        { if (tab == DevelopmentTab.SPECIAL || (tab == DevelopmentTab.OWNED && it.isSpecialDevelopment)) developmentNormalize(branchName(it)) else developmentNormalize(it.category) },
+                        { if (it.isAbility) 0 else 1 },
+                        { developmentNormalize(it.name) },
+                    )
                 )
-            )
-            .toList()
+                .toList()
+        }
     }
+    val filteredEntries = filteredEntriesAsync.orEmpty()
+    val filteredEntriesPreparing = filteredEntriesAsync == null
+
+    val developmentAvailabilityById by produceState<Map<String, DevelopmentAvailability>>(
+        emptyMap(),
+        filteredEntriesAsync,
+        character,
+        catalog,
+    ) {
+        val entries = filteredEntriesAsync
+        if (entries == null) {
+            value = emptyMap()
+            return@produceState
+        }
+        value = emptyMap()
+        value = withContext(Dispatchers.Default) {
+            val localRules = DevelopmentRules(character, catalog, DevelopmentProgress(character.development))
+            entries.associate { entry -> entry.id to localRules.availability(entry) }
+        }
+    }
+
+    val unlockIndexReadyToBuild = filteredEntriesAsync != null
+    val developmentUnlockIndex by produceState<DevelopmentUnlockUiIndex?>(
+        null,
+        planner,
+        unlockIndexReadyToBuild,
+    ) {
+        if (!unlockIndexReadyToBuild) {
+            value = null
+            return@produceState
+        }
+        // Requirements/reverse dependencies are useful context, but they must never
+        // delay the first development frame on Android.
+        delay(500)
+        value = withContext(Dispatchers.Default) {
+            val counts = planner.unlockCounts()
+            val entriesBySource = counts.keys.associateWith { sourceId -> planner.unlocks(sourceId) }
+            DevelopmentUnlockUiIndex(counts = counts, entriesBySource = entriesBySource)
+        }
+    }
+
     val filteredChiTechniques = remember(query, availableOnly, character, chiCatalog, catalog) {
         val needle = developmentNormalize(query)
         chiCatalog.techniques.filter { technique ->
@@ -414,10 +471,10 @@ fun FeatsScreen(controller: CharacterController) {
                 items(entries, key = { "chi-development-${it.id}" }) { entry ->
                     DevelopmentRow(
                         entry = entry,
-                        rules = rules,
+                        availability = developmentAvailabilityById[entry.id],
                         progress = progress,
                         planned = entry.id in plannedDevelopmentIds,
-                        unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
+                        unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                         onClick = { selectedEntryId = entry.id },
                     )
                 }
@@ -483,7 +540,21 @@ fun FeatsScreen(controller: CharacterController) {
                 )
             }
 
-            if (filteredEntries.isEmpty()) {
+            if (filteredEntriesPreparing) {
+                item {
+                    DublCard(Modifier.fillMaxWidth()) {
+                        Text(
+                            "Подготавливаем список развития…",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "Требования и доступность рассчитываются в фоне — интерфейс остаётся доступным.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else if (filteredEntries.isEmpty()) {
                 item {
                     DublCard(Modifier.fillMaxWidth()) {
                         Text(
@@ -521,10 +592,10 @@ fun FeatsScreen(controller: CharacterController) {
                     items(entries, key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
+                            unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -548,10 +619,10 @@ fun FeatsScreen(controller: CharacterController) {
                     items(branchEntries.sortedWith(compareBy<DevelopmentEntry>({ if (it.isAbility) 0 else 1 }, { developmentNormalize(it.name) })), key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
+                            unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -567,10 +638,10 @@ fun FeatsScreen(controller: CharacterController) {
                         items(entries, key = { it.id }) { entry ->
                             DevelopmentRow(
                                 entry = entry,
-                                rules = rules,
+                                availability = developmentAvailabilityById[entry.id],
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
-                                unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
+                                unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                                 onClick = { selectedEntryId = entry.id },
                             )
                         }
@@ -593,7 +664,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -607,7 +678,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -621,7 +692,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -635,7 +706,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = developmentAvailabilityById[entry.id],
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -653,6 +724,7 @@ fun FeatsScreen(controller: CharacterController) {
                 progress = progress,
                 rules = rules,
                 planner = planner,
+                unlocks = developmentUnlockIndex?.entriesBySource?.get(entry.id).orEmpty(),
                 planned = entry.id in plannedDevelopmentIds,
                 onTogglePlanned = {
                     plannedDevelopmentIds = if (entry.id in plannedDevelopmentIds) {
@@ -1165,12 +1237,11 @@ private fun SpecialBranchHeader(
 private fun OwnedDevelopmentRow(
     entry: DevelopmentEntry,
     progress: DevelopmentProgress,
-    rules: DevelopmentRules,
+    availability: DevelopmentAvailability?,
     onClick: () -> Unit,
 ) {
     val rank = progress.rank(entry.id)
-    val ownedAvailability = remember(entry.id, rules) { rules.availability(entry) }
-    val invalidOwned = ownedAvailability.checks.any { it.status != RequirementStatus.OK }
+    val invalidOwned = availability?.checks?.any { it.status != RequirementStatus.OK } == true
     val accent = when {
         invalidOwned -> DublDanger
         entry.isSpecialDevelopment -> DublGold
@@ -1275,22 +1346,22 @@ private fun developmentCostLabel(xp: Int, ability: Int): String = buildString {
 @Composable
 private fun DevelopmentRow(
     entry: DevelopmentEntry,
-    rules: DevelopmentRules,
+    availability: DevelopmentAvailability?,
     progress: DevelopmentProgress,
     planned: Boolean = false,
     unlocksCount: Int = 0,
     onClick: () -> Unit,
 ) {
-    val availability = remember(entry.id, rules) { rules.availability(entry) }
     val rank = progress.rank(entry.id)
     val owned = rank > 0
-    val failedChecks = availability.checks.filter { it.status == RequirementStatus.FAIL }
-    val manualChecks = availability.checks.filter { it.status == RequirementStatus.MANUAL }
+    val failedChecks = availability?.checks.orEmpty().filter { it.status == RequirementStatus.FAIL }
+    val manualChecks = availability?.checks.orEmpty().filter { it.status == RequirementStatus.MANUAL }
+    val canIncrease = availability?.canIncrease == true
     val invalidOwned = owned && (failedChecks.isNotEmpty() || manualChecks.isNotEmpty())
     val accent = when {
         invalidOwned -> DublDanger
         owned -> DublGold
-        availability.canIncrease -> DublAccent
+        canIncrease -> DublAccent
         else -> MaterialTheme.colorScheme.outline
     }
     val status = when {
@@ -1298,8 +1369,9 @@ private fun DevelopmentRow(
         invalidOwned -> "⚠ Требования"
         owned && entry.isAbility -> "✓ Открыта"
         owned -> "✓ $rank/${entry.maxRank}"
-        availability.canIncrease && entry.isAbility -> "Открыть"
-        availability.canIncrease -> "✓ Доступно"
+        availability == null && !owned -> "Проверяем…"
+        canIncrease && entry.isAbility -> "Открыть"
+        canIncrease -> "✓ Доступно"
         manualChecks.isNotEmpty() -> "? Проверить"
         failedChecks.size == 1 -> "⚠ Нужна ${developmentRequirementNeedLabel(failedChecks.first().text)}"
         failedChecks.isNotEmpty() -> {
@@ -1314,8 +1386,8 @@ private fun DevelopmentRow(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        color = if (owned || availability.canIncrease) accent.copy(alpha = 0.035f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, accent.copy(alpha = if (owned || availability.canIncrease) 0.42f else 0.20f)),
+        color = if (owned || canIncrease) accent.copy(alpha = 0.035f) else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, accent.copy(alpha = if (owned || canIncrease) 0.42f else 0.20f)),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 11.dp, vertical = 10.dp),
@@ -1331,7 +1403,7 @@ private fun DevelopmentRow(
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (owned || availability.canIncrease) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (owned || canIncrease) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1340,7 +1412,7 @@ private fun DevelopmentRow(
                     "$rank/${entry.maxRank}",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (owned || availability.canIncrease) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (owned || canIncrease) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Row(
@@ -1365,7 +1437,7 @@ private fun DevelopmentRow(
                     color = when {
                         planned -> DublGold
                         invalidOwned -> DublDanger
-                        availability.canIncrease || owned -> accent
+                        canIncrease || owned -> accent
                         failedChecks.isNotEmpty() -> DublGold
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
@@ -1597,6 +1669,7 @@ private fun DevelopmentDetailSheet(
     progress: DevelopmentProgress,
     rules: DevelopmentRules,
     planner: DevelopmentAcquisitionPlanner,
+    unlocks: List<DevelopmentEntry>,
     planned: Boolean,
     onTogglePlanned: () -> Unit,
     onAcquireRequirements: () -> Unit,
@@ -1628,7 +1701,6 @@ private fun DevelopmentDetailSheet(
             enforceBudget = false,
         ),
     )
-    val unlocks = planner.unlocks(entry.id)
     val ownedInvalid = currentRank > 0 && availability.checks.any { it.status != RequirementStatus.OK }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val primaryActionLabel = when {
