@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +53,7 @@ import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.ChiCatalog
 import com.dubl.character.android.model.effectiveDevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentCostType
+import com.dubl.character.android.model.DevelopmentAvailability
 import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
@@ -109,46 +111,56 @@ private data class PendingRequirementOverride(
     val failedChecks: List<RequirementCheck>,
 )
 
+private data class DevelopmentScreenPreparation(
+    val catalog: DevelopmentCatalog,
+    val chiCatalog: ChiCatalog,
+    val economy: CharacterEconomyBreakdown,
+    val availabilityById: Map<String, DevelopmentAvailability>,
+)
+
 @Composable
 fun FeatsScreen(controller: CharacterController) {
     val character = controller.active
     val context = LocalContext.current
-    val loadedCatalogs by produceState<Pair<DevelopmentCatalog, ChiCatalog>?>(
+    var loadingStage by remember(character.id) { mutableStateOf("Загружаем каталог развития…") }
+    val preparation by produceState<DevelopmentScreenPreparation?>(
         initialValue = null,
         key1 = context.applicationContext,
+        key2 = character,
     ) {
-        value = withContext(Dispatchers.IO) {
+        value = null
+        loadingStage = "Загружаем каталог развития…"
+        val loadedCatalogs = withContext(Dispatchers.IO) {
             DevelopmentCatalogRepository(context.applicationContext).load() to
                 ChiCatalogRepository(context.applicationContext).load()
         }
-    }
-    if (loadedCatalogs == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Spacer(Modifier.height(8.dp))
-            DublScreenHeader(
-                title = "Навыки",
-                subtitle = "Развитие, боевые искусства, ЦИ и спец. ветки",
+
+        loadingStage = "Проверяем требования и доступность…"
+        value = withContext(Dispatchers.Default) {
+            val effectiveCatalog = character.effectiveDevelopmentCatalog(loadedCatalogs.first)
+            val preparationProgress = DevelopmentProgress(character.development)
+            val preparationRules = DevelopmentRules(character, effectiveCatalog, preparationProgress)
+            val availabilityById = effectiveCatalog.entries
+                .associate { entry -> entry.id to preparationRules.availability(entry) }
+            DevelopmentScreenPreparation(
+                catalog = effectiveCatalog,
+                chiCatalog = loadedCatalogs.second,
+                economy = CharacterEconomy.breakdown(character, effectiveCatalog),
+                availabilityById = availabilityById,
             )
-            DublCard(Modifier.fillMaxWidth()) {
-                Text(
-                    "Загрузка каталога развития…",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
+    }
+
+    if (preparation == null) {
+        DevelopmentLoadingScreen(stage = loadingStage)
         return
     }
-    val canonicalCatalog = loadedCatalogs!!.first
-    val chiCatalog = loadedCatalogs!!.second
-    val catalog = remember(character, canonicalCatalog) {
-        character.effectiveDevelopmentCatalog(canonicalCatalog)
-    }
+
+    val prepared = preparation!!
+    val catalog = prepared.catalog
+    val chiCatalog = prepared.chiCatalog
+    val economy = prepared.economy
+    val availabilityById = prepared.availabilityById
     val progress = DevelopmentProgress(character.development)
     var query by remember(character.id) { mutableStateOf("") }
     var tab by remember(character.id) { mutableStateOf(DevelopmentTab.REGULAR) }
@@ -166,7 +178,6 @@ fun FeatsScreen(controller: CharacterController) {
         DevelopmentRules(character, catalog, progress)
     }
     val planner = remember(character, catalog) { DevelopmentAcquisitionPlanner(character, catalog) }
-    val economy = remember(character, catalog) { CharacterEconomy.breakdown(character, catalog) }
     val chiRules = remember(character, catalog) { ChiRules(character, catalog) }
 
     fun increase(entry: DevelopmentEntry, optionIndex: Int) {
@@ -210,10 +221,10 @@ fun FeatsScreen(controller: CharacterController) {
         plannedDevelopmentIds,
         character,
         catalog,
+        availabilityById,
     ) {
         value = null
         value = withContext(Dispatchers.Default) {
-            val localRules = DevelopmentRules(character, catalog, progress)
             val needle = developmentNormalize(query)
             catalog.entries
                 .asSequence()
@@ -243,15 +254,15 @@ fun FeatsScreen(controller: CharacterController) {
                 }
                 .filter { entry ->
                     if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
-                        tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
+                        tab == DevelopmentTab.OWNED || !availableOnly || availabilityById[entry.id]?.canIncrease == true
                     } else {
                         when (browserFilter) {
                             DevelopmentBrowserFilter.ALL -> true
                             DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
-                            DevelopmentBrowserFilter.AVAILABLE -> localRules.availability(entry).canIncrease
+                            DevelopmentBrowserFilter.AVAILABLE -> availabilityById[entry.id]?.canIncrease == true
                             DevelopmentBrowserFilter.ALMOST -> {
-                                val availability = localRules.availability(entry)
-                                if (availability.canIncrease) false else {
+                                val availability = availabilityById[entry.id]
+                                if (availability?.canIncrease == true) false else {
                                     val missing = planner.plan(
                                         DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
                                     )
@@ -444,7 +455,7 @@ fun FeatsScreen(controller: CharacterController) {
                 items(entries, key = { "chi-development-${it.id}" }) { entry ->
                     DevelopmentRow(
                         entry = entry,
-                        rules = rules,
+                        availability = availabilityById.getValue(entry.id),
                         progress = progress,
                         planned = entry.id in plannedDevelopmentIds,
                         onClick = { selectedEntryId = entry.id },
@@ -564,7 +575,7 @@ fun FeatsScreen(controller: CharacterController) {
                     items(entries, key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
                             onClick = { selectedEntryId = entry.id },
@@ -590,7 +601,7 @@ fun FeatsScreen(controller: CharacterController) {
                     items(branchEntries.sortedWith(compareBy<DevelopmentEntry>({ if (it.isAbility) 0 else 1 }, { developmentNormalize(it.name) })), key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
                             onClick = { selectedEntryId = entry.id },
@@ -608,7 +619,7 @@ fun FeatsScreen(controller: CharacterController) {
                         items(entries, key = { it.id }) { entry ->
                             DevelopmentRow(
                                 entry = entry,
-                                rules = rules,
+                                availability = availabilityById.getValue(entry.id),
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
                                 onClick = { selectedEntryId = entry.id },
@@ -633,7 +644,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -647,7 +658,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -661,7 +672,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -675,7 +686,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            rules = rules,
+                            availability = availabilityById.getValue(entry.id),
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -864,6 +875,47 @@ fun FeatsScreen(controller: CharacterController) {
                 TextButton(onClick = { pendingAbilityPurchase = null }) { Text("Отмена") }
             },
         )
+    }
+}
+
+@Composable
+private fun DevelopmentLoadingScreen(stage: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = DublAccent.copy(alpha = 0.035f),
+            border = BorderStroke(1.dp, DublAccent.copy(alpha = 0.24f)),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                CircularProgressIndicator(color = DublAccent)
+                Text(
+                    "Подготавливаем навыки",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    stage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Первое открытие может занять несколько секунд. Fury продолжает работать — дождитесь завершения подготовки.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -1206,12 +1258,11 @@ private fun SpecialBranchHeader(
 private fun OwnedDevelopmentRow(
     entry: DevelopmentEntry,
     progress: DevelopmentProgress,
-    rules: DevelopmentRules,
+    availability: DevelopmentAvailability,
     onClick: () -> Unit,
 ) {
     val rank = progress.rank(entry.id)
-    val ownedAvailability = remember(entry.id, rules) { rules.availability(entry) }
-    val invalidOwned = ownedAvailability.checks.any { it.status != RequirementStatus.OK }
+    val invalidOwned = availability.checks.any { it.status != RequirementStatus.OK }
     val accent = when {
         invalidOwned -> DublDanger
         entry.isSpecialDevelopment -> DublGold
@@ -1316,12 +1367,11 @@ private fun developmentCostLabel(xp: Int, ability: Int): String = buildString {
 @Composable
 private fun DevelopmentRow(
     entry: DevelopmentEntry,
-    rules: DevelopmentRules,
+    availability: DevelopmentAvailability,
     progress: DevelopmentProgress,
     planned: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val availability = remember(entry.id, rules) { rules.availability(entry) }
     val rank = progress.rank(entry.id)
     val owned = rank > 0
     val failedChecks = availability.checks.filter { it.status == RequirementStatus.FAIL }

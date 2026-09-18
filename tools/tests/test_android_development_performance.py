@@ -14,11 +14,13 @@ def test_default_android_development_browser_filters_off_main_thread():
     assert 'val filteredEntries = filteredEntriesAsync.orEmpty()' in FEATS
 
 
-def test_android_development_rows_only_evaluate_requirements_for_composed_rows():
+def test_android_development_rows_use_precomputed_requirements_after_loading_gate():
+    assert 'availabilityById' in FEATS
+    assert 'associate { entry -> entry.id to preparationRules.availability(entry) }' in FEATS
     row = FEATS.split('private fun DevelopmentRow(', 1)[1].split('@Composable\nprivate fun DevelopmentStatusPill', 1)[0]
-    assert 'rules: DevelopmentRules' in row
-    assert 'remember(entry.id, rules) { rules.availability(entry) }' in row
-    assert 'developmentAvailabilityById' not in FEATS
+    assert 'availability: DevelopmentAvailability' in row
+    assert 'rules: DevelopmentRules' not in row
+    assert 'rules.availability(entry)' not in row
 
 
 def test_android_reverse_unlock_index_is_deferred_until_detail_selection():

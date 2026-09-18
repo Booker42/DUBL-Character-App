@@ -51,14 +51,16 @@ def test_keyboard_focus_is_cleared_from_app_and_sheets():
     assert "dismissKeyboardOnPointerDown()" in sheets
 
 
-def test_martial_art_availability_never_triggers_a_full_catalog_pass_on_entry():
+def test_martial_art_availability_is_prepared_off_main_behind_loading_gate():
     source = read("app/src/main/java/com/dubl/character/android/ui/screens/FeatsScreen.kt")
-    assert "martialAvailabilityById" not in source
-    assert "developmentAvailabilityById" not in source
-    assert "entries.associate { entry -> entry.id to localRules.availability(entry) }" not in source
+    assert "DevelopmentLoadingScreen(stage = loadingStage)" in source
+    assert "withContext(Dispatchers.Default)" in source
+    assert "availabilityById" in source
+    assert "associate { entry -> entry.id to preparationRules.availability(entry) }" in source
     row = source.split("private fun DevelopmentRow(", 1)[1].split("@Composable\nprivate fun DevelopmentStatusPill", 1)[0]
-    assert "remember(entry.id, rules) { rules.availability(entry) }" in row
-    assert "!availableOnly || localRules.availability(entry).canIncrease" in source
+    assert "availability: DevelopmentAvailability" in row
+    assert "rules.availability(entry)" not in row
+    assert "!availableOnly || availabilityById[entry.id]?.canIncrease == true" in source
 
 
 def test_character_sheet_skill_tap_always_starts_with_stock_attribute_chooser():
