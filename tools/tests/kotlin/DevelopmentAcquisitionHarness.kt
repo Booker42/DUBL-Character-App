@@ -90,6 +90,11 @@ fun main() {
     val character = baseCharacter()
     val planner = DevelopmentAcquisitionPlanner(character, catalog)
 
+    val powerStrikeUnlocks = planner.unlocks(powerStrike.id)
+    check(powerStrikeUnlocks.map { it.id }.toSet() == setOf(reckless.id, child.id)) { "unexpected reverse unlocks: $powerStrikeUnlocks" }
+    check(planner.unlockCounts()[powerStrike.id] == 2)
+    check(planner.unlockCounts()[access.id] == 1)
+
     val prereqs = planner.plan(
         DevelopmentAcquisitionRequest.single(reckless.id, includeTarget = false),
     )

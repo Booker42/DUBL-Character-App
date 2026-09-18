@@ -122,7 +122,26 @@ class DevelopmentAcquisitionPlanner(
         val stack: Set<String> = emptySet(),
     )
 
-    private val rules = DevelopmentRules(baseCharacter, catalog, DevelopmentProgress(baseCharacter.development))
+    private val unlockRules = DevelopmentRules(baseCharacter, catalog, DevelopmentProgress(baseCharacter.development))
+    private val unlocksIndex: Map<String, List<DevelopmentEntry>> by lazy {
+        val reverse = linkedMapOf<String, MutableList<DevelopmentEntry>>()
+        catalog.entries.forEach { candidate ->
+            val dependencies = linkedSetOf<String>()
+            candidate.accessId?.let(dependencies::add)
+            unlockRules.requirements(candidate).mapNotNullTo(dependencies) { it.targetEntryId }
+            dependencies
+                .asSequence()
+                .filter { it != candidate.id }
+                .forEach { dependencyId ->
+                    reverse.getOrPut(dependencyId) { mutableListOf() } += candidate
+                }
+        }
+        reverse.mapValues { (_, entries) ->
+            entries
+                .distinctBy { it.id }
+                .sortedBy { developmentNormalize(it.name) }
+        }
+    }
 
     private fun resolvedTargetOption(entry: DevelopmentEntry, requested: Int?): Int =
         requested ?: cheapestAbilityOption(entry)
@@ -182,17 +201,9 @@ class DevelopmentAcquisitionPlanner(
         )
     }
 
-    fun unlocks(entryId: String): List<DevelopmentEntry> {
-        return catalog.entries
-            .asSequence()
-            .filter { it.id != entryId }
-            .filter { candidate ->
-                candidate.accessId == entryId || rules.requirements(candidate).any { it.targetEntryId == entryId }
-            }
-            .distinctBy { it.id }
-            .sortedBy { developmentNormalize(it.name) }
-            .toList()
-    }
+    fun unlocks(entryId: String): List<DevelopmentEntry> = unlocksIndex[entryId].orEmpty()
+
+    fun unlockCounts(): Map<String, Int> = unlocksIndex.mapValues { (_, entries) -> entries.size }
 
     private fun satisfyEntryRequirements(
         state: State,

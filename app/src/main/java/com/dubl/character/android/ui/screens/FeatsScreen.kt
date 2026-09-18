@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.dubl.character.android.data.ChiCatalogRepository
 import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.model.CharacterEconomy
+import com.dubl.character.android.model.ChiCatalog
 import com.dubl.character.android.model.effectiveDevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentCostType
 import com.dubl.character.android.model.AbilityOption
@@ -78,6 +80,8 @@ import com.dubl.character.android.ui.components.DublSwitch
 import com.dubl.character.android.ui.theme.DublAccent
 import com.dubl.character.android.ui.theme.DublDanger
 import com.dubl.character.android.ui.theme.DublGold
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private enum class DevelopmentTab(val title: String) {
     REGULAR("Обычные"),
@@ -109,14 +113,41 @@ private data class PendingRequirementOverride(
 fun FeatsScreen(controller: CharacterController) {
     val character = controller.active
     val context = LocalContext.current
-    val canonicalCatalog = remember(context.applicationContext) {
-        DevelopmentCatalogRepository(context.applicationContext).load()
+    val loadedCatalogs by produceState<Pair<DevelopmentCatalog, ChiCatalog>?>(
+        initialValue = null,
+        key1 = context.applicationContext,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            DevelopmentCatalogRepository(context.applicationContext).load() to
+                ChiCatalogRepository(context.applicationContext).load()
+        }
     }
+    if (loadedCatalogs == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Spacer(Modifier.height(8.dp))
+            DublScreenHeader(
+                title = "Навыки",
+                subtitle = "Развитие, боевые искусства, ЦИ и спец. ветки",
+            )
+            DublCard(Modifier.fillMaxWidth()) {
+                Text(
+                    "Загрузка каталога развития…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        return
+    }
+    val canonicalCatalog = loadedCatalogs!!.first
+    val chiCatalog = loadedCatalogs!!.second
     val catalog = remember(character, canonicalCatalog) {
         character.effectiveDevelopmentCatalog(canonicalCatalog)
-    }
-    val chiCatalog = remember(context.applicationContext) {
-        ChiCatalogRepository(context.applicationContext).load()
     }
     val progress = DevelopmentProgress(character.development)
     var query by remember(character.id) { mutableStateOf("") }
@@ -135,6 +166,9 @@ fun FeatsScreen(controller: CharacterController) {
         DevelopmentRules(character, catalog, progress)
     }
     val planner = remember(character, catalog) { DevelopmentAcquisitionPlanner(character, catalog) }
+    val developmentUnlockCounts by produceState<Map<String, Int>>(emptyMap(), planner) {
+        value = withContext(Dispatchers.Default) { planner.unlockCounts() }
+    }
     val economy = remember(character, catalog) { CharacterEconomy.breakdown(character, catalog) }
     val chiRules = remember(character, catalog) { ChiRules(character, catalog) }
 
@@ -203,12 +237,12 @@ fun FeatsScreen(controller: CharacterController) {
                 if (tab == DevelopmentTab.OWNED || tab == DevelopmentTab.CHI) {
                     tab == DevelopmentTab.OWNED || !availableOnly || localRules.availability(entry).canIncrease
                 } else {
-                    val availability = localRules.availability(entry)
                     when (browserFilter) {
                         DevelopmentBrowserFilter.ALL -> true
-                        DevelopmentBrowserFilter.AVAILABLE -> availability.canIncrease
                         DevelopmentBrowserFilter.PLAN -> entry.id in plannedDevelopmentIds
+                        DevelopmentBrowserFilter.AVAILABLE -> localRules.availability(entry).canIncrease
                         DevelopmentBrowserFilter.ALMOST -> {
+                            val availability = localRules.availability(entry)
                             if (availability.canIncrease) false else {
                                 val missing = planner.plan(
                                     DevelopmentAcquisitionRequest.single(entry.id, includeTarget = false, enforceBudget = false),
@@ -383,7 +417,7 @@ fun FeatsScreen(controller: CharacterController) {
                         rules = rules,
                         progress = progress,
                         planned = entry.id in plannedDevelopmentIds,
-                        unlocksCount = planner.unlocks(entry.id).size,
+                        unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
                         onClick = { selectedEntryId = entry.id },
                     )
                 }
@@ -490,7 +524,7 @@ fun FeatsScreen(controller: CharacterController) {
                             rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = planner.unlocks(entry.id).size,
+                            unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -517,7 +551,7 @@ fun FeatsScreen(controller: CharacterController) {
                             rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = planner.unlocks(entry.id).size,
+                            unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -536,7 +570,7 @@ fun FeatsScreen(controller: CharacterController) {
                                 rules = rules,
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
-                                unlocksCount = planner.unlocks(entry.id).size,
+                                unlocksCount = developmentUnlockCounts[entry.id] ?: 0,
                                 onClick = { selectedEntryId = entry.id },
                             )
                         }
