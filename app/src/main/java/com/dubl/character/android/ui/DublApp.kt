@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,8 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dubl.character.android.data.CharacterRepository
 import com.dubl.character.android.data.CharacterSheetExtrasRepository
-import com.dubl.character.android.data.ChiCatalogRepository
-import com.dubl.character.android.data.DevelopmentCatalogRepository
 import com.dubl.character.android.state.CharacterController
 import com.dubl.character.android.ui.components.dismissKeyboardOnPointerDown
 import com.dubl.character.android.ui.screens.CharactersScreen
@@ -54,9 +51,6 @@ import com.dubl.character.android.ui.theme.DublAccentSoft
 import com.dubl.character.android.ui.theme.DublFocus
 import com.dubl.character.android.ui.theme.DublMuted
 import com.dubl.character.android.ui.theme.DublSurfaceInset
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 
 private enum class AppSection(val label: String) {
     OVERVIEW("Лист"),
@@ -72,15 +66,6 @@ fun DublApp() {
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val controller = remember(appContext) {
         CharacterController(CharacterRepository(appContext), CharacterSheetExtrasRepository(appContext))
-    }
-    LaunchedEffect(appContext) {
-        // Warm the large development catalog after the first app frame instead of
-        // starting its cold parse exactly when the player opens the development tab.
-        delay(250)
-        withContext(Dispatchers.IO) {
-            DevelopmentCatalogRepository(appContext).load()
-            ChiCatalogRepository(appContext).load()
-        }
     }
     var selected by rememberSaveable { mutableStateOf(AppSection.OVERVIEW) }
 

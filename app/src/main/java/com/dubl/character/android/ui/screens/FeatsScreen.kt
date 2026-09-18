@@ -52,7 +52,6 @@ import com.dubl.character.android.model.CharacterEconomy
 import com.dubl.character.android.model.ChiCatalog
 import com.dubl.character.android.model.effectiveDevelopmentCatalog
 import com.dubl.character.android.model.DevelopmentCostType
-import com.dubl.character.android.model.DevelopmentAvailability
 import com.dubl.character.android.model.AbilityOption
 import com.dubl.character.android.model.CharacterEconomyBreakdown
 import com.dubl.character.android.model.ChiRules
@@ -82,7 +81,6 @@ import com.dubl.character.android.ui.theme.DublAccent
 import com.dubl.character.android.ui.theme.DublDanger
 import com.dubl.character.android.ui.theme.DublGold
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private enum class DevelopmentTab(val title: String) {
@@ -109,11 +107,6 @@ private data class PendingRequirementOverride(
     val entry: DevelopmentEntry,
     val optionIndex: Int,
     val failedChecks: List<RequirementCheck>,
-)
-
-private data class DevelopmentUnlockUiIndex(
-    val counts: Map<String, Int>,
-    val entriesBySource: Map<String, List<DevelopmentEntry>>,
 )
 
 @Composable
@@ -281,52 +274,32 @@ fun FeatsScreen(controller: CharacterController) {
     val filteredEntries = filteredEntriesAsync.orEmpty()
     val filteredEntriesPreparing = filteredEntriesAsync == null
 
-    val developmentAvailabilityById by produceState<Map<String, DevelopmentAvailability>>(
-        emptyMap(),
-        filteredEntriesAsync,
-        character,
-        catalog,
+    val selectedUnlocks by produceState<List<DevelopmentEntry>?>(
+        initialValue = null,
+        key1 = selectedEntryId,
+        key2 = planner,
     ) {
-        val entries = filteredEntriesAsync
-        if (entries == null) {
-            value = emptyMap()
-            return@produceState
-        }
-        value = emptyMap()
-        value = withContext(Dispatchers.Default) {
-            val localRules = DevelopmentRules(character, catalog, DevelopmentProgress(character.development))
-            entries.associate { entry -> entry.id to localRules.availability(entry) }
-        }
-    }
-
-    val unlockIndexReadyToBuild = filteredEntriesAsync != null
-    val developmentUnlockIndex by produceState<DevelopmentUnlockUiIndex?>(
-        null,
-        planner,
-        unlockIndexReadyToBuild,
-    ) {
-        if (!unlockIndexReadyToBuild) {
+        val id = selectedEntryId
+        if (id == null) {
+            value = emptyList()
+        } else {
             value = null
-            return@produceState
-        }
-        // Requirements/reverse dependencies are useful context, but they must never
-        // delay the first development frame on Android.
-        delay(500)
-        value = withContext(Dispatchers.Default) {
-            val counts = planner.unlockCounts()
-            val entriesBySource = counts.keys.associateWith { sourceId -> planner.unlocks(sourceId) }
-            DevelopmentUnlockUiIndex(counts = counts, entriesBySource = entriesBySource)
+            value = withContext(Dispatchers.Default) { planner.unlocks(id) }
         }
     }
 
-    val filteredChiTechniques = remember(query, availableOnly, character, chiCatalog, catalog) {
-        val needle = developmentNormalize(query)
-        chiCatalog.techniques.filter { technique ->
-            val matches = needle.isBlank() || developmentNormalize(
-                listOf(technique.name, technique.school, technique.action, technique.effect, technique.requirements).joinToString(" ")
-            ).contains(needle)
-            matches && (!availableOnly || chiRules.availability(technique).unlocked)
-        }.sortedWith(compareBy<ChiTechnique>({ developmentNormalize(it.school) }, { developmentNormalize(it.name) }))
+    val filteredChiTechniques = remember(query, availableOnly, character, chiCatalog, catalog, tab) {
+        if (tab != DevelopmentTab.CHI) {
+            emptyList()
+        } else {
+            val needle = developmentNormalize(query)
+            chiCatalog.techniques.filter { technique ->
+                val matches = needle.isBlank() || developmentNormalize(
+                    listOf(technique.name, technique.school, technique.action, technique.effect, technique.requirements).joinToString(" ")
+                ).contains(needle)
+                matches && (!availableOnly || chiRules.availability(technique).unlocked)
+            }.sortedWith(compareBy<ChiTechnique>({ developmentNormalize(it.school) }, { developmentNormalize(it.name) }))
+        }
     }
 
     LazyColumn(
@@ -471,10 +444,9 @@ fun FeatsScreen(controller: CharacterController) {
                 items(entries, key = { "chi-development-${it.id}" }) { entry ->
                     DevelopmentRow(
                         entry = entry,
-                        availability = developmentAvailabilityById[entry.id],
+                        rules = rules,
                         progress = progress,
                         planned = entry.id in plannedDevelopmentIds,
-                        unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                         onClick = { selectedEntryId = entry.id },
                     )
                 }
@@ -592,10 +564,9 @@ fun FeatsScreen(controller: CharacterController) {
                     items(entries, key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -619,10 +590,9 @@ fun FeatsScreen(controller: CharacterController) {
                     items(branchEntries.sortedWith(compareBy<DevelopmentEntry>({ if (it.isAbility) 0 else 1 }, { developmentNormalize(it.name) })), key = { it.id }) { entry ->
                         DevelopmentRow(
                             entry = entry,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             progress = progress,
                             planned = entry.id in plannedDevelopmentIds,
-                            unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -638,10 +608,9 @@ fun FeatsScreen(controller: CharacterController) {
                         items(entries, key = { it.id }) { entry ->
                             DevelopmentRow(
                                 entry = entry,
-                                availability = developmentAvailabilityById[entry.id],
+                                rules = rules,
                                 progress = progress,
                                 planned = entry.id in plannedDevelopmentIds,
-                                unlocksCount = developmentUnlockIndex?.counts?.get(entry.id) ?: 0,
                                 onClick = { selectedEntryId = entry.id },
                             )
                         }
@@ -664,7 +633,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -678,7 +647,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -692,7 +661,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -706,7 +675,7 @@ fun FeatsScreen(controller: CharacterController) {
                         OwnedDevelopmentRow(
                             entry = entry,
                             progress = progress,
-                            availability = developmentAvailabilityById[entry.id],
+                            rules = rules,
                             onClick = { selectedEntryId = entry.id },
                         )
                     }
@@ -724,7 +693,7 @@ fun FeatsScreen(controller: CharacterController) {
                 progress = progress,
                 rules = rules,
                 planner = planner,
-                unlocks = developmentUnlockIndex?.entriesBySource?.get(entry.id).orEmpty(),
+                unlocks = selectedUnlocks,
                 planned = entry.id in plannedDevelopmentIds,
                 onTogglePlanned = {
                     plannedDevelopmentIds = if (entry.id in plannedDevelopmentIds) {
@@ -1237,11 +1206,12 @@ private fun SpecialBranchHeader(
 private fun OwnedDevelopmentRow(
     entry: DevelopmentEntry,
     progress: DevelopmentProgress,
-    availability: DevelopmentAvailability?,
+    rules: DevelopmentRules,
     onClick: () -> Unit,
 ) {
     val rank = progress.rank(entry.id)
-    val invalidOwned = availability?.checks?.any { it.status != RequirementStatus.OK } == true
+    val ownedAvailability = remember(entry.id, rules) { rules.availability(entry) }
+    val invalidOwned = ownedAvailability.checks.any { it.status != RequirementStatus.OK }
     val accent = when {
         invalidOwned -> DublDanger
         entry.isSpecialDevelopment -> DublGold
@@ -1346,17 +1316,17 @@ private fun developmentCostLabel(xp: Int, ability: Int): String = buildString {
 @Composable
 private fun DevelopmentRow(
     entry: DevelopmentEntry,
-    availability: DevelopmentAvailability?,
+    rules: DevelopmentRules,
     progress: DevelopmentProgress,
     planned: Boolean = false,
-    unlocksCount: Int = 0,
     onClick: () -> Unit,
 ) {
+    val availability = remember(entry.id, rules) { rules.availability(entry) }
     val rank = progress.rank(entry.id)
     val owned = rank > 0
-    val failedChecks = availability?.checks.orEmpty().filter { it.status == RequirementStatus.FAIL }
-    val manualChecks = availability?.checks.orEmpty().filter { it.status == RequirementStatus.MANUAL }
-    val canIncrease = availability?.canIncrease == true
+    val failedChecks = availability.checks.filter { it.status == RequirementStatus.FAIL }
+    val manualChecks = availability.checks.filter { it.status == RequirementStatus.MANUAL }
+    val canIncrease = availability.canIncrease
     val invalidOwned = owned && (failedChecks.isNotEmpty() || manualChecks.isNotEmpty())
     val accent = when {
         invalidOwned -> DublDanger
@@ -1369,7 +1339,6 @@ private fun DevelopmentRow(
         invalidOwned -> "⚠ Требования"
         owned && entry.isAbility -> "✓ Открыта"
         owned -> "✓ $rank/${entry.maxRank}"
-        availability == null && !owned -> "Проверяем…"
         canIncrease && entry.isAbility -> "Открыть"
         canIncrease -> "✓ Доступно"
         manualChecks.isNotEmpty() -> "? Проверить"
@@ -1453,14 +1422,6 @@ private fun DevelopmentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (unlocksCount > 0) {
-                Text(
-                    "Открывает ${unlocksCount} навыков",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = DublGold,
                 )
             }
         }
@@ -1609,53 +1570,64 @@ private fun DevelopmentRequirementsCard(
 
 @Composable
 private fun DevelopmentUnlocksCard(
-    unlocks: List<DevelopmentEntry>,
+    unlocks: List<DevelopmentEntry>?,
     onOpenEntry: (String) -> Unit,
 ) {
-    if (unlocks.isEmpty()) return
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = DublGold.copy(alpha = 0.03f),
-        border = BorderStroke(1.dp, DublGold.copy(alpha = 0.22f)),
+        shape = RoundedCornerShape(11.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.24f)),
     ) {
-        Column(
-            modifier = Modifier.padding(11.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Column(Modifier.padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Открывает", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("${unlocks.size}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = DublAccent)
+                Text(
+                    unlocks?.size?.toString() ?: "…",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = DublAccent,
+                )
             }
-            unlocks.take(8).forEach { target ->
-                Surface(
-                    modifier = Modifier.fillMaxWidth().clickable { onOpenEntry(target.id) },
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f)),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(target.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                if (target.isAbility) "Спец. ветка" else "${target.cost} XP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+            when {
+                unlocks == null -> Text(
+                    "Связи рассчитываются в фоне",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                unlocks.isEmpty() -> Text(
+                    "Ничего напрямую не открывает",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> {
+                    unlocks.take(8).forEach { target ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().clickable { onOpenEntry(target.id) },
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(target.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        if (target.isAbility) "Доступ к ветке" else "${target.cost} XP",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Text("›", color = DublAccent, fontWeight = FontWeight.Bold)
+                            }
                         }
-                        Text("›", color = DublAccent, fontWeight = FontWeight.Bold)
+                    }
+                    if (unlocks.size > 8) {
+                        Text("И ещё ${unlocks.size - 8}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            }
-            if (unlocks.size > 8) {
-                Text("И ещё ${unlocks.size - 8}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -1669,7 +1641,7 @@ private fun DevelopmentDetailSheet(
     progress: DevelopmentProgress,
     rules: DevelopmentRules,
     planner: DevelopmentAcquisitionPlanner,
-    unlocks: List<DevelopmentEntry>,
+    unlocks: List<DevelopmentEntry>?,
     planned: Boolean,
     onTogglePlanned: () -> Unit,
     onAcquireRequirements: () -> Unit,

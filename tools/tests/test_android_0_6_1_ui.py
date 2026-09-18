@@ -51,14 +51,13 @@ def test_keyboard_focus_is_cleared_from_app_and_sheets():
     assert "dismissKeyboardOnPointerDown()" in sheets
 
 
-def test_martial_art_availability_never_blocks_android_composition():
+def test_martial_art_availability_never_triggers_a_full_catalog_pass_on_entry():
     source = read("app/src/main/java/com/dubl/character/android/ui/screens/FeatsScreen.kt")
     assert "martialAvailabilityById" not in source
-    assert "filteredEntries.associate { entry -> entry.id to rules.availability(entry) }" not in source
-    assert "val developmentAvailabilityById by produceState<Map<String, DevelopmentAvailability>>" in source
-    availability = source.split("val developmentAvailabilityById by produceState", 1)[1].split("val developmentUnlockIndex", 1)[0]
-    assert "withContext(Dispatchers.Default)" in availability
-    assert "localRules.availability(entry)" in availability
+    assert "developmentAvailabilityById" not in source
+    assert "entries.associate { entry -> entry.id to localRules.availability(entry) }" not in source
+    row = source.split("private fun DevelopmentRow(", 1)[1].split("@Composable\nprivate fun DevelopmentStatusPill", 1)[0]
+    assert "remember(entry.id, rules) { rules.availability(entry) }" in row
     assert "!availableOnly || localRules.availability(entry).canIncrease" in source
 
 
